@@ -120,9 +120,10 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
 pub struct SearchResult(pub usize, pub Float, pub (usize, usize), pub usize);
 
 /// Heuristic state result represented as
-/// (state idx, name idx, alpha, beta, mu, v, calls, successes, total duration).
+/// (state idx, name idx, progress alpha, progress beta, effective mean, effective variance, calls,
+/// incumbent improvements, total duration, parent-progress mean, promotion mean, parent improvements).
 ///
-/// The optional counters keep saved states produced before exact aggregation readable.
+/// The optional values keep saved states produced before exact aggregation and hierarchical learning readable.
 #[derive(Default, Serialize, Deserialize)]
 pub struct HeuristicResult(
     pub usize,
@@ -134,6 +135,9 @@ pub struct HeuristicResult(
     pub usize,
     #[serde(default)] pub Option<usize>,
     #[serde(default)] pub Option<u64>,
+    #[serde(default)] pub Option<Float>,
+    #[serde(default)] pub Option<Float>,
+    #[serde(default)] pub Option<usize>,
 );
 
 /// Keeps track of dynamic selective hyper heuristic state.
@@ -161,9 +165,14 @@ impl HyperHeuristicState {
                 map.entry(key).or_insert_with(|| length);
             };
 
-            let mut search_states = data.lines().skip(3).take_while(|line| *line != "heuristic:").fold(
-                BTreeMap::<_, Vec<_>>::new(),
-                |mut data, line| {
+            // Per-search records existed in the original telemetry format. Keep reading them so saved
+            // experiments remain compatible, although current telemetry contains aggregate states only.
+            let mut search_states = data
+                .lines()
+                .skip_while(|line| *line != "search:")
+                .skip(2)
+                .take_while(|line| *line != "heuristic:")
+                .fold(BTreeMap::<_, Vec<_>>::new(), |mut data, line| {
                     let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
                     let name = fields[0].clone();
                     let generation = fields[1].parse().unwrap();
@@ -183,8 +192,7 @@ impl HyperHeuristicState {
                     data.entry(generation).or_default().push(SearchResult(name, reward, (from, to), duration));
 
                     data
-                },
-            );
+                });
             search_states.values_mut().for_each(|states| states.sort_by_key(|SearchResult(a, ..)| *a));
 
             let mut heuristic_states =
@@ -203,6 +211,9 @@ impl HyperHeuristicState {
                         let n = fields[7].parse().unwrap();
                         let successes = fields.get(8).and_then(|value| value.parse().ok());
                         let duration = fields.get(9).and_then(|value| value.parse().ok());
+                        let progress_mean = fields.get(10).and_then(|value| value.parse().ok());
+                        let promotion_mean = fields.get(11).and_then(|value| value.parse().ok());
+                        let parent_improvements = fields.get(12).and_then(|value| value.parse().ok());
 
                         insert_to_map(&mut states, state.clone());
                         insert_to_map(&mut names, name.clone());
@@ -210,9 +221,20 @@ impl HyperHeuristicState {
                         let state = states.get(&state).copied().unwrap();
                         let name = names.get(&name).copied().unwrap();
 
-                        data.entry(generation)
-                            .or_default()
-                            .push(HeuristicResult(state, name, alpha, beta, mu, v, n, successes, duration));
+                        data.entry(generation).or_default().push(HeuristicResult(
+                            state,
+                            name,
+                            alpha,
+                            beta,
+                            mu,
+                            v,
+                            n,
+                            successes,
+                            duration,
+                            progress_mean,
+                            promotion_mean,
+                            parent_improvements,
+                        ));
 
                         data
                     },
@@ -324,7 +346,7 @@ mod tests {
              10,best,operator,2,3,0.4,0.04,7,2,140\n",
         )
         .unwrap();
-        let HeuristicResult(_, _, _, _, _, _, calls, successes, duration) = &state.heuristic_states[&10][0];
+        let HeuristicResult(_, _, _, _, _, _, calls, successes, duration, ..) = &state.heuristic_states[&10][0];
 
         assert_eq!((*calls, *successes, *duration), (7, Some(2), Some(140)));
     }
@@ -333,6 +355,20 @@ mod tests {
     fn reads_legacy_heuristic_result_without_exact_counters() {
         let result: HeuristicResult = serde_json::from_str("[0,1,2.0,3.0,0.4,0.04,7]").unwrap();
 
-        assert_eq!((result.6, result.7, result.8), (7, None, None));
+        assert_eq!((result.6, result.7, result.8, result.9, result.10, result.11), (7, None, None, None, None, None));
+    }
+
+    #[test]
+    fn parses_hierarchical_operator_counters() {
+        let state = HyperHeuristicState::try_parse_all(
+            "TELEMETRY\nheuristic:\n\
+             generation,state,name,alpha,beta,mu,v,n,successes,duration_us,progress_mu,promotion_mu,parent_improvements\n\
+             10,diverse,operator,4,6,0.12,0.01,20,2,140,0.4,0.3,8\n",
+        )
+        .unwrap();
+        let HeuristicResult(_, _, _, _, mean, _, _, _, _, progress, promotion, parent_improvements) =
+            &state.heuristic_states[&10][0];
+
+        assert_eq!((*mean, *progress, *promotion, *parent_improvements), (0.12, Some(0.4), Some(0.3), Some(8)));
     }
 }

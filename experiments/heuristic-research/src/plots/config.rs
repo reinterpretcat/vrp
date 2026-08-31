@@ -113,9 +113,9 @@ pub struct SearchDrawConfig {
     pub posterior_caption: String,
     /// State and exact generation interval shown by cumulative statistics.
     pub interval_caption: String,
-    /// Current posterior mean with respective operator labels.
+    /// Current effective selection mean with respective operator labels.
     pub posterior: Vec<(String, Float)>,
-    /// Exact empirical success rate with successful/call counts in the label.
+    /// Exact empirical incumbent-improvement rate with outcome/call counts in the label.
     pub success_rates: Vec<(String, Float)>,
     /// Exact calls of specific operators.
     pub calls: Vec<(String, Float)>,

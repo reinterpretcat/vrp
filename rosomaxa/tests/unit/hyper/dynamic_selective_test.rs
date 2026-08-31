@@ -104,11 +104,21 @@ fn can_reset_both_search_states_during_stagnation() {
         &environment,
     );
     let feedback = SearchFeedback {
-        sample: SearchSample { duration: 1, reward: 0., transition: (SearchState::BestKnown, SearchState::Diverse) },
+        sample: SearchSample {
+            duration: 1,
+            transition: (SearchState::BestKnown, SearchState::Diverse),
+            is_parent_improvement: false,
+            is_new_best: false,
+        },
         slot_idx: 0,
         solution: None,
     };
-    heuristic.agent.slot_machines.values_mut().for_each(|slots| slots[0].0.update(&feedback));
+    heuristic.agent.slot_machines.values_mut().for_each(|slots| slots[0].progress.update(&feedback));
+    heuristic.agent.slot_machines.get_mut(&SearchState::Diverse).expect("missing diverse slots")[0]
+        .promotion
+        .as_mut()
+        .expect("missing promotion posterior")
+        .update(false);
 
     heuristic.agent.reset_if_stagnant(&HeuristicStatistics {
         generation: STAGNATION_WINDOW,
@@ -117,9 +127,15 @@ fn can_reset_both_search_states_during_stagnation() {
     });
 
     heuristic.agent.slot_machines.values().for_each(|slots| {
-        let (alpha, beta, _, _, observations) = slots[0].0.get_params();
-        assert_eq!((alpha, beta, observations), (1., 1., 1));
+        let params = slots[0].progress.get_params();
+        assert_eq!((params.alpha, params.beta, params.observations), (1., 1., 1));
     });
+    let promotion = heuristic.agent.slot_machines[&SearchState::Diverse][0]
+        .promotion
+        .as_ref()
+        .expect("missing promotion posterior")
+        .params();
+    assert_eq!((promotion.alpha, promotion.beta), (1., 1.));
 }
 
 #[test]
@@ -153,9 +169,67 @@ fn can_treat_noop_as_unsuccessful_through_search_action() {
         solution: &solution,
     });
 
-    assert_eq!(feedback.sample.reward, 0.);
+    assert!(!feedback.sample.is_new_best);
     assert!(!feedback.is_success());
     assert!(feedback.sample.duration > 0);
+}
+
+#[test]
+fn can_learn_diverse_progress_and_promotion_separately() {
+    struct Noop;
+
+    impl HeuristicSearchOperator for Noop {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            solution.deep_copy()
+        }
+    }
+
+    let environment = Environment::default();
+    let mut agent = SearchAgent::new(vec![(Arc::new(Noop), "noop".to_string(), 1.)], &environment);
+    let create_feedback = |is_parent_improvement, is_new_best| SearchFeedback {
+        sample: SearchSample {
+            duration: 1,
+            transition: (SearchState::Diverse, if is_new_best { SearchState::BestKnown } else { SearchState::Diverse }),
+            is_parent_improvement,
+            is_new_best,
+        },
+        slot_idx: 0,
+        solution: None,
+    };
+
+    agent.update(1, &create_feedback(true, false));
+    let slot = &agent.slot_machines[&SearchState::Diverse][0];
+    let params = slot.progress.get_params();
+    assert_eq!((params.alpha, params.beta), (2., 1.));
+    let promotion = slot.promotion.as_ref().expect("missing promotion posterior").params();
+    assert_eq!((promotion.alpha, promotion.beta), (1., 2.));
+
+    agent.update(2, &create_feedback(false, false));
+    let slot = &agent.slot_machines[&SearchState::Diverse][0];
+    let params = slot.progress.get_params();
+    assert_eq!((params.alpha, params.beta), (2., 2.));
+    let promotion = slot.promotion.as_ref().expect("missing promotion posterior").params();
+    assert_eq!((promotion.alpha, promotion.beta), (1., 2.));
+
+    agent.update(3, &create_feedback(true, true));
+
+    let slot = &agent.slot_machines[&SearchState::Diverse][0];
+    let params = slot.progress.get_params();
+    let promotion = slot.promotion.as_ref().expect("missing promotion posterior").params();
+    assert_eq!((params.alpha, params.beta, params.observations), (3., 2., 3));
+    assert_eq!((promotion.alpha, promotion.beta), (2., 2.));
+}
+
+#[test]
+fn can_compute_product_variance() {
+    let left = BernoulliParams { alpha: 1., beta: 1., mean: 0.5, variance: 0.1, observations: 0 };
+    let right = BernoulliParams { alpha: 1., beta: 1., mean: 0.2, variance: 0.02, observations: 0 };
+
+    assert!((product_variance(&left, &right) - 0.011).abs() < Float::EPSILON);
 }
 
 #[test]
@@ -192,7 +266,8 @@ fn can_display_heuristic_info() {
         assert!(formatted.contains("TELEMETRY"));
         assert!(formatted.contains("duration_us"));
         assert!(formatted.contains("0,best,noop,"));
-        assert!(formatted.contains("n,successes,duration_us"));
+        assert!(formatted.contains("calls,incumbent_improvements,duration_us"));
+        assert!(!formatted.contains("reward"));
     } else {
         // When not experimental, should be empty or minimal
         assert!(formatted.is_empty() || !formatted.contains("thompson_diagnostics:"));
@@ -205,24 +280,40 @@ fn can_track_exact_state_specific_summary() {
     tracker.observe_sample(
         1,
         "operator",
-        &SearchSample { duration: 10, reward: 1., transition: (SearchState::BestKnown, SearchState::BestKnown) },
+        &SearchSample {
+            duration: 10,
+            transition: (SearchState::BestKnown, SearchState::BestKnown),
+            is_parent_improvement: true,
+            is_new_best: true,
+        },
     );
     tracker.observe_sample(
         2,
         "operator",
-        &SearchSample { duration: 20, reward: 0., transition: (SearchState::BestKnown, SearchState::Diverse) },
+        &SearchSample {
+            duration: 20,
+            transition: (SearchState::BestKnown, SearchState::Diverse),
+            is_parent_improvement: false,
+            is_new_best: false,
+        },
     );
     tracker.observe_sample(
         2,
         "operator",
-        &SearchSample { duration: 30, reward: 1., transition: (SearchState::Diverse, SearchState::BestKnown) },
+        &SearchSample {
+            duration: 30,
+            transition: (SearchState::Diverse, SearchState::BestKnown),
+            is_parent_improvement: true,
+            is_new_best: true,
+        },
     );
 
     let best = tracker.get_summary(&SearchState::BestKnown, "operator");
     let diverse = tracker.get_summary(&SearchState::Diverse, "operator");
 
-    assert_eq!((best.successes, best.duration), (1, 30));
-    assert_eq!((diverse.successes, diverse.duration), (1, 30));
+    assert_eq!((best.incumbent_improvements, best.duration), (1, 30));
+    assert_eq!((diverse.incumbent_improvements, diverse.duration), (1, 30));
+    assert_eq!((best.parent_improvements, diverse.parent_improvements), (1, 1));
 }
 
 #[test]

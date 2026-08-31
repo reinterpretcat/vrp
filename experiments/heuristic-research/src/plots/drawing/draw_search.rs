@@ -2,7 +2,7 @@ use super::*;
 use plotters::style::full_palette::BLUE_200;
 use rosomaxa::prelude::Float;
 
-/// Draws search iteration statistics as bar plot.
+/// Draws effective Thompson selection means as a bar plot.
 pub(crate) fn draw_search_iteration<B: DrawingBackend + 'static>(
     area: &DrawingArea<B, Shift>,
     config: &SearchDrawConfig,
@@ -11,7 +11,7 @@ pub(crate) fn draw_search_iteration<B: DrawingBackend + 'static>(
         area,
         config.posterior.as_slice(),
         config.posterior_caption.as_str(),
-        "posterior mean",
+        "effective mean",
         "No posterior telemetry at this generation",
     )
 }

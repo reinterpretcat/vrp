@@ -39,7 +39,7 @@ impl DistributionSampler for MeanDistributionSampler {
 fn can_use_success_prior_as_specified() {
     let slot = SlotMachine::new(2.5, TestAction, MeanDistributionSampler);
 
-    assert_eq!(slot.get_params().0, 2.5);
+    assert_eq!(slot.get_params().alpha, 2.5);
     assert_eq!(slot.sample(), 2.5 / 3.5);
 }
 
@@ -50,7 +50,7 @@ fn can_reset_learning_state_and_keep_usage() {
     slot.update(&TestFeedback(false));
     slot.reset();
 
-    let (alpha, beta, mean, variance, observations) = slot.get_params();
+    let BernoulliParams { alpha, beta, mean, variance, observations } = slot.get_params();
     assert_eq!((alpha, beta, mean, observations), (2.5, PRIOR_BETA, 2.5 / 3.5, 1));
     assert!((variance - 2.5 / (3.5_f64.powi(2) * 4.5)).abs() < 1e-12);
     assert_eq!(slot.sample(), 2.5 / 3.5);
@@ -62,7 +62,7 @@ fn can_update_beta_posterior() {
 
     slot.update(&TestFeedback(true));
 
-    let (alpha, beta, mean, variance, observations) = slot.get_params();
+    let BernoulliParams { alpha, beta, mean, variance, observations } = slot.get_params();
     assert_eq!((alpha, beta, mean, observations), (2., 1., 2. / 3., 1));
     assert!((variance - 1. / 18.).abs() < 1e-12);
 }
@@ -73,13 +73,13 @@ fn can_limit_confidence_and_adapt_to_regime_change() {
 
     (0..1_000).for_each(|_| slot.update(&TestFeedback(true)));
     let successful = slot.get_params();
-    assert!(successful.0 + successful.1 <= MAX_EVIDENCE + f64::EPSILON);
-    assert!(successful.2 > 0.99);
+    assert!(successful.alpha + successful.beta <= MAX_EVIDENCE + f64::EPSILON);
+    assert!(successful.mean > 0.99);
 
     (0..1_000).for_each(|_| slot.update(&TestFeedback(false)));
     let unsuccessful = slot.get_params();
-    assert!(unsuccessful.0 + unsuccessful.1 <= MAX_EVIDENCE + f64::EPSILON);
-    assert!(unsuccessful.2 < 0.01);
+    assert!(unsuccessful.alpha + unsuccessful.beta <= MAX_EVIDENCE + f64::EPSILON);
+    assert!(unsuccessful.mean < 0.01);
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn can_keep_sampling_numerically_stable() {
 
     (0..1_000).for_each(|_| slot.update(&TestFeedback(true)));
     assert!(slot.sample().is_finite());
-    assert!(slot.get_params().2 > 0.99);
+    assert!(slot.get_params().mean > 0.99);
 }
 
 #[test]

@@ -699,13 +699,26 @@ fn create_search_config(
     };
 
     current.iter().filter(|value| value.0 == state_idx).for_each(|value| {
-        let HeuristicResult(_, name_idx, _, _, mean, _, calls, successes, duration) = value;
+        let HeuristicResult(
+            _,
+            name_idx,
+            _,
+            _,
+            mean,
+            _,
+            calls,
+            successes,
+            duration,
+            progress_mean,
+            promotion_mean,
+            parent_improvements,
+        ) = value;
         let Some(name) = names_rev.get(name_idx) else { return };
         let previous = baseline.get(name_idx).copied();
         let calls = calls.saturating_sub(previous.map(|value| value.6).unwrap_or_default());
         let successes = successes.and_then(|successes| {
             let previous = match previous {
-                Some(HeuristicResult(_, _, _, _, _, _, _, Some(successes), _)) => *successes,
+                Some(HeuristicResult(_, _, _, _, _, _, _, Some(successes), ..)) => *successes,
                 Some(_) => return None,
                 None => 0,
             };
@@ -713,19 +726,41 @@ fn create_search_config(
         });
         let duration = duration.and_then(|duration| {
             let previous = match previous {
-                Some(HeuristicResult(_, _, _, _, _, _, _, _, Some(duration))) => *duration,
+                Some(HeuristicResult(_, _, _, _, _, _, _, _, Some(duration), ..)) => *duration,
                 Some(_) => return None,
                 None => 0,
             };
             Some(duration.saturating_sub(previous))
         });
 
-        config.posterior.push((format!("{name} · {mean:.3}"), *mean));
+        let posterior_label = match (kind, progress_mean, promotion_mean) {
+            ("diverse", Some(progress), Some(promotion)) => {
+                format!("{name} · {mean:.3} ({progress:.3}×{promotion:.3})")
+            }
+            _ => format!("{name} · {mean:.3}"),
+        };
+        config.posterior.push((posterior_label, *mean));
         config.calls.push((format!("{name} · {calls}"), calls as Float));
 
         if let Some(successes) = successes {
             let rate = if calls == 0 { 0. } else { successes as Float / calls as Float };
-            config.success_rates.push((format!("{name} · {successes}/{calls}"), rate));
+            let parent_improvements = parent_improvements.and_then(|parent_improvements| {
+                let previous = match previous {
+                    Some(HeuristicResult(_, _, _, _, _, _, _, _, _, _, _, Some(parent_improvements))) => {
+                        *parent_improvements
+                    }
+                    Some(_) => return None,
+                    None => 0,
+                };
+                Some(parent_improvements.saturating_sub(previous))
+            });
+            let label = match (kind, parent_improvements) {
+                ("diverse", Some(parent_improvements)) => {
+                    format!("{name} · {successes}/{calls}; parent {parent_improvements}/{calls}")
+                }
+                _ => format!("{name} · {successes}/{calls}"),
+            };
+            config.success_rates.push((label, rate));
         }
         if let Some(duration) = duration.filter(|_| calls > 0) {
             let mean = duration as Float / calls as Float;
@@ -854,7 +889,7 @@ mod tests {
             ..Default::default()
         };
         let result = |state, name, mean, calls, successes, duration| {
-            HeuristicResult(state, name, 1., 1., mean, 0.1, calls, Some(successes), Some(duration))
+            HeuristicResult(state, name, 1., 1., mean, 0.1, calls, Some(successes), Some(duration), None, None, None)
         };
         state.heuristic_states.insert(
             1000,
@@ -879,7 +914,7 @@ mod tests {
         let state = HyperHeuristicState {
             names: [("operator".to_string(), 0)].into_iter().collect(),
             states: [("best".to_string(), 0)].into_iter().collect(),
-            heuristic_states: [(10, vec![HeuristicResult(0, 0, 1., 1., 0.5, 0.1, 7, None, None)])]
+            heuristic_states: [(10, vec![HeuristicResult(0, 0, 1., 1., 0.5, 0.1, 7, None, None, None, None, None)])]
                 .into_iter()
                 .collect(),
             ..Default::default()
@@ -890,5 +925,25 @@ mod tests {
         assert_eq!(config.calls, vec![("operator · 7".to_string(), 7.)]);
         assert!(config.success_rates.is_empty());
         assert!(config.durations.is_empty());
+    }
+
+    #[test]
+    fn shows_hierarchical_diverse_outcomes() {
+        let state = HyperHeuristicState {
+            names: [("operator".to_string(), 0)].into_iter().collect(),
+            states: [("diverse".to_string(), 0)].into_iter().collect(),
+            heuristic_states: [(
+                10,
+                vec![HeuristicResult(0, 0, 4., 6., 0.12, 0.01, 20, Some(2), Some(140), Some(0.4), Some(0.3), Some(8))],
+            )]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+
+        let config = create_search_config(&state, 10, "diverse", 0).unwrap();
+
+        assert_eq!(config.posterior, vec![("operator · 0.120 (0.400×0.300)".to_string(), 0.12)]);
+        assert_eq!(config.success_rates, vec![("operator · 2/20; parent 8/20".to_string(), 0.1)]);
     }
 }

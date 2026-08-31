@@ -4,7 +4,7 @@ mod dynamic_selective_test;
 
 use super::*;
 use crate::Timer;
-use crate::algorithms::rl::{SlotAction, SlotFeedback, SlotMachine};
+use crate::algorithms::rl::{BernoulliParams, BernoulliPosterior, SlotAction, SlotFeedback, SlotMachine};
 use crate::utils::{DefaultDistributionSampler, ParallelismPolicy, parallel_collect, random_argmax};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -114,8 +114,41 @@ where
     }
 }
 
-/// Type alias for slot machines used in Thompson sampling.
-pub type SlotMachines<'a, C, O, S> = Vec<(SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>, String)>;
+struct SearchSlot<'a, C, O, S> {
+    /// Learns incumbent improvements for best-known parents and parent improvements for diverse parents.
+    progress: SlotMachine<SearchAction<'a, C, O, S>, DefaultDistributionSampler>,
+    /// Learns whether an improved diverse parent is promoted past the incumbent.
+    promotion: Option<BernoulliPosterior<DefaultDistributionSampler>>,
+    name: String,
+}
+
+type SearchSlots<'a, C, O, S> = Vec<SearchSlot<'a, C, O, S>>;
+
+impl<'a, C, O, S> SearchSlot<'a, C, O, S>
+where
+    C: HeuristicContext<Objective = O, Solution = S> + 'a,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution + 'a,
+{
+    /// Samples an operator score from its learned progress and, for diverse parents, promotion probabilities.
+    fn sample(&self) -> Float {
+        let progress = self.progress.sample();
+        let promotion = self.promotion.as_ref().map_or(1., BernoulliPosterior::sample);
+
+        progress * promotion
+    }
+
+    /// Records progress from the selected parent and a conditional promotion to the incumbent.
+    fn update(&mut self, feedback: &SearchFeedback<S>) {
+        self.progress.update(feedback);
+
+        if feedback.sample.is_parent_improvement {
+            if let Some(promotion) = self.promotion.as_mut() {
+                promotion.update(feedback.sample.is_new_best);
+            }
+        }
+    }
+}
 
 /// Bounds applied to relative operator weights before using them as successful-outcome priors.
 const PRIOR_ALPHA_MIN: Float = 0.1;
@@ -151,7 +184,10 @@ pub struct SearchFeedback<S> {
 
 impl<S> SlotFeedback for SearchFeedback<S> {
     fn is_success(&self) -> bool {
-        self.sample.reward > 0.
+        match &self.sample.transition.0 {
+            SearchState::BestKnown => self.sample.is_new_best,
+            SearchState::Diverse => self.sample.is_parent_improvement,
+        }
     }
 }
 
@@ -181,17 +217,22 @@ where
 
         let duration = get_duration_micros(duration);
 
-        // Only a strict incumbent improvement is a success. Improving a weak parent is useful search
-        // movement, but rewarding it here lets frequent local moves starve rare basin-changing operators.
-        let is_new_best = context.best_known.is_some_and(|best_known| {
-            context.heuristic_ctx.objective().total_order(&new_solution, best_known) == Ordering::Less
-        });
-        let reward = if is_new_best { 1. } else { 0. };
-
+        let objective = context.heuristic_ctx.objective();
+        let is_new_best = context
+            .best_known
+            .is_some_and(|best_known| objective.total_order(&new_solution, best_known) == Ordering::Less);
+        let is_parent_improvement = match &context.from {
+            // A best-known parent ties the incumbent, while beating the incumbent from a diverse parent also
+            // implies beating that parent. Only the remaining case needs another objective comparison.
+            SearchState::BestKnown => is_new_best,
+            SearchState::Diverse => {
+                is_new_best || objective.total_order(&new_solution, context.solution) == Ordering::Less
+            }
+        };
         let to = if is_new_best { SearchState::BestKnown } else { SearchState::Diverse };
         let transition = (context.from, to);
 
-        let sample = SearchSample { duration, reward, transition };
+        let sample = SearchSample { duration, transition, is_parent_improvement, is_new_best };
 
         SearchFeedback { sample, slot_idx: context.slot_idx, solution: Some(new_solution) }
     }
@@ -213,7 +254,7 @@ where
 
 struct SearchAgent<'a, C, O, S> {
     /// Separate learning contexts for different search phases (BestKnown vs Diverse).
-    slot_machines: HashMap<SearchState, SlotMachines<'a, C, O, S>>,
+    slot_machines: HashMap<SearchState, SearchSlots<'a, C, O, S>>,
     /// Tracks experimental operator statistics.
     tracker: HeuristicTracker,
     /// Random number generator for Thompson sampling selection.
@@ -241,26 +282,29 @@ where
         // 1. We have many operators (cold start problem)
         // 2. Limited search time may not be enough to learn from scratch
         // 3. Weights encode expert knowledge about operator effectiveness
-        let create_slots = || {
+        let create_slots = |with_promotion: bool| {
             search_operators
                 .iter()
                 .map(|(operator, name, initial_weight)| {
                     let prior_alpha = get_prior_alpha(*initial_weight, avg_weight);
-                    (
-                        SlotMachine::new(
+                    SearchSlot {
+                        progress: SlotMachine::new(
                             prior_alpha,
                             SearchAction { operator: operator.clone() },
                             DefaultDistributionSampler::new(environment.random.clone()),
                         ),
-                        name.clone(),
-                    )
+                        promotion: with_promotion.then(|| {
+                            BernoulliPosterior::new(1., DefaultDistributionSampler::new(environment.random.clone()))
+                        }),
+                        name: name.clone(),
+                    }
                 })
                 .collect::<Vec<_>>()
         };
 
         // Initialize separate states with identical priors but independent learning.
-        let slot_machines = once((SearchState::BestKnown, create_slots()))
-            .chain(once((SearchState::Diverse, create_slots())))
+        let slot_machines = once((SearchState::BestKnown, create_slots(false)))
+            .chain(once((SearchState::Diverse, create_slots(true))))
             .collect();
 
         Self {
@@ -277,13 +321,18 @@ where
             return;
         }
 
-        self.slot_machines.values_mut().flat_map(|slots| slots.iter_mut()).for_each(|(slot, _)| slot.reset());
+        self.slot_machines.values_mut().flat_map(|slots| slots.iter_mut()).for_each(|slot| {
+            slot.progress.reset();
+            if let Some(promotion) = slot.promotion.as_mut() {
+                promotion.reset();
+            }
+        });
 
         (self.stagnation_reset_interval, self.next_stagnation_reset) =
             advance_stagnation_reset(statistics.generation, self.stagnation_reset_interval);
     }
 
-    /// Picks the relevant search operator using pure Thompson Sampling and runs the search.
+    /// Picks the relevant search operator using contextual Thompson sampling and runs the search.
     pub fn search(&self, heuristic_ctx: &C, solution: &S) -> SearchFeedback<S> {
         let best_known = heuristic_ctx.ranked().next();
         self.search_with_best(heuristic_ctx, solution, best_known)
@@ -300,16 +349,15 @@ where
         // Get contextually appropriate slot machines.
         let slots = self.slot_machines.get(&from).expect("cannot get slot machines");
 
-        // Sample each arm, pick argmax with random tie-break.
-        let samples = slots.iter().map(|(slot, _)| slot.sample());
+        let samples = slots.iter().map(SearchSlot::sample);
         let slot_idx = random_argmax(samples, self.random.as_ref()).unwrap_or(0);
-        let slot_machine = &slots[slot_idx].0;
+        let slot_machine = &slots[slot_idx].progress;
 
         // Execute with full context information.
         slot_machine.play(SearchContext { heuristic_ctx, best_known, from, slot_idx, solution })
     }
 
-    /// Updates the selected slot with its incumbent-improvement outcome.
+    /// Updates the selected slot with the outcomes relevant to its parent state.
     pub fn update(&mut self, generation: usize, feedback: &SearchFeedback<S>) {
         if feedback.sample.transition.1 == SearchState::BestKnown {
             self.stagnation_reset_interval = STAGNATION_WINDOW;
@@ -318,11 +366,11 @@ where
 
         let from = &feedback.sample.transition.0;
         let slots = self.slot_machines.get_mut(from).expect("cannot get slot machines");
-        let (slot_machine, name) = &mut slots[feedback.slot_idx];
-        slot_machine.update(feedback);
+        let slot = &mut slots[feedback.slot_idx];
+        slot.update(feedback);
 
         // Track telemetry.
-        self.tracker.observe_sample(generation, name, &feedback.sample);
+        self.tracker.observe_sample(generation, &slot.name, &feedback.sample);
     }
 
     /// Updates statistics about heuristic internal parameters.
@@ -338,19 +386,27 @@ where
         self.slot_machines
             .iter()
             .flat_map(|(state, slots)| {
-                slots.iter().map(|(slot, name)| {
-                    let (alpha, beta, mu, v, n) = slot.get_params();
-                    let summary = self.tracker.get_summary(state, name);
+                slots.iter().map(|slot| {
+                    let progress = slot.progress.get_params();
+                    let (effective_mean, effective_variance, promotion_mean) =
+                        slot.promotion.as_ref().map_or((progress.mean, progress.variance, 1.), |promotion| {
+                            let promotion = promotion.params();
+                            (progress.mean * promotion.mean, product_variance(&progress, &promotion), promotion.mean)
+                        });
+                    let summary = self.tracker.get_summary(state, &slot.name);
                     HeuristicSample {
                         state: state.clone(),
-                        name: name.clone(),
-                        alpha,
-                        beta,
-                        mu,
-                        v,
-                        n,
-                        successes: summary.successes,
+                        name: slot.name.clone(),
+                        progress_alpha: progress.alpha,
+                        progress_beta: progress.beta,
+                        effective_mean,
+                        effective_variance,
+                        calls: progress.observations,
+                        incumbent_improvements: summary.incumbent_improvements,
                         duration: summary.duration,
+                        progress_mean: progress.mean,
+                        promotion_mean,
+                        parent_improvements: summary.parent_improvements,
                     }
                 })
             })
@@ -374,6 +430,10 @@ fn get_prior_alpha(initial_weight: Float, avg_weight: Float) -> Float {
 
 fn get_duration_micros(duration: std::time::Duration) -> usize {
     (duration.as_micros().min(usize::MAX as u128) as usize).max(1)
+}
+
+fn product_variance(left: &BernoulliParams, right: &BernoulliParams) -> Float {
+    left.variance * right.variance + left.variance * right.mean.powi(2) + right.variance * left.mean.powi(2)
 }
 
 fn compare_to_best<O, S>(objective: &O, best_known: Option<&S>, solution: &S) -> Ordering
@@ -461,14 +521,16 @@ fn compact_params(
 
 #[derive(Clone, Copy, Default)]
 struct HeuristicSummary {
-    successes: usize,
+    incumbent_improvements: usize,
     duration: u64,
+    parent_improvements: usize,
 }
 
 impl HeuristicSummary {
     fn observe(&mut self, sample: &SearchSample) {
-        self.successes += usize::from(sample.reward > 0.);
+        self.incumbent_improvements += usize::from(sample.is_new_best);
         self.duration = self.duration.saturating_add(sample.duration as u64);
+        self.parent_improvements += usize::from(sample.is_parent_improvement);
     }
 }
 
@@ -476,21 +538,25 @@ impl HeuristicSummary {
 #[derive(Clone)]
 struct SearchSample {
     duration: usize,
-    reward: Float,
     transition: (SearchState, SearchState),
+    is_parent_improvement: bool,
+    is_new_best: bool,
 }
 
 /// A sample of heuristic parameters telemetry.
 struct HeuristicSample {
     state: SearchState,
     name: String,
-    alpha: Float,
-    beta: Float,
-    mu: Float,
-    v: Float,
-    n: usize,
-    successes: usize,
+    progress_alpha: Float,
+    progress_beta: Float,
+    effective_mean: Float,
+    effective_variance: Float,
+    calls: usize,
+    incumbent_improvements: usize,
     duration: u64,
+    progress_mean: Float,
+    promotion_mean: Float,
+    parent_improvements: usize,
 }
 
 impl<C, O, S> Display for DynamicSelective<C, O, S>
@@ -505,11 +571,10 @@ where
         }
 
         f.write_fmt(format_args!("TELEMETRY\n"))?;
-        f.write_fmt(format_args!("search:\n"))?;
-        f.write_fmt(format_args!("name,generation,reward,from,to,duration_us\n"))?;
-
         f.write_fmt(format_args!("heuristic:\n"))?;
-        f.write_fmt(format_args!("generation,state,name,alpha,beta,mu,v,n,successes,duration_us\n"))?;
+        f.write_fmt(format_args!(
+            "generation,state,name,progress_alpha,progress_beta,effective_mu,effective_v,calls,incumbent_improvements,duration_us,progress_mu,promotion_mu,parent_improvements\n"
+        ))?;
 
         let final_generation = self.agent.tracker.last_generation;
         let final_params = self.agent.get_params();
@@ -518,33 +583,39 @@ where
         {
             for sample in samples {
                 f.write_fmt(format_args!(
-                    "{},{},{},{},{},{},{},{},{},{}\n",
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                     generation,
                     sample.state,
                     sample.name,
-                    sample.alpha,
-                    sample.beta,
-                    sample.mu,
-                    sample.v,
-                    sample.n,
-                    sample.successes,
-                    sample.duration
+                    sample.progress_alpha,
+                    sample.progress_beta,
+                    sample.effective_mean,
+                    sample.effective_variance,
+                    sample.calls,
+                    sample.incumbent_improvements,
+                    sample.duration,
+                    sample.progress_mean,
+                    sample.promotion_mean,
+                    sample.parent_improvements
                 ))?;
             }
         }
         for sample in final_params {
             f.write_fmt(format_args!(
-                "{},{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 final_generation,
                 sample.state,
                 sample.name,
-                sample.alpha,
-                sample.beta,
-                sample.mu,
-                sample.v,
-                sample.n,
-                sample.successes,
-                sample.duration
+                sample.progress_alpha,
+                sample.progress_beta,
+                sample.effective_mean,
+                sample.effective_variance,
+                sample.calls,
+                sample.incumbent_improvements,
+                sample.duration,
+                sample.progress_mean,
+                sample.promotion_mean,
+                sample.parent_improvements
             ))?;
         }
 
