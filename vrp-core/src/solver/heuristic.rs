@@ -685,17 +685,21 @@ mod dynamic {
         // selection still let repeated descents propose different moves.
         const MAX_IMPROVEMENTS: usize = 8;
 
-        let operators: Vec<Arc<dyn LocalOperator>> = vec![
+        let search =
+            VariableNeighborhoodSearch::new(create_variable_neighborhood_operators(environment), MAX_IMPROVEMENTS)
+                .with_extended_operator(Arc::new(ExchangeSequenceBest::new_global(32, 2)));
+
+        Arc::new(LocalSearch::new(Arc::new(search)))
+    }
+
+    fn create_variable_neighborhood_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {
+        vec![
             Arc::new(RelocateInterRoute::default()),
             Arc::new(ExchangeSequenceBest::default()),
             Arc::new(ExchangeTwoOptStar::default()),
             Arc::new(ExchangeInterRouteBest::new(0., 0., 0.)),
             Arc::new(ExchangeSwapStar::new(environment.random.clone())),
-        ];
-        let search = VariableNeighborhoodSearch::new(operators, MAX_IMPROVEMENTS)
-            .with_extended_operator(Arc::new(ExchangeSequenceBest::new_global(32, 2)));
-
-        Arc::new(LocalSearch::new(Arc::new(search)))
+        ]
     }
 
     pub fn get_operators(
@@ -845,22 +849,60 @@ mod dynamic {
         ))))
     }
 
+    /// Runs a refinement only after the primary search has improved its input and preserves the
+    /// primary result when the refinement cannot improve it further.
+    struct RefineOnImprovement {
+        primary: TargetSearchOperator,
+        refinement: Arc<dyn LocalOperator>,
+    }
+
+    impl RefineOnImprovement {
+        fn new(primary: TargetSearchOperator, refinement: Arc<dyn LocalOperator>) -> Self {
+            Self { primary, refinement }
+        }
+    }
+
+    impl HeuristicSearchOperator for RefineOnImprovement {
+        type Context = RefinementContext;
+        type Objective = GoalContext;
+        type Solution = InsertionContext;
+
+        fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            let candidate = self.primary.search(heuristic_ctx, solution);
+            let goal = solution.problem.goal.as_ref();
+
+            if !goal.total_order(&candidate, solution).is_lt() {
+                return candidate;
+            }
+
+            let Some(refined) = self.refinement.explore(heuristic_ctx, &candidate) else {
+                return candidate;
+            };
+
+            if goal.total_order(&refined, &candidate).is_lt() { refined } else { candidate }
+        }
+    }
+
     fn create_variable_search_decompose_search(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> TargetSearchOperator {
-        Arc::new(DecomposeSearch::new(
-            Arc::new(WeightedHeuristicOperator::new(
-                vec![
-                    create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
-                    create_default_good_operator(problem, environment.clone()),
-                    create_default_local_search(environment.random.clone()),
-                ],
-                vec![9, 3, 1],
-            )),
-            (2, 4),
-            2,
-        ))
+        let inner = Arc::new(WeightedHeuristicOperator::new(
+            vec![
+                create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
+                create_default_good_operator(problem, environment.clone()),
+                create_default_local_search(environment.random.clone()),
+            ],
+            vec![9, 3, 1],
+        ));
+        let primary = Arc::new(DecomposeSearch::new(inner, (2, 4), 2));
+
+        // Decomposition exposes new cross-route moves. Apply one bounded descent only after the
+        // merged candidate improves its parent under the complete objective.
+        let refinement =
+            Arc::new(VariableNeighborhoodSearch::new(create_variable_neighborhood_operators(environment.as_ref()), 1));
+
+        Arc::new(RefineOnImprovement::new(primary, refinement))
     }
 
     fn create_composite_decompose_search(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetSearchOperator {

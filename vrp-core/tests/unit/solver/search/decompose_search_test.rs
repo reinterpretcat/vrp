@@ -62,9 +62,18 @@ fn assert_registry_consistency(insertion_ctx: &InsertionContext) {
 }
 
 #[test]
-fn can_get_repeat_count_above_precomputed_range() {
-    assert_eq!(get_repeat_count(5, &FakeRandom::new(vec![0], vec![])), 1);
-    assert_eq!(get_repeat_count(5, &FakeRandom::new(vec![4], vec![])), 5);
+fn can_decide_whether_to_retry() {
+    assert!(should_retry(0, 2, true, &FakeRandom::new(vec![], vec![])));
+    assert!(!should_retry(1, 2, true, &FakeRandom::new(vec![], vec![])));
+    assert!(should_retry(0, 2, false, &FakeRandom::new(vec![], vec![0.1])));
+    assert!(!should_retry(0, 2, false, &FakeRandom::new(vec![], vec![0.3])));
+}
+
+#[test]
+fn can_sample_fallback_parts() {
+    assert_eq!(sample_fallback_part_indices(3, &FakeRandom::new(vec![2], vec![])), (2, None));
+    assert_eq!(sample_fallback_part_indices(4, &FakeRandom::new(vec![1, 1], vec![])), (1, Some(2)));
+    assert_eq!(sample_fallback_part_indices(5, &FakeRandom::new(vec![3, 1], vec![])), (3, Some(1)));
 }
 
 #[test]

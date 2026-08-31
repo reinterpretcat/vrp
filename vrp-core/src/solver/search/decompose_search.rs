@@ -18,18 +18,18 @@ use std::iter::{empty, once};
 pub struct DecomposeSearch {
     inner_search: TargetSearchOperator,
     max_routes_range: (i32, i32),
-    repeat_count: usize,
+    max_attempts: usize,
 }
 
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
-    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
+    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), max_attempts: usize) -> Self {
         assert!(max_routes_range.0 > 1);
         assert!(max_routes_range.0 <= max_routes_range.1);
-        assert!(repeat_count > 0);
+        assert!(max_attempts > 0);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
-        Self { inner_search, max_routes_range, repeat_count }
+        Self { inner_search, max_routes_range, max_attempts }
     }
 }
 
@@ -42,7 +42,7 @@ impl HeuristicSearchOperator for DecomposeSearch {
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
-        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range, self.repeat_count)
+        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range, self.max_attempts)
             .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
             .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
     }
@@ -59,16 +59,21 @@ impl DecomposeSearch {
     ) -> InsertionContext {
         // do actual refinement independently for each decomposed context
         let decomposed = parallel_collect(decomposed, ParallelismPolicy::Coarse, |mut refinement_ctx| {
-            let actual_repeat_count = get_repeat_count(self.repeat_count, refinement_ctx.environment.random.as_ref());
-
-            let _ = (0..actual_repeat_count).try_for_each(|_| {
+            let _ = (0..self.max_attempts).try_for_each(|attempt| {
                 let insertion_ctx = refinement_ctx.selected().next().expect(GREEDY_ERROR);
-                let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
+                let candidate = self.inner_search.search(&refinement_ctx, insertion_ctx);
+                let improved = insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx).is_lt();
                 let is_quota_reached =
                     refinement_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
-                refinement_ctx.add_solution(insertion_ctx);
+                refinement_ctx.add_solution(candidate);
 
-                if is_quota_reached { Err(()) } else { Ok(()) }
+                if is_quota_reached
+                    || !should_retry(attempt, self.max_attempts, improved, refinement_ctx.environment.random.as_ref())
+                {
+                    Err(())
+                } else {
+                    Ok(())
+                }
             });
             refinement_ctx
         });
@@ -100,7 +105,16 @@ impl DecomposeSearch {
                 },
             )
         } else {
-            new_parts.into_iter().fold(create_accumulator(), |accumulated, new_part| merge_parts(new_part, accumulated))
+            // Keep a localized perturbation: merging every non-improving part makes damage grow with problem size.
+            let random = refinement_ctx.environment.random.as_ref();
+            let (first_idx, second_idx) = sample_fallback_part_indices(new_parts.len(), random);
+            new_parts.into_iter().zip(old_parts).enumerate().fold(
+                create_accumulator(),
+                |accumulated, (idx, (new_part, old_part))| {
+                    let is_selected = idx == first_idx || second_idx == Some(idx);
+                    merge_parts(if is_selected { new_part } else { old_part }, accumulated)
+                },
+            )
         };
 
         insertion_ctx.restore();
@@ -115,25 +129,26 @@ fn create_population(insertion_ctx: InsertionContext) -> TargetPopulation {
     Box::new(DecomposePopulation::new(insertion_ctx.problem.goal.clone(), 1, insertion_ctx))
 }
 
-/// Selects a repeat count from 1 to max_repeat_count using exponential decay.
-/// Uses stack-allocated arrays for common cases to avoid heap allocation.
-fn get_repeat_count(max_repeat_count: usize, random: &dyn Random) -> usize {
-    if max_repeat_count == 1 {
-        return 1;
-    }
+fn should_retry(attempt: usize, max_attempts: usize, improved: bool, random: &dyn Random) -> bool {
+    const RETRY_AFTER_FAILURE_PROBABILITY: Float = 0.2;
 
-    // create weights with exponential decay: [3^(n-1), 3^(n-2), ..., 3^1, 3^0]
-    let index = match max_repeat_count {
-        2 => random.weighted(&[3, 1]),
-        3 => random.weighted(&[9, 3, 1]),
-        4 => random.weighted(&[27, 9, 3, 1]),
-        _ => {
-            let weights: Vec<_> = (1..=max_repeat_count).map(|i| 3_usize.pow((max_repeat_count - i) as u32)).collect();
-            random.weighted(&weights)
-        }
-    };
+    // Follow a productive descent, but occasionally restart after a failure to preserve alternative outcomes.
+    attempt + 1 < max_attempts && (improved || random.is_hit(RETRY_AFTER_FAILURE_PROBABILITY))
+}
 
-    index + 1
+/// Selects one non-improving part, and a second only when this changes no more than half of the decomposition.
+fn sample_fallback_part_indices(part_count: usize, random: &dyn Random) -> (usize, Option<usize>) {
+    const MAX_SELECTED_PARTS: usize = 2;
+
+    debug_assert!(part_count > 1);
+
+    let first_idx = random.uniform_int(0, part_count as i32 - 1) as usize;
+    let second_idx = (part_count >= MAX_SELECTED_PARTS * 2).then(|| {
+        let idx = random.uniform_int(0, part_count as i32 - 2) as usize;
+        if idx >= first_idx { idx + 1 } else { idx }
+    });
+
+    (first_idx, second_idx)
 }
 
 fn create_multiple_insertion_contexts(
@@ -263,11 +278,13 @@ fn decompose_insertion_context(
     refinement_ctx: &RefinementContext,
     insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
-    repeat: usize,
+    max_attempts: usize,
 ) -> Option<Vec<RefinementContext>> {
-    // NOTE make limit a bit higher than median
+    const QUOTA_MULTIPLIER: Float = 1.5;
+
+    // Keep the local quota as a runaway guard rather than a normal stopping condition.
     let median = refinement_ctx.statistics().speed.get_median();
-    let limit = median.map(|median| (((median.max(10) * repeat) as f64) * 1.5) as usize);
+    let limit = median.map(|median| ((median.max(10) * max_attempts) as Float * QUOTA_MULTIPLIER) as usize);
     let environment = create_environment_with_custom_quota(limit, refinement_ctx.environment.as_ref());
 
     create_multiple_insertion_contexts(insertion_ctx, environment.clone(), max_routes_range)
