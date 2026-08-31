@@ -74,13 +74,7 @@ impl<'a> TryFrom<&'a str> for ExperimentData {
                 .ok_or_else(|| "Failed to parse telemetry data".to_string())?;
 
             // Find max generation from telemetry data
-            let generation = heuristic_state
-                .search_states
-                .keys()
-                .chain(heuristic_state.heuristic_states.keys())
-                .copied()
-                .max()
-                .unwrap_or(0);
+            let generation = heuristic_state.heuristic_states.keys().copied().max().unwrap_or(0);
 
             return Ok(ExperimentData { heuristic_state, generation, ..Default::default() });
         }

@@ -115,10 +115,6 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
     })
 }
 
-/// Search state result represented as (name idx, reward, (from state idx, to state idx), duration).
-#[derive(Default, Serialize, Deserialize)]
-pub struct SearchResult(pub usize, pub Float, pub (usize, usize), pub usize);
-
 /// Heuristic state result represented as
 /// (state idx, name idx, progress alpha, progress beta, effective mean, effective variance, calls,
 /// incumbent improvements, total duration, parent-progress mean, promotion mean, parent improvements).
@@ -147,8 +143,6 @@ pub struct HyperHeuristicState {
     pub names: HashMap<String, usize>,
     /// Unique state names.
     pub states: HashMap<String, usize>,
-    /// Search states at specific generations.
-    pub search_states: BTreeMap<usize, Vec<SearchResult>>,
     /// Heuristic states at specific generations.
     pub heuristic_states: BTreeMap<usize, Vec<HeuristicResult>>,
 }
@@ -164,36 +158,6 @@ impl HyperHeuristicState {
                 let length = map.len();
                 map.entry(key).or_insert_with(|| length);
             };
-
-            // Per-search records existed in the original telemetry format. Keep reading them so saved
-            // experiments remain compatible, although current telemetry contains aggregate states only.
-            let mut search_states = data
-                .lines()
-                .skip_while(|line| *line != "search:")
-                .skip(2)
-                .take_while(|line| *line != "heuristic:")
-                .fold(BTreeMap::<_, Vec<_>>::new(), |mut data, line| {
-                    let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
-                    let name = fields[0].clone();
-                    let generation = fields[1].parse().unwrap();
-                    let reward = fields[2].parse().unwrap();
-                    let from = fields[3].clone();
-                    let to = fields[4].clone();
-                    let duration = fields[5].parse().unwrap();
-
-                    insert_to_map(&mut names, name.clone());
-                    insert_to_map(&mut states, from.clone());
-                    insert_to_map(&mut states, to.clone());
-
-                    let name = names.get(&name).copied().unwrap();
-                    let from = states.get(&from).copied().unwrap();
-                    let to = states.get(&to).copied().unwrap();
-
-                    data.entry(generation).or_default().push(SearchResult(name, reward, (from, to), duration));
-
-                    data
-                });
-            search_states.values_mut().for_each(|states| states.sort_by_key(|SearchResult(a, ..)| *a));
 
             let mut heuristic_states =
                 data.lines().skip_while(|line| *line != "heuristic:").skip(2).take_while(|line| !line.is_empty()).fold(
@@ -241,7 +205,7 @@ impl HyperHeuristicState {
                 );
             heuristic_states.values_mut().for_each(|states| states.sort_by_key(|HeuristicResult(_, a, ..)| *a));
 
-            Some(Self { names, states, search_states, heuristic_states })
+            Some(Self { names, states, heuristic_states })
         } else {
             None
         }
@@ -341,7 +305,7 @@ mod tests {
     #[test]
     fn parses_exact_operator_counters() {
         let state = HyperHeuristicState::try_parse_all(
-            "TELEMETRY\nsearch:\nname,generation,reward,from,to,duration_us\nheuristic:\n\
+            "TELEMETRY\nheuristic:\n\
              generation,state,name,alpha,beta,mu,v,n,successes,duration_us\n\
              10,best,operator,2,3,0.4,0.04,7,2,140\n",
         )
