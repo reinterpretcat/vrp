@@ -94,7 +94,7 @@ fn can_configure_intensify_operators() {
     let count = Arc::new(AtomicUsize::new(0));
     let config = EvolutionConfigBuilder::default()
         .with_context(context)
-        .with_search_operators(vec![(Arc::new(Noop), "noop".to_string(), 1.)])
+        .with_search_operators(vec![HeuristicSearchOperatorConfig::new(Arc::new(Noop), "noop", 1.)])
         .with_intensify_operators(vec![Arc::new(CountingIntensify { count: count.clone() })])
         .with_termination(Box::new(MaxGeneration::new(1)))
         .build()

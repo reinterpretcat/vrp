@@ -42,7 +42,7 @@ fn can_run_intensify_operator_without_replacing_search() {
     let heuristic_ctx = VectorContext::new(objective, population, TelemetryMode::None, environment.clone());
     let count = Arc::new(AtomicUsize::new(0));
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
-        vec![(Arc::new(Noop), "noop".to_string(), 1.)],
+        vec![HeuristicSearchOperatorConfig::new(Arc::new(Noop), "noop", 1.)],
         environment.as_ref(),
     )
     .with_intensify_operators(vec![Arc::new(CountingIntensify { count: count.clone() })]);
@@ -59,6 +59,111 @@ fn can_run_intensify_operator_without_replacing_search() {
 fn can_apply_prior_policy() {
     assert_eq!(get_prior_alpha(1., 1.), 1.);
     assert_eq!(get_prior_alpha(10., 1.), PRIOR_ALPHA_MAX);
+}
+
+#[test]
+fn can_group_related_operator_components() {
+    struct Noop;
+
+    impl HeuristicSearchOperator for Noop {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            solution.deep_copy()
+        }
+    }
+
+    let create = |name: &str, families: &[&str]| {
+        HeuristicSearchOperatorConfig::new(Arc::new(Noop), name, 1.).with_families(families.iter().copied())
+    };
+    let configs = vec![
+        create("a+x", &["ruin:a", "ruin:a", "recreate:x"]),
+        create("a+y", &["ruin:a", "recreate:y"]),
+        create("b+x", &["ruin:b", "recreate:x"]),
+        create("independent", &[]),
+    ];
+
+    assert_eq!(configs[0].families, vec!["ruin:a", "recreate:x"]);
+    assert_eq!(create_peer_groups(&configs), vec![vec![vec![1], vec![2]], vec![vec![0]], vec![vec![0]], vec![]]);
+}
+
+#[test]
+fn can_weakly_blend_peer_progress() {
+    let progress = BernoulliParams { alpha: 1., beta: 1., mean: 0.5, variance: 0.1, observations: 0 };
+
+    assert_eq!(blend_progress(progress, None), progress);
+
+    let blended = blend_progress(progress, Some(0.1));
+    assert!((blended.mean - 0.46).abs() < Float::EPSILON);
+    assert!((blended.variance - 0.081).abs() < Float::EPSILON);
+    assert_eq!((blended.alpha, blended.beta, blended.observations), (1., 1., 0));
+}
+
+#[test]
+fn can_report_peer_adjusted_selection_mean_without_changing_own_posterior() {
+    struct Noop;
+
+    impl HeuristicSearchOperator for Noop {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            solution.deep_copy()
+        }
+    }
+
+    let environment = Environment::default();
+    let mut agent = SearchAgent::new(
+        vec![
+            HeuristicSearchOperatorConfig::new(Arc::new(Noop), "first", 1.).with_families(["family"]),
+            HeuristicSearchOperatorConfig::new(Arc::new(Noop), "second", 1.).with_families(["family"]),
+        ],
+        &environment,
+    );
+    agent.update(
+        1,
+        &SearchFeedback {
+            sample: SearchSample {
+                duration: 1,
+                transition: (SearchState::BestKnown, SearchState::BestKnown),
+                is_parent_improvement: true,
+                is_new_best: true,
+            },
+            slot_idx: 1,
+            solution: None,
+        },
+    );
+    agent.update(
+        1,
+        &SearchFeedback {
+            sample: SearchSample {
+                duration: 1,
+                transition: (SearchState::Diverse, SearchState::BestKnown),
+                is_parent_improvement: true,
+                is_new_best: true,
+            },
+            slot_idx: 1,
+            solution: None,
+        },
+    );
+
+    let samples = agent.get_params();
+    let find = |state| {
+        samples
+            .iter()
+            .find(|sample| sample.state == state && sample.name == "first")
+            .expect("missing first operator telemetry")
+    };
+    let best = find(SearchState::BestKnown);
+    let diverse = find(SearchState::Diverse);
+
+    assert_eq!(best.progress_mean, 0.5);
+    assert!((best.effective_mean - (0.5 * 0.9 + (2. / 3.) * 0.1)).abs() < Float::EPSILON);
+    assert_eq!((diverse.progress_mean, diverse.promotion_mean), (0.5, 0.5));
+    assert!((diverse.effective_mean - (0.5 * 0.9 + (2. / 3.) * 0.1) * 0.5).abs() < Float::EPSILON);
 }
 
 parameterized_test! {can_decide_when_to_reset, (generation, next_reset, improvement_ratio, expected), {
@@ -100,7 +205,7 @@ fn can_reset_both_search_states_during_stagnation() {
 
     let environment = Environment::default();
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
-        vec![(Arc::new(Noop), "noop".to_string(), 1.)],
+        vec![HeuristicSearchOperatorConfig::new(Arc::new(Noop), "noop", 1.)],
         &environment,
     );
     let feedback = SearchFeedback {
@@ -189,7 +294,8 @@ fn can_learn_diverse_progress_and_promotion_separately() {
     }
 
     let environment = Environment::default();
-    let mut agent = SearchAgent::new(vec![(Arc::new(Noop), "noop".to_string(), 1.)], &environment);
+    let mut agent =
+        SearchAgent::new(vec![HeuristicSearchOperatorConfig::new(Arc::new(Noop), "noop", 1.)], &environment);
     let create_feedback = |is_parent_improvement, is_new_best| SearchFeedback {
         sample: SearchSample {
             duration: 1,
@@ -249,7 +355,7 @@ fn can_display_heuristic_info() {
     let is_experimental = true;
     let environment = Environment { is_experimental, ..Environment::default() };
     let mut heuristic = DynamicSelective::<VectorContext, VectorObjective, VectorSolution>::new(
-        vec![(Arc::new(Noop), "noop".to_string(), 1.)],
+        vec![HeuristicSearchOperatorConfig::new(Arc::new(Noop), "noop", 1.)],
         &environment,
     );
     let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);

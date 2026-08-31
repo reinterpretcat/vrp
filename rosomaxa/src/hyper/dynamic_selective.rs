@@ -13,9 +13,45 @@ use std::hash::Hash;
 use std::iter::once;
 use std::sync::Arc;
 
-/// A collection of heuristic search operators with their name and initial weight.
-pub type HeuristicSearchOperators<C, O, S> =
-    Vec<(Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, String, Float)>;
+type SearchOperator<C, O, S> = Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>;
+
+/// Configures a search operator for dynamic selection.
+pub struct HeuristicSearchOperatorConfig<C, O, S> {
+    operator: SearchOperator<C, O, S>,
+    name: String,
+    initial_weight: Float,
+    families: Vec<String>,
+}
+
+impl<C, O, S> HeuristicSearchOperatorConfig<C, O, S> {
+    /// Creates an independent search operator configuration.
+    pub fn new(operator: SearchOperator<C, O, S>, name: impl Into<String>, initial_weight: Float) -> Self {
+        Self { operator, name: name.into(), initial_weight, families: Vec::new() }
+    }
+
+    /// Assigns families whose progress posteriors can weakly adjust related operators during selection.
+    pub fn with_families<I, T>(mut self, families: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<String>,
+    {
+        self.families = families.into_iter().map(Into::into).fold(Vec::new(), |mut unique, family| {
+            if !unique.contains(&family) {
+                unique.push(family);
+            }
+            unique
+        });
+        self
+    }
+
+    /// Returns the operator name.
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+}
+
+/// A collection of search operators configured for dynamic selection.
+pub type HeuristicSearchOperators<C, O, S> = Vec<HeuristicSearchOperatorConfig<C, O, S>>;
 
 /// An experimental dynamic selective hyper heuristic which selects inner heuristics
 /// based on how they work during the search. The selection process is modeled using reinforcement
@@ -120,6 +156,8 @@ struct SearchSlot<'a, C, O, S> {
     /// Learns whether an improved diverse parent is promoted past the incumbent.
     promotion: Option<BernoulliPosterior<DefaultDistributionSampler>>,
     name: String,
+    /// Other slots grouped by each configured operator family.
+    peer_groups: Vec<Vec<usize>>,
 }
 
 type SearchSlots<'a, C, O, S> = Vec<SearchSlot<'a, C, O, S>>;
@@ -131,8 +169,8 @@ where
     S: HeuristicSolution + 'a,
 {
     /// Samples an operator score from its learned progress and, for diverse parents, promotion probabilities.
-    fn sample(&self) -> Float {
-        let progress = self.progress.sample();
+    fn sample(&self, peer_progress: Option<Float>) -> Float {
+        let progress = blend_progress_mean(self.progress.sample(), peer_progress);
         let promotion = self.promotion.as_ref().map_or(1., BernoulliPosterior::sample);
 
         progress * promotion
@@ -153,6 +191,9 @@ where
 /// Bounds applied to relative operator weights before using them as successful-outcome priors.
 const PRIOR_ALPHA_MIN: Float = 0.1;
 const PRIOR_ALPHA_MAX: Float = 2.0;
+
+/// Weakly regularizes sparse pair estimates while keeping the selected operator's evidence dominant.
+const PEER_PROGRESS_WEIGHT: Float = 0.1;
 
 /// Restarts learned operator posteriors after this many generations without improvement.
 const STAGNATION_WINDOW: usize = 1000;
@@ -273,7 +314,7 @@ where
 {
     pub fn new(search_operators: HeuristicSearchOperators<C, O, S>, environment: &Environment) -> Self {
         // Normalize expert weights so an average operator starts with one successful pseudo-observation.
-        let total_weight: Float = search_operators.iter().map(|(_, _, w)| *w).sum();
+        let total_weight: Float = search_operators.iter().map(|config| config.initial_weight).sum();
         let count = search_operators.len() as Float;
         let avg_weight = if count > 0.0 && total_weight > f64::EPSILON { total_weight / count } else { 1.0 };
 
@@ -282,21 +323,24 @@ where
         // 1. We have many operators (cold start problem)
         // 2. Limited search time may not be enough to learn from scratch
         // 3. Weights encode expert knowledge about operator effectiveness
+        let peer_groups = create_peer_groups(&search_operators);
         let create_slots = |with_promotion: bool| {
             search_operators
                 .iter()
-                .map(|(operator, name, initial_weight)| {
-                    let prior_alpha = get_prior_alpha(*initial_weight, avg_weight);
+                .zip(peer_groups.iter())
+                .map(|(config, peer_groups)| {
+                    let prior_alpha = get_prior_alpha(config.initial_weight, avg_weight);
                     SearchSlot {
                         progress: SlotMachine::new(
                             prior_alpha,
-                            SearchAction { operator: operator.clone() },
+                            SearchAction { operator: config.operator.clone() },
                             DefaultDistributionSampler::new(environment.random.clone()),
                         ),
                         promotion: with_promotion.then(|| {
                             BernoulliPosterior::new(1., DefaultDistributionSampler::new(environment.random.clone()))
                         }),
-                        name: name.clone(),
+                        name: config.name.clone(),
+                        peer_groups: peer_groups.clone(),
                     }
                 })
                 .collect::<Vec<_>>()
@@ -349,7 +393,10 @@ where
         // Get contextually appropriate slot machines.
         let slots = self.slot_machines.get(&from).expect("cannot get slot machines");
 
-        let samples = slots.iter().map(SearchSlot::sample);
+        let samples = slots.iter().enumerate().map(|(slot_idx, slot)| {
+            let peer_progress = get_peer_progress(slots, slot_idx);
+            slot.sample(peer_progress)
+        });
         let slot_idx = random_argmax(samples, self.random.as_ref()).unwrap_or(0);
         let slot_machine = &slots[slot_idx].progress;
 
@@ -386,12 +433,13 @@ where
         self.slot_machines
             .iter()
             .flat_map(|(state, slots)| {
-                slots.iter().map(|slot| {
+                slots.iter().enumerate().map(|(slot_idx, slot)| {
                     let progress = slot.progress.get_params();
+                    let selection = blend_progress(progress, get_peer_progress(slots, slot_idx));
                     let (effective_mean, effective_variance, promotion_mean) =
-                        slot.promotion.as_ref().map_or((progress.mean, progress.variance, 1.), |promotion| {
+                        slot.promotion.as_ref().map_or((selection.mean, selection.variance, 1.), |promotion| {
                             let promotion = promotion.params();
-                            (progress.mean * promotion.mean, product_variance(&progress, &promotion), promotion.mean)
+                            (selection.mean * promotion.mean, product_variance(&selection, &promotion), promotion.mean)
                         });
                     let summary = self.tracker.get_summary(state, &slot.name);
                     HeuristicSample {
@@ -426,6 +474,61 @@ fn advance_stagnation_reset(generation: usize, interval: usize) -> (usize, usize
 /// Maps an operator's relative expert weight to its successful-outcome prior.
 fn get_prior_alpha(initial_weight: Float, avg_weight: Float) -> Float {
     (initial_weight / avg_weight).clamp(PRIOR_ALPHA_MIN, PRIOR_ALPHA_MAX)
+}
+
+fn create_peer_groups<C, O, S>(configs: &[HeuristicSearchOperatorConfig<C, O, S>]) -> Vec<Vec<Vec<usize>>> {
+    configs
+        .iter()
+        .enumerate()
+        .map(|(slot_idx, config)| {
+            config
+                .families
+                .iter()
+                .filter_map(|family| {
+                    let peers = configs
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(idx, config)| {
+                            (idx != slot_idx && config.families.contains(family)).then_some(idx)
+                        })
+                        .collect::<Vec<_>>();
+
+                    (!peers.is_empty()).then_some(peers)
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn get_peer_progress<C, O, S>(slots: &[SearchSlot<'_, C, O, S>], slot_idx: usize) -> Option<Float>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let groups = &slots[slot_idx].peer_groups;
+    (!groups.is_empty()).then(|| {
+        // Average each family first so a component with more combinations does not get more influence.
+        groups
+            .iter()
+            .map(|group| {
+                group.iter().map(|&idx| slots[idx].progress.get_params().mean).sum::<Float>() / group.len() as Float
+            })
+            .sum::<Float>()
+            / groups.len() as Float
+    })
+}
+
+fn blend_progress(mut progress: BernoulliParams, peer_progress: Option<Float>) -> BernoulliParams {
+    if let Some(peer) = peer_progress {
+        progress.mean = blend_progress_mean(progress.mean, Some(peer));
+        progress.variance *= (1. - PEER_PROGRESS_WEIGHT).powi(2);
+    }
+    progress
+}
+
+fn blend_progress_mean(progress: Float, peer_progress: Option<Float>) -> Float {
+    peer_progress.map_or(progress, |peer| progress * (1. - PEER_PROGRESS_WEIGHT) + peer * PEER_PROGRESS_WEIGHT)
 }
 
 fn get_duration_micros(duration: std::time::Duration) -> usize {

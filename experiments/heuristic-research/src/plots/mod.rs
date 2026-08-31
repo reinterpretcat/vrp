@@ -733,12 +733,7 @@ fn create_search_config(
             Some(duration.saturating_sub(previous))
         });
 
-        let posterior_label = match (kind, progress_mean, promotion_mean) {
-            ("diverse", Some(progress), Some(promotion)) => {
-                format!("{name} · {mean:.3} ({progress:.3}×{promotion:.3})")
-            }
-            _ => format!("{name} · {mean:.3}"),
-        };
+        let posterior_label = format_posterior_label(kind, name, *mean, *progress_mean, *promotion_mean);
         config.posterior.push((posterior_label, *mean));
         config.calls.push((format!("{name} · {calls}"), calls as Float));
 
@@ -769,6 +764,31 @@ fn create_search_config(
     });
 
     Some(config)
+}
+
+fn format_posterior_label(
+    kind: &str,
+    name: &str,
+    effective: Float,
+    progress: Option<Float>,
+    promotion: Option<Float>,
+) -> String {
+    const DISPLAY_PRECISION: Float = 0.0005;
+
+    match (kind, progress, promotion) {
+        ("diverse", Some(progress), Some(promotion)) => {
+            let selection = if promotion > Float::EPSILON { effective / promotion } else { progress };
+            if (selection - progress).abs() >= DISPLAY_PRECISION {
+                format!("{name} · {effective:.3} ({selection:.3}×{promotion:.3}; own {progress:.3})")
+            } else {
+                format!("{name} · {effective:.3} ({progress:.3}×{promotion:.3})")
+            }
+        }
+        ("best", Some(progress), _) if (effective - progress).abs() >= DISPLAY_PRECISION => {
+            format!("{name} · {effective:.3} (own {progress:.3})")
+        }
+        _ => format!("{name} · {effective:.3}"),
+    }
 }
 
 fn to_data_point(observations: &[ObservationData]) -> impl Iterator<Item = &DataPoint3D> + '_ {
@@ -945,5 +965,17 @@ mod tests {
 
         assert_eq!(config.posterior, vec![("operator · 0.120 (0.400×0.300)".to_string(), 0.12)]);
         assert_eq!(config.success_rates, vec![("operator · 2/20; parent 8/20".to_string(), 0.1)]);
+    }
+
+    #[test]
+    fn distinguishes_peer_adjusted_selection_from_own_progress() {
+        assert_eq!(
+            format_posterior_label("best", "operator", 0.52, Some(0.5), Some(1.)),
+            "operator · 0.520 (own 0.500)"
+        );
+        assert_eq!(
+            format_posterior_label("diverse", "operator", 0.126, Some(0.4), Some(0.3)),
+            "operator · 0.126 (0.420×0.300; own 0.400)"
+        );
     }
 }

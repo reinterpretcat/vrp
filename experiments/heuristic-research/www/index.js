@@ -14,7 +14,7 @@ const canvases = {};
 const chartHelp = {
     gsom: "Shows how the learned map changes over time. Read node counts, activity, learning rate, and quantization error together; open the GSOM guide below for definitions and common smoothing/compaction patterns.",
     fitness: "Best objective vector over recorded generations. Secondary objectives are rescaled only for display; optimization still uses the original lexicographic objective.",
-    search: "Current Thompson selection mean for each operator. Diverse-parent labels also show parent progress × incumbent promotion, the two learned factors used for selection.",
+    search: "Current Thompson selection mean for each operator. Related ruin/recreate pairs can weakly adjust progress; labels distinguish this selection value from the operator's own posterior.",
     best: "Exact empirical incumbent-improvement rate in the selected interval. Diverse-parent labels also report parent improvements; parallel children can each beat their common pre-batch incumbent.",
     overall: "Exact calls in the selected parent bank and interval. Compare with success rate and posterior to detect starvation or monopoly.",
     duration: "Exact mean operator duration in the selected parent bank and interval. Duration is telemetry and is not part of the learned solution reward.",

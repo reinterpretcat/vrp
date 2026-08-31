@@ -29,6 +29,7 @@ pub type TargetSearchOperator = Arc<
         + Send
         + Sync,
 >;
+type TargetSearchOperatorConfig = HeuristicSearchOperatorConfig<RefinementContext, GoalContext, InsertionContext>;
 
 /// A type for greedy population.
 pub type GreedyPopulation = Greedy<GoalContext, InsertionContext>;
@@ -414,7 +415,6 @@ mod statik {
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
-            (Arc::new(RecreateWithSlice::new(random.clone())), 1),
             (
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(
                     Arc::new(RecreateWithCheapest::new(random.clone())),
@@ -602,6 +602,8 @@ mod dynamic {
     }
 
     fn get_weak_recreates(random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String, Float)> {
+        // Slice recreate is omitted: the remaining stochastic recreates provide controlled
+        // perturbations without adding another coarse subsampling arm to the bandit.
         let cheapest: Arc<dyn Recreate> = Arc::new(RecreateWithCheapest::new(random.clone()));
         let skip_best: Arc<dyn Recreate> = Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()));
         let perturbation: Arc<dyn Recreate> = Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()));
@@ -609,7 +611,6 @@ mod dynamic {
         let farthest: Arc<dyn Recreate> = Arc::new(RecreateWithFarthest::new(random.clone()));
         let skip_random: Arc<dyn Recreate> =
             Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest, random.clone()));
-        let slice: Arc<dyn Recreate> = Arc::new(RecreateWithSlice::new(random));
 
         vec![
             (skip_best, "skip_best".to_string(), WEAK_ARM_PRIOR),
@@ -617,7 +618,6 @@ mod dynamic {
             (gaps, "gaps".to_string(), WEAK_ARM_PRIOR),
             (farthest, "farthest".to_string(), WEAK_ARM_PRIOR),
             (skip_random, "skip_random".to_string(), WEAK_ARM_PRIOR),
-            (slice, "slice".to_string(), WEAK_ARM_PRIOR),
         ]
     }
 
@@ -702,10 +702,7 @@ mod dynamic {
         ]
     }
 
-    pub fn get_operators(
-        problem: Arc<Problem>,
-        environment: Arc<Environment>,
-    ) -> Vec<(TargetSearchOperator, String, Float)> {
+    pub fn get_operators(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<TargetSearchOperatorConfig> {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
@@ -736,13 +733,16 @@ mod dynamic {
         let strong_cartesian_ops = strong_recreates
             .iter()
             .flat_map(|(recreate, recreate_name, recreate_weight)| {
-                wrapped_strong_ruins.iter().map::<(TargetSearchOperator, String, Float), _>(
+                wrapped_strong_ruins.iter().map::<TargetSearchOperatorConfig, _>(
                     move |(ruin, ruin_name, ruin_weight)| {
-                        (
-                            Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
+                        let operator: TargetSearchOperator =
+                            Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone()));
+                        HeuristicSearchOperatorConfig::new(
+                            operator,
                             format!("{ruin_name}+{recreate_name}"),
                             ruin_weight + recreate_weight,
                         )
+                        .with_families([format!("ruin:{ruin_name}"), format!("recreate:{recreate_name}")])
                     },
                 )
             })
@@ -752,9 +752,11 @@ mod dynamic {
         let weak_ruin_recreate_bundle = build_weak_recreate_bundle(&strong_recreates, &weak_recreates);
         let weak_ruin_ops = weak_ruins
             .iter()
-            .map::<(TargetSearchOperator, String, Float), _>(|(ruin, name, weight)| {
+            .map::<TargetSearchOperatorConfig, _>(|(ruin, name, weight)| {
                 let primary = wrap_with_extra(ruin.clone(), name, extra_random_job.clone());
-                (Arc::new(RuinAndRecreate::new(primary, weak_ruin_recreate_bundle.clone())), name.clone(), *weight)
+                let operator: TargetSearchOperator =
+                    Arc::new(RuinAndRecreate::new(primary, weak_ruin_recreate_bundle.clone()));
+                HeuristicSearchOperatorConfig::new(operator, name, *weight)
             })
             .collect::<Vec<_>>();
 
@@ -762,12 +764,10 @@ mod dynamic {
         let weak_recreate_ruin_bundle = build_weak_ruin_bundle(&strong_ruins, &weak_ruins, extra_random_job);
         let weak_recreate_ops = weak_recreates
             .iter()
-            .map::<(TargetSearchOperator, String, Float), _>(|(recreate, name, weight)| {
-                (
-                    Arc::new(RuinAndRecreate::new(weak_recreate_ruin_bundle.clone(), recreate.clone())),
-                    name.clone(),
-                    *weight,
-                )
+            .map::<TargetSearchOperatorConfig, _>(|(recreate, name, weight)| {
+                let operator: TargetSearchOperator =
+                    Arc::new(RuinAndRecreate::new(weak_recreate_ruin_bundle.clone(), recreate.clone()));
+                HeuristicSearchOperatorConfig::new(operator, name, *weight)
             })
             .collect::<Vec<_>>();
 
@@ -778,8 +778,12 @@ mod dynamic {
             .into_iter()
             .chain(weak_ruin_ops)
             .chain(weak_recreate_ops)
-            .chain(operators)
-            .filter(|(_, name, _)| heuristic_filter.as_ref().is_none_or(|filter| (filter)(name.as_str())))
+            .chain(
+                operators
+                    .into_iter()
+                    .map(|(operator, name, weight)| HeuristicSearchOperatorConfig::new(operator, name, weight)),
+            )
+            .filter(|config| heuristic_filter.as_ref().is_none_or(|filter| (filter)(config.name())))
             .collect::<Vec<_>>()
     }
 
