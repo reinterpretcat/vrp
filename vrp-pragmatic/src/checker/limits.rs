@@ -15,6 +15,12 @@ pub fn check_limits(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
 /// Check that shift limits are not violated:
 /// * max shift time
 /// * max distance
+/// * tour size
+///
+/// NOTE `minTourSize` is deliberately absent. The solver models it as an objective
+/// (`min_tour_size_objective`), not a constraint, so an under-sized tour is a worse
+/// solution and never an infeasible one. Checking it here reported every solution as
+/// broken and drowned the violations that are real.
 fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
     context.solution.tours.iter().try_for_each::<_, GenericResult<_>>(|tour| {
         let vehicle = context.get_vehicle(&tour.vehicle_id)?;
@@ -37,11 +43,16 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
                 }
 
             if let Some(tour_size_limit) = limits.tour_size {
-                let shift = context.get_vehicle_shift(tour)?;
-
-                let extra_activities = if shift.end.is_some() { 2 } else { 1 };
-                let tour_activities = tour.stops.iter().flat_map(|stop| stop.activities()).count();
-                let tour_activities = tour_activities.saturating_sub(extra_activities);
+                // Stops only — the same count the solver's constraint keeps: departure and
+                // arrival frame the tour, and a break, reload or recharge is not a visit.
+                let tour_activities = tour
+                    .stops
+                    .iter()
+                    .flat_map(|stop| stop.activities())
+                    .filter(|activity| {
+                        !matches!(activity.activity_type.as_str(), "departure" | "arrival" | "break" | "reload" | "recharge")
+                    })
+                    .count();
 
                 if tour_activities > tour_size_limit {
                     return Err(format!(
@@ -50,6 +61,7 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
                     ).into())
                 }
             }
+
         }
 
         Ok(())

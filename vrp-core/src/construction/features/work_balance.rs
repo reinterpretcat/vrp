@@ -74,6 +74,26 @@ pub fn create_distance_balanced_feature(name: &str) -> Result<Feature, GenericEr
     create_transport_balanced_feature::<DistanceBalancedKey>(name, |state| state.get_total_distance())
 }
 
+/// Creates a feature which balances total job production value across all tours.
+pub fn create_production_value_balanced_feature(
+    name: &str,
+    job_value_fn: impl Fn(&Job) -> Float + Send + Sync + 'static,
+) -> Result<Feature, GenericError> {
+    struct ProductionValueBalancedKey;
+
+    let route_estimate_fn =
+        Arc::new(move |route_ctx: &RouteContext| route_ctx.route().tour.jobs().map(&job_value_fn).sum::<Float>());
+
+    let solution_estimate_fn = Arc::new({
+        let route_estimate_fn = route_estimate_fn.clone();
+        move |ctx: &SolutionContext| {
+            get_cv_safe(ctx.routes.iter().map(|route_ctx| route_estimate_fn(route_ctx)).collect::<Vec<_>>().as_slice())
+        }
+    });
+
+    create_feature::<ProductionValueBalancedKey>(name, route_estimate_fn, solution_estimate_fn)
+}
+
 fn create_transport_balanced_feature<K: Send + Sync + 'static>(
     name: &str,
     value_fn: impl Fn(&RouteState) -> Option<&Float> + Send + Sync + 'static,

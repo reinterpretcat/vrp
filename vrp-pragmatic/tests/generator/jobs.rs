@@ -76,7 +76,7 @@ prop_compose! {
                         tag: Some("p1".to_owned()),
                         ..pickup
                     }
-                ], demand: demand.clone(), order }
+                ], demand: demand.clone(), order, due_date: None }
             ]),
             deliveries: Some(vec![
              JobTask { places: vec![
@@ -84,14 +84,16 @@ prop_compose! {
                         tag: Some("d1".to_owned()),
                         ..delivery
                     }
-                ], demand, order: None }
+                ], demand, order: None, due_date: None }
             ]),
             replacements: None,
             services: None,
             skills,
             value,
+            production_value: None,
             group,
-            compatibility
+            compatibility,
+            vehicle_group: None,
         }
     }
 }
@@ -136,8 +138,10 @@ prop_compose! {
             services,
             skills,
             value,
+            production_value: None,
             group,
             compatibility,
+            vehicle_group: None,
         }
     }
 }
@@ -153,7 +157,7 @@ prop_compose! {
      demand in demand_proto,
      order in order_proto,
     ) -> JobTask {
-       JobTask { places: vec![place], demand, order }
+       JobTask { places: vec![place], demand, order, due_date: None }
     }
 }
 

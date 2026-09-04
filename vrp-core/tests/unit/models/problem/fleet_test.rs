@@ -19,3 +19,11 @@ fn fleet_creates_unique_profiles_from_vehicles() {
         vec![profile1, profile2]
     )
 }
+
+#[test]
+fn can_set_and_get_driver_id() {
+    use crate::models::problem::DriverIdDimension;
+    let mut dimens = crate::models::common::Dimensions::default();
+    dimens.set_driver_id("drv-7".to_string());
+    assert_eq!(dimens.get_driver_id(), Some(&"drv-7".to_string()));
+}

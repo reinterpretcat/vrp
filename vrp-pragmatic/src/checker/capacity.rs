@@ -38,8 +38,21 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> GenericResult<()> 
                     },
                 )?;
 
-                let end_capacity =
-                    interval.iter().try_fold::<_, _, GenericResult<_>>(start_delivery, |acc, (idx, (from, to))| {
+                // A stop reports the load it leaves with, so the interval's first stop counts its
+                // own activities too. That is not always just a departure: the writer merges a job
+                // served at the start location into the departure stop and reports the load after
+                // it, and seeding with `start_delivery` alone called every such tour broken.
+                // Zero, not `end_pickup`: when a reload opens an interval, dropping the pickups it
+                // accumulated already counted as the previous interval's exit.
+                let start_change = interval
+                    .first()
+                    .map(|(_, (from, _))| stop_load_change(context, tour, from, MultiDimLoad::default()))
+                    .transpose()?
+                    .unwrap_or_default();
+
+                let end_capacity = interval.iter().try_fold::<_, _, GenericResult<_>>(
+                    start_delivery + start_change,
+                    |acc, (idx, (from, to))| {
                         let from_load = MultiDimLoad::new(from.load().clone());
                         let to_load = MultiDimLoad::new(to.load().clone());
 
@@ -47,24 +60,7 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> GenericResult<()> 
                             return Err(format!("load exceeds capacity in tour '{}'", tour.vehicle_id).into());
                         }
 
-                        let change = to.activities().iter().try_fold::<_, _, GenericResult<_>>(
-                            MultiDimLoad::default(),
-                            |acc, activity| {
-                                let activity_type = context.get_activity_type(tour, to, activity)?;
-                                let (demand_type, demand) =
-                                    if activity.activity_type == "arrival" || activity.activity_type == "reload" {
-                                        (DemandType::StaticDelivery, end_pickup)
-                                    } else {
-                                        get_demand(context, activity, &activity_type)?
-                                    };
-
-                                Ok(match demand_type {
-                                    DemandType::StaticDelivery | DemandType::DynamicDelivery => acc - demand,
-                                    DemandType::StaticPickup | DemandType::DynamicPickup => acc + demand,
-                                    DemandType::None | DemandType::StaticPickupDelivery => acc,
-                                })
-                            },
-                        )?;
+                        let change = stop_load_change(context, tour, to, end_pickup)?;
 
                         let is_from_valid = from_load == acc;
                         let is_to_valid = to_load == from_load + change;
@@ -80,11 +76,36 @@ fn check_vehicle_load_assignment(context: &CheckerContext) -> GenericResult<()> 
 
                             Err(format!("load mismatch {} in tour '{}'", message, tour.vehicle_id).into())
                         }
-                    })?;
+                    },
+                )?;
 
                 Ok(end_capacity - end_pickup)
             })
             .map(|_| ())
+    })
+}
+
+/// The load a stop's own activities add or remove, i.e. the difference between the load it is
+/// reached with and the load it leaves with.
+fn stop_load_change(
+    context: &CheckerContext,
+    tour: &Tour,
+    stop: &Stop,
+    end_pickup: MultiDimLoad,
+) -> GenericResult<MultiDimLoad> {
+    stop.activities().iter().try_fold::<_, _, GenericResult<_>>(MultiDimLoad::default(), |acc, activity| {
+        let activity_type = context.get_activity_type(tour, stop, activity)?;
+        let (demand_type, demand) = if activity.activity_type == "arrival" || activity.activity_type == "reload" {
+            (DemandType::StaticDelivery, end_pickup)
+        } else {
+            get_demand(context, activity, &activity_type)?
+        };
+
+        Ok(match demand_type {
+            DemandType::StaticDelivery | DemandType::DynamicDelivery => acc - demand,
+            DemandType::StaticPickup | DemandType::DynamicPickup => acc + demand,
+            DemandType::None | DemandType::StaticPickupDelivery => acc,
+        })
     })
 }
 

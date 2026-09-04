@@ -2,6 +2,7 @@ use crate::format::Location;
 use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::*;
+use crate::parse_time;
 
 fn create_shift_start() -> ShiftStart {
     ShiftStart { earliest: format_time(0.), latest: Some(format_time(0.)), location: (0., 0.).to_loc() }
@@ -42,42 +43,25 @@ fn can_assign_break_during_travel() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
-        solution,
-        SolutionBuilder::default()
-            .tour(
-                TourBuilder::default()
-                    .stops(vec![
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
-                            .load(vec![2])
-                            .build_departure(),
-                        StopBuilder::default()
-                            .coordinate((5., 0.))
-                            .schedule_stamp(5., 6.)
-                            .load(vec![1])
-                            .distance(5)
-                            .build_single("job1", "delivery"),
-                        StopBuilder::new_transit().schedule_stamp(7., 9.).load(vec![1]).build_single("break", "break"),
-                        StopBuilder::default()
-                            .coordinate((10., 0.))
-                            .schedule_stamp(13., 14.)
-                            .load(vec![0])
-                            .distance(10)
-                            .build_single("job2", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(24., 24.)
-                            .load(vec![0])
-                            .distance(20)
-                            .build_arrival(),
-                    ])
-                    .statistic(StatisticBuilder::default().driving(20).serving(2).break_time(2).build())
-                    .build()
-            )
-            .build()
-    );
+    // The claim is that the break is taken while driving, at the exact time it is due. Both jobs sit
+    // on one line out of the depot, so the round trip costs the same in either direction and the
+    // visit order is a tie the solver may break either way.
+    assert!(solution.unassigned.is_none(), "both jobs must be served");
+    assert_eq!(solution.tours.len(), 1);
+    assert_eq!(solution.statistic.distance, 20);
+    assert_eq!(solution.statistic.times.break_time, 2);
+
+    let mut served = served_job_ids(&solution.tours[0]);
+    served.sort();
+    assert_eq!(served, ["job1", "job2"].map(String::from));
+
+    let transit_break = solution.tours[0]
+        .stops
+        .iter()
+        .find(|stop| stop.as_point().is_none())
+        .expect("the break must be taken in transit, not at a stop");
+    assert_eq!(parse_time(&transit_break.schedule().arrival), 7.);
+    assert_eq!(parse_time(&transit_break.schedule().departure), 9.);
 }
 
 #[test]
@@ -265,6 +249,7 @@ fn can_handle_required_break_with_infeasible_sequence_relation() {
             }],
             demand: None,
             order: None,
+            due_date: None,
         }]),
         ..create_job(index.to_string().as_str())
     };

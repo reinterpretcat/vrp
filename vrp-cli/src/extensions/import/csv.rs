@@ -74,6 +74,7 @@ mod actual {
             }],
             demand: if job.demand != 0 { Some(vec![job.demand.abs()]) } else { None },
             order: None,
+            due_date: None,
         };
 
         let get_tasks = |jobs: &Vec<&CsvJob>, filter: Box<dyn Fn(&CsvJob) -> bool>| {
@@ -96,8 +97,10 @@ mod actual {
                 services: get_tasks(&tasks, Box::new(|j| j.demand == 0)),
                 skills: None,
                 value: None,
+                production_value: None,
                 group: None,
                 compatibility: None,
+                vehicle_group: None,
             })
             .collect();
 
@@ -112,9 +115,10 @@ mod actual {
 
                 VehicleType {
                     type_id: vehicle.id.clone(),
+                    driver_id: None,
                     vehicle_ids: (1..=vehicle.amount).map(|seq| format!("{}_{}", vehicle.profile, seq)).collect(),
                     profile: VehicleProfile { matrix: vehicle.profile, scale: None },
-                    costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005 },
+                    costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005, span: None },
                     shifts: vec![VehicleShift {
                         start: ShiftStart {
                             earliest: vehicle.tw_start,
@@ -125,10 +129,12 @@ mod actual {
                         breaks: None,
                         reloads: None,
                         recharges: None,
+                        job_times: None,
                     }],
                     capacity: vec![vehicle.capacity],
                     skills: None,
                     limits: None,
+                    min_shifts: None,
                 }
             })
             .collect();

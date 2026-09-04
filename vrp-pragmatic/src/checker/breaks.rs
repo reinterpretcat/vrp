@@ -3,8 +3,10 @@
 mod breaks_test;
 
 use super::*;
+use crate::format::problem::RouteCostSpan as FmtRouteCostSpan;
 use crate::utils::combine_error_results;
 use std::iter::once;
+use vrp_core::models::common::Timestamp;
 use vrp_core::prelude::GenericResult;
 use vrp_core::utils::GenericError;
 
@@ -16,6 +18,8 @@ pub fn check_breaks(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
 fn check_break_assignment(context: &CheckerContext) -> GenericResult<()> {
     context.solution.tours.iter().try_for_each(|tour| {
         let vehicle_shift = context.get_vehicle_shift(tour)?;
+        let cost_span = context.get_vehicle(&tour.vehicle_id).ok().and_then(|v| v.costs.span.as_ref());
+
         let actual_break_count = tour
             .stops
             .iter()
@@ -31,7 +35,7 @@ fn check_break_assignment(context: &CheckerContext) -> GenericResult<()> {
                     |acc, (from_loc, (from, to), (break_activity, vehicle_break))| {
                         // check time
                         let visit_time = get_time_window(stop, break_activity);
-                        let break_time_window = get_break_time_window(tour, &vehicle_break)?;
+                        let break_time_window = get_break_time_window(tour, &vehicle_break, cost_span)?;
                         if !visit_time.intersects(&break_time_window) {
                             return Err(format!(
                                 "break visit time '{visit_time:?}' is invalid: expected is in '{break_time_window:?}'",
@@ -91,7 +95,8 @@ fn check_break_assignment(context: &CheckerContext) -> GenericResult<()> {
 
         let expected_break_count =
             vehicle_shift.breaks.iter().flat_map(|breaks| breaks.iter()).fold(0, |acc, vehicle_break| {
-                let break_tw = get_break_time_window(tour, vehicle_break).expect("cannot get break time windows");
+                let break_tw =
+                    get_break_time_window(tour, vehicle_break, cost_span).expect("cannot get break time windows");
 
                 let should_assign = match vehicle_break {
                     VehicleBreak::Optional { policy, .. } => {
@@ -160,13 +165,25 @@ fn as_leg_info_with_break<'a>(
     None
 }
 
-/// Gets break time window.
-pub(crate) fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -> GenericResult<TimeWindow> {
+/// Gets break time window, using the RouteCostSpan to determine the anchor for offset breaks.
+pub(crate) fn get_break_time_window(
+    tour: &Tour,
+    vehicle_break: &VehicleBreak,
+    cost_span: Option<&FmtRouteCostSpan>,
+) -> GenericResult<TimeWindow> {
     let departure = tour
         .stops
         .first()
         .map(|stop| parse_time(&stop.schedule().departure))
         .ok_or_else(|| format!("cannot get departure time for tour: '{}'", tour.vehicle_id))?;
+
+    // Compute the offset anchor based on RouteCostSpan
+    let offset_anchor = match cost_span {
+        Some(FmtRouteCostSpan::FirstJobToDepot | FmtRouteCostSpan::FirstJobToLastJob) => {
+            get_first_job_arrival(tour).unwrap_or(departure)
+        }
+        _ => departure,
+    };
 
     match vehicle_break {
         VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeWindow(tw), .. } => Ok(parse_time_window(tw)),
@@ -180,7 +197,7 @@ pub(crate) fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -
         VehicleBreak::Required { time, duration } => {
             let (start, end) = match time {
                 VehicleRequiredBreakTime::OffsetTime { earliest, latest } => {
-                    (departure + *earliest, departure + *latest)
+                    (offset_anchor + *earliest, offset_anchor + *latest)
                 }
                 VehicleRequiredBreakTime::ExactTime { earliest, latest } => (parse_time(earliest), parse_time(latest)),
             };
@@ -188,6 +205,24 @@ pub(crate) fn get_break_time_window(tour: &Tour, vehicle_break: &VehicleBreak) -
             Ok(TimeWindow::new(start, end + duration))
         }
     }
+}
+
+/// Gets the arrival time of the first job activity in the tour.
+fn get_first_job_arrival(tour: &Tour) -> Option<Timestamp> {
+    // The first stop is departure, so first job is the second stop (or first non-departure activity)
+    tour.stops
+        .iter()
+        .flat_map(|stop| stop.activities().iter())
+        .find(|a| !matches!(a.activity_type.as_str(), "departure" | "arrival"))
+        .and_then(|_| {
+            // Find the stop that contains the first job activity and get its arrival
+            tour.stops
+                .iter()
+                .find(|stop| {
+                    stop.activities().iter().any(|a| !matches!(a.activity_type.as_str(), "departure" | "arrival"))
+                })
+                .map(|stop| parse_time(&stop.schedule().arrival))
+        })
 }
 
 fn get_break_violation_count(solution: &Solution, tour: &Tour) -> usize {

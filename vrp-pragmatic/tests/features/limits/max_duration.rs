@@ -1,11 +1,15 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::helpers::*;
 use vrp_core::prelude::Float;
 
 fn create_vehicle_type_with_max_duration_limit(max_duration: Float) -> VehicleType {
     VehicleType {
-        limits: Some(VehicleLimits { max_distance: None, max_duration: Some(max_duration), tour_size: None }),
+        limits: Some(VehicleLimits {
+            max_distance: None,
+            max_duration: Some(max_duration),
+            tour_size: None,
+            min_tour_size: None,
+        }),
         ..create_default_vehicle_type()
     }
 }
@@ -50,70 +54,32 @@ fn can_skip_job_from_multiple_because_of_max_duration() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
-        solution,
-        SolutionBuilder::default()
-            .tour(
-                TourBuilder::default()
-                    .stops(vec![
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
-                            .load(vec![3])
-                            .build_departure(),
-                        StopBuilder::default()
-                            .coordinate((3., 0.))
-                            .schedule_stamp(3., 13.)
-                            .load(vec![2])
-                            .distance(3)
-                            .build_single("job3", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((2., 0.))
-                            .schedule_stamp(14., 24.)
-                            .load(vec![1])
-                            .distance(4)
-                            .build_single("job2", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((1., 0.))
-                            .schedule_stamp(25., 35.)
-                            .load(vec![0])
-                            .distance(5)
-                            .build_single("job1", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(36., 36.)
-                            .load(vec![0])
-                            .distance(6)
-                            .build_arrival(),
-                    ])
-                    .statistic(StatisticBuilder::default().driving(6).serving(30).build())
-                    .build()
-            )
-            .unassigned(Some(vec![
-                UnassignedJob {
-                    job_id: "job4".to_string(),
-                    reasons: vec![UnassignedJobReason {
-                        code: "MAX_DURATION_CONSTRAINT".to_string(),
-                        description: "cannot be assigned due to max duration constraint of vehicle".to_string(),
-                        details: Some(vec![UnassignedJobDetail {
-                            vehicle_id: "my_vehicle_1".to_string(),
-                            shift_index: 0
-                        }]),
-                    }]
-                },
-                UnassignedJob {
-                    job_id: "job5".to_string(),
-                    reasons: vec![UnassignedJobReason {
-                        code: "MAX_DURATION_CONSTRAINT".to_string(),
-                        description: "cannot be assigned due to max duration constraint of vehicle".to_string(),
-                        details: Some(vec![UnassignedJobDetail {
-                            vehicle_id: "my_vehicle_1".to_string(),
-                            shift_index: 0
-                        }]),
-                    }]
-                }
-            ]))
-            .build()
+    // Five jobs of 10s each on a line out of the depot; a 40s cap fits three of them and the round
+    // trip costs the same in either direction, so the visit order is a tie the solver may break
+    // either way. The claim is which three fit and why the other two do not.
+    assert_eq!(solution.tours.len(), 1);
+    assert!(solution.statistic.duration <= 40, "the cap must hold: {}", solution.statistic.duration);
+    assert_eq!(solution.statistic.distance, 6);
+
+    let mut served = served_job_ids(&solution.tours[0]);
+    served.sort();
+    assert_eq!(served, ["job1", "job2", "job3"].map(String::from));
+
+    let unassigned = solution.unassigned.expect("job4 and job5 must be reported as unassigned");
+    let mut unassigned_ids = unassigned.iter().map(|job| job.job_id.clone()).collect::<Vec<_>>();
+    unassigned_ids.sort();
+    assert_eq!(unassigned_ids, ["job4", "job5"].map(String::from));
+
+    assert!(
+        unassigned.iter().all(|job| {
+            job.reasons.iter().any(|reason| {
+                reason.code == "MAX_DURATION_CONSTRAINT"
+                    && reason.details.as_ref().is_some_and(|details| {
+                        details.iter().any(|detail| detail.vehicle_id == "my_vehicle_1" && detail.shift_index == 0)
+                    })
+            })
+        }),
+        "the cap must be the stated reason, against the vehicle that could not take them: {unassigned:?}"
     );
 }
 

@@ -1,5 +1,9 @@
 //! Specifies logic to create a "pragmatic" solution and write it into json format.
 
+#[cfg(test)]
+#[path = "../../../tests/unit/format/solution/reason_codes_test.rs"]
+mod reason_codes_test;
+
 pub(crate) mod activity_matcher;
 
 mod break_writer;
@@ -90,6 +94,9 @@ fn map_code_reason(code: ViolationCode) -> (&'static str, &'static str) {
         }
         TOUR_ORDER_CONSTRAINT_CODE => ("TOUR_ORDER_CONSTRAINT", "cannot be assigned due to tour order constraint"),
         GROUP_CONSTRAINT_CODE => ("GROUP_CONSTRAINT", "cannot be assigned due to group constraint"),
+        VEHICLE_GROUP_CONSTRAINT_CODE => {
+            ("VEHICLE_GROUP_CONSTRAINT", "cannot be assigned because its vehicle group is served by another driver")
+        }
         COMPATIBILITY_CONSTRAINT_CODE => {
             ("COMPATIBILITY_CONSTRAINT", "cannot be assigned due to compatibility constraint")
         }
@@ -97,6 +104,13 @@ fn map_code_reason(code: ViolationCode) -> (&'static str, &'static str) {
             ("RELOAD_RESOURCE_CONSTRAINT", "cannot be assigned due to reload resource constraint")
         }
         RECHARGE_CONSTRAINT_CODE => ("RECHARGE_CONSTRAINT_CODE", "cannot be assigned due to recharge constraint"),
+        MIN_VEHICLE_SHIFTS_CONSTRAINT_CODE => {
+            ("MIN_SHIFT_CONSTRAINT", "cannot be assigned due to minimum shift requirement")
+        }
+        MIN_TOUR_SIZE_CONSTRAINT_CODE => {
+            ("MIN_TOUR_SIZE_CONSTRAINT", "cannot be assigned due to min tour size constraint of vehicle")
+        }
+        JOB_TIME_CONSTRAINT_CODE => ("JOB_TIME_CONSTRAINT", "cannot be assigned due to shift job time constraints"),
         _ => ("NO_REASON_FOUND", "unknown"),
     }
 }
@@ -115,9 +129,13 @@ fn map_reason_code(reason: &str) -> ViolationCode {
         "TOUR_SIZE_CONSTRAINT" => TOUR_SIZE_CONSTRAINT_CODE,
         "TOUR_ORDER_CONSTRAINT" => TOUR_ORDER_CONSTRAINT_CODE,
         "GROUP_CONSTRAINT" => GROUP_CONSTRAINT_CODE,
+        "VEHICLE_GROUP_CONSTRAINT" => VEHICLE_GROUP_CONSTRAINT_CODE,
         "COMPATIBILITY_CONSTRAINT" => COMPATIBILITY_CONSTRAINT_CODE,
         "RELOAD_RESOURCE_CONSTRAINT" => RELOAD_RESOURCE_CONSTRAINT_CODE,
         "RECHARGE_CONSTRAINT_CODE" => RECHARGE_CONSTRAINT_CODE,
+        "MIN_SHIFT_CONSTRAINT" => MIN_VEHICLE_SHIFTS_CONSTRAINT_CODE,
+        "MIN_TOUR_SIZE_CONSTRAINT" => MIN_TOUR_SIZE_CONSTRAINT_CODE,
+        "JOB_TIME_CONSTRAINT" => JOB_TIME_CONSTRAINT_CODE,
         _ => ViolationCode::unknown(),
     }
 }

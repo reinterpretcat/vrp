@@ -14,7 +14,13 @@ use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
-    combine_error_results(&[check_vehicles(ctx), check_jobs_presence(ctx), check_jobs_match(ctx), check_groups(ctx)])
+    combine_error_results(&[
+        check_vehicles(ctx),
+        check_jobs_presence(ctx),
+        check_jobs_match(ctx),
+        check_groups(ctx),
+        check_vehicle_groups(ctx),
+    ])
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
@@ -252,6 +258,49 @@ fn is_valid_job_info(
                 || not_equal(a_commute.backward.distance, d_commute.backward.distance)
                 || not_equal(a_commute.backward.duration, d_commute.backward.duration)
         }
+    }
+}
+
+/// Checks that jobs sharing a `vehicleGroup` are all served by the same person.
+///
+/// Keyed on `driverId` — falling back to the vehicle id when none is set — and never on
+/// `(type_id, vehicle_id, shift_index)` the way `check_groups` above keys the stock `group` field.
+/// Two things would break under that key, and both are ordinary: a group spread over two shifts of
+/// one vehicle, and a group spread over two vehicles of one driver. The second is not exotic —
+/// pragmatic hangs `limits` and `skills` off the vehicle type, so a technician whose cap or tags
+/// differ between days has to be emitted as several vehicles held together by one `driverId`.
+fn check_vehicle_groups(ctx: &CheckerContext) -> GenericResult<()> {
+    let mut holders = HashMap::<String, HashSet<String>>::default();
+
+    for tour in ctx.solution.tours.iter() {
+        let driver = ctx.get_vehicle(&tour.vehicle_id)?.driver_id.clone().unwrap_or_else(|| tour.vehicle_id.clone());
+
+        tour.stops
+            .iter()
+            .flat_map(|stop| stop.activities().iter())
+            .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
+            .flat_map(|job| job.vehicle_group.as_ref())
+            .for_each(|group| {
+                holders.entry(group.clone()).or_default().insert(driver.clone());
+            });
+    }
+
+    let violations = holders.into_iter().filter(|(_, drivers)| drivers.len() > 1).collect::<Vec<_>>();
+
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        let mut err_info = violations
+            .into_iter()
+            .map(|(group, drivers)| {
+                let mut drivers = drivers.into_iter().collect::<Vec<_>>();
+                drivers.sort();
+                format!("'{}' served by {}", group, drivers.join(", "))
+            })
+            .collect::<Vec<_>>();
+        err_info.sort();
+
+        Err(format!("vehicle groups are not respected: {}", err_info.join("; ")).into())
     }
 }
 

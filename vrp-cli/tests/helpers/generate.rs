@@ -10,13 +10,15 @@ pub fn create_empty_job() -> Job {
         services: None,
         skills: None,
         value: None,
+        production_value: None,
         group: None,
         compatibility: None,
+        vehicle_group: None,
     }
 }
 
 pub fn create_empty_job_task() -> JobTask {
-    JobTask { places: vec![], demand: None, order: None }
+    JobTask { places: vec![], demand: None, order: None, due_date: None }
 }
 
 pub fn create_empty_job_place() -> JobPlace {
@@ -30,9 +32,10 @@ pub fn create_empty_plan() -> Plan {
 pub fn create_test_vehicle_type() -> VehicleType {
     VehicleType {
         type_id: "vehicle".to_string(),
+        driver_id: None,
         vehicle_ids: vec!["vehicle_1".to_string()],
         profile: VehicleProfile { matrix: "car".to_string(), scale: None },
-        costs: VehicleCosts { fixed: None, distance: 1., time: 0. },
+        costs: VehicleCosts { fixed: None, distance: 1., time: 0., span: None },
         shifts: vec![VehicleShift {
             start: ShiftStart {
                 earliest: "2020-05-01T09:00:00.00Z".to_string(),
@@ -43,10 +46,12 @@ pub fn create_test_vehicle_type() -> VehicleType {
             breaks: None,
             reloads: None,
             recharges: None,
+            job_times: None,
         }],
         capacity: vec![10],
         skills: None,
         limits: None,
+        min_shifts: None,
     }
 }
 

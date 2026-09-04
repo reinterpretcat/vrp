@@ -51,15 +51,12 @@ fn check_routing_rules(context: &CheckerContext) -> GenericResult<()> {
                         let (distance, duration) = get_matrix_data(from, to)?;
                         (distance, duration, to.distance)
                     }
-                    (prev, Stop::Transit(transit)) => {
-                        let prev_departure = parse_time(&prev.schedule().departure);
-                        let next_arrival = parse_time(&transit.time.arrival);
-                        // NOTE an edge case: duration of break will be counted in transit stop
-                        let duration = if next_arrival == prev_departure {
-                            0.
-                        } else {
-                            parse_time(&transit.time.departure) - next_arrival
-                        };
+                    (_, Stop::Transit(transit)) => {
+                        // A transit stop is a break taken somewhere along the leg, and where along
+                        // it is not recorded. Its own arrival is therefore not recomputable — only
+                        // the break's duration is, and the leg's travel is charged in full on the
+                        // following leg, so it must not be charged here as well.
+                        let duration = parse_time(&transit.time.departure) - parse_time(&transit.time.arrival);
                         (0_i64, duration as i64, total_distance)
                     }
                     (Stop::Transit(_), Stop::Point(to)) => {
@@ -78,17 +75,25 @@ fn check_routing_rules(context: &CheckerContext) -> GenericResult<()> {
                 let arrival_time = arrival_time + duration;
                 let total_distance = total_distance + distance;
 
-                check_stop_statistic(
-                    arrival_time,
-                    total_distance,
-                    to.schedule(),
-                    to_distance,
-                    leg_idx + 1,
-                    tour,
-                    skip_distance_check,
-                )?;
+                if to.as_point().is_some() {
+                    check_stop_statistic(
+                        arrival_time,
+                        total_distance,
+                        to.schedule(),
+                        to_distance,
+                        leg_idx + 1,
+                        tour,
+                        skip_distance_check,
+                    )?;
+                }
 
-                Ok((parse_time(&to.schedule().departure) as i64, to_distance))
+                // Carry the running time rather than the stop's own departure: for a transit stop
+                // they differ by the travel taken before the break, and reading its departure back
+                // charged that stretch a second time on the next leg.
+                Ok((
+                    if to.as_point().is_some() { parse_time(&to.schedule().departure) as i64 } else { arrival_time },
+                    to_distance,
+                ))
             },
         )?;
 

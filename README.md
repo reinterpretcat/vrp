@@ -1,7 +1,5 @@
 [![](https://docs.rs/vrp-core/badge.svg)](https://docs.rs/vrp-core)
-[![crates.io](https://img.shields.io/crates/v/vrp-cli.svg)](https://crates.io/crates/vrp-cli)
 ![build](https://github.com/reinterpretcat/vrp/actions/workflows/build.yaml/badge.svg)
-[![downloads](https://img.shields.io/crates/d/vrp-core)](https://crates.io/crates/vrp-core)
 [![codecov](https://codecov.io/gh/reinterpretcat/vrp/branch/master/graph/badge.svg)](https://codecov.io/gh/reinterpretcat/vrp)
 [![CodeScene Code Health](https://codescene.io/projects/46594/status-badges/code-health)](https://codescene.io/projects/46594)
 [![dependency status](https://deps.rs/crate/vrp-cli/1.25.0/status.svg)](https://deps.rs/crate/vrp-cli/1.25.0)
@@ -46,54 +44,24 @@ Additionally, you can check `vrp-core/examples` to see how to use the library an
 
 # Installation
 
-You can install the latest release of the vrp solver using four different ways:
+You can install the latest release of the vrp solver using GitHub release assets:
 
-## Install with Python
+## Install from GitHub Release
 
-The functionality of `vrp-cli` is published to [pypi.org](https://pypi.org/project/vrp-cli/), so you can just install it
-using pip and use from python:
+Download the archive for your platform from the repository's **Releases** page and unpack it.
 
-```shell
-pip install vrp-cli
-python examples/python-interop/example.py # run test example
-```
+Asset naming convention:
 
-Alternatively, you can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally. You need to enable
-`py_bindings` feature which is not enabled by default.
+    vrp-cli-<tag>-<target>.tar.gz   # linux/macos
+    vrp-cli-<tag>-<target>.zip      # windows
 
-Additionally, to jupyter notebook mentioned above, you can find extra information in [python example section](https://reinterpretcat.github.io/vrp/examples/interop/python.html)
-of the docs. The [full source code](./examples/python-interop/example.py) of python example is available in the repo which
-contains useful model wrappers with help of `pydantic` lib (reused by tutorial as well).
+Checksums are published as `SHA256SUMS`.
 
-
-## Install from Docker
-
-Another fast way to try vrp solver on your environment is to use `docker` image (not performance optimized):
-
-* **run public image** from `Github Container Registry`:
+Example verification (macOS/Linux):
 
 ```bash
-    docker run -it -v $(pwd):/repo --name vrp-cli --rm ghcr.io/reinterpretcat/vrp/vrp-cli:1.25.0
+shasum -a 256 -c SHA256SUMS
 ```
-
-* **build image locally** using `Dockerfile` provided:
-
-```bash
-docker build -t vrp_solver .
-docker run -it -v $(pwd):/repo --rm vrp_solver
-```
-
-Please note that the docker image is built using `musl`, not `glibc` standard library. So there might be some performance
-implications.
-
-
-## Install from Cargo
-
-You can install vrp solver `cli` tool directly with `cargo install`:
-
-    cargo install vrp-cli
-
-Ensure that your `$PATH` is properly configured to source the crates binaries, and then run solver using the `vrp-cli` command.
 
 
 ## Install from source

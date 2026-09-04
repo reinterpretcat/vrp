@@ -4,7 +4,7 @@ use crate::format_time;
 use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::models::common::{Distance, Profile as CoreProfile, TimeWindow, Timestamp};
-use vrp_core::models::problem::TravelTime;
+use vrp_core::models::problem::{DriverIdDimension, TravelTime};
 use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
 use vrp_core::models::solution::Route;
 
@@ -172,4 +172,28 @@ fn can_create_transport_costs_positive_cases_impl(
         let result = transport.distance(&route, 0, 1, TravelTime::Departure(timestamp));
         assert_eq!(result, distance);
     });
+}
+
+#[test]
+fn reads_driver_id_into_dimens() {
+    let matrix = matrix(Some("car"), None, 1, 4);
+
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", (1., 1.))],
+            relations: None,
+            clustering: None,
+        },
+        fleet: Fleet {
+            vehicles: vec![create_vehicle_with_driver_id("my_vehicle", vec![10], "drv-1")],
+            profiles: create_default_matrix_profiles(),
+            resources: None,
+        },
+        objectives: None,
+    };
+
+    let problem = (problem, vec![matrix]).read_pragmatic().ok().unwrap();
+
+    let vehicle = problem.fleet.vehicles.first().unwrap();
+    assert_eq!(vehicle.dimens.get_driver_id(), Some(&"drv-1".to_string()));
 }

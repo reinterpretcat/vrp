@@ -79,6 +79,7 @@ impl CheckerContext {
             .chain(check_assignment(self).err())
             .chain(check_routing(self).err())
             .chain(check_limits(self).err())
+            .chain(check_skills(self).err())
             .flatten()
             .fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
                 if !used.contains(&error) {
@@ -179,17 +180,19 @@ impl CheckerContext {
                 )
             }
 
-            "break" => shift
-                .breaks
-                .as_ref()
-                .and_then(|breaks| {
-                    breaks
-                        .iter()
-                        // TODO: would be nice to propagate the error
-                        .find(|b| get_break_time_window(tour, b).map(|tw| tw.intersects(&time)).unwrap_or(false))
-                })
-                .map(|b| ActivityType::Break(b.clone()))
-                .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id).into()),
+            "break" => {
+                let cost_span = self.get_vehicle(&tour.vehicle_id).ok().and_then(|v| v.costs.span.as_ref());
+                shift
+                    .breaks
+                    .as_ref()
+                    .and_then(|breaks| {
+                        breaks.iter().find(|b| {
+                            get_break_time_window(tour, b, cost_span).map(|tw| tw.intersects(&time)).unwrap_or(false)
+                        })
+                    })
+                    .map(|b| ActivityType::Break(b.clone()))
+                    .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id).into())
+            }
 
             "reload" => shift
                 .reloads
@@ -465,3 +468,6 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
+
+mod skills;
+use crate::checker::skills::check_skills;

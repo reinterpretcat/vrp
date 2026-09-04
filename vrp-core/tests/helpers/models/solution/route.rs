@@ -58,6 +58,14 @@ impl RouteBuilder {
         self
     }
 
+    /// Switches route to a specific actor instance. Clears all changes in the tour done previously.
+    pub fn with_actor(&mut self, actor: Arc<Actor>) -> &mut Self {
+        let tour = Tour::new(actor.as_ref());
+
+        self.0 = create_route(actor, tour, vec![]);
+        self
+    }
+
     /// Sets tour start. NOTE: clears all existing activities.
     pub fn with_start(&mut self, start: Activity) -> &mut Self {
         self.0.tour = Tour::default();

@@ -1,8 +1,10 @@
 use crate::construction::features::*;
+use crate::construction::heuristics::RouteContext;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::Location;
-use crate::models::problem::Job;
+use crate::models::problem::{Job, Single};
+use crate::models::solution::Activity;
 use std::sync::Arc;
 
 mod activity {
@@ -45,14 +47,223 @@ mod activity {
                     .build(),
             )
             .build();
-        let constraint = create_activity_limit_feature("activity_limit", VIOLATION_CODE, Arc::new(move |_| limit))
-            .unwrap()
-            .constraint
-            .unwrap();
+        let constraint = create_activity_limit_feature(
+            "activity_limit",
+            VIOLATION_CODE,
+            Arc::new(move |_| limit),
+            Arc::new(|_| true),
+        )
+        .unwrap()
+        .constraint
+        .unwrap();
 
         let result = constraint.evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
 
         assert_eq!(result, expected);
+    }
+
+    fn is_stop(single: &Single) -> bool {
+        single.dimens.get_job_id().is_none_or(|id| id != "break")
+    }
+
+    fn stop(idx: Location) -> Activity {
+        ActivityBuilder::with_location(idx)
+            .job(Some(TestSingleBuilder::default().id(&format!("stop{idx}")).build_shared()))
+            .build()
+    }
+
+    fn taken_break() -> Activity {
+        ActivityBuilder::with_location(9).job(Some(TestSingleBuilder::default().id("break").build_shared())).build()
+    }
+
+    fn route_with(activities: Vec<Activity>) -> RouteContext {
+        RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&test_fleet(), "v1").add_activities(activities).build())
+            .build()
+    }
+
+    fn stop_limit(limit: usize) -> Arc<dyn FeatureConstraint> {
+        create_activity_limit_feature(
+            "activity_limit",
+            VIOLATION_CODE,
+            Arc::new(move |_| Some(limit)),
+            Arc::new(is_stop),
+        )
+        .unwrap()
+        .constraint
+        .unwrap()
+    }
+
+    #[test]
+    fn can_leave_an_uncounted_activity_out_of_the_limit() {
+        // Two stops and a break on the tour under a limit of three: a third stop still fits,
+        // because the break is not a stop.
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let route_ctx = route_with(vec![stop(0), taken_break(), stop(1)]);
+        let job = TestSingleBuilder::default().id("stop2").build_as_job_ref();
+
+        let result = stop_limit(3).evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn can_still_refuse_a_stop_once_the_counted_activities_fill_the_limit() {
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let route_ctx = route_with(vec![stop(0), taken_break(), stop(1), stop(2)]);
+        let job = TestSingleBuilder::default().id("stop3").build_as_job_ref();
+
+        let result = stop_limit(3).evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
+
+        assert_eq!(result, ConstraintViolation::fail(VIOLATION_CODE));
+    }
+
+    #[test]
+    fn can_insert_an_uncounted_job_into_a_full_tour() {
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let route_ctx = route_with(vec![stop(0), stop(1), stop(2)]);
+        let job = TestSingleBuilder::default().id("break").build_as_job_ref();
+
+        let result = stop_limit(3).evaluate(&MoveContext::route(&solution_ctx, &route_ctx, &job));
+
+        assert_eq!(result, None);
+    }
+}
+
+mod min_activity {
+    use super::*;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+
+    #[test]
+    fn can_create_min_activity_limit_feature() {
+        let feature =
+            create_min_activity_limit_feature("min_activity_limit", Arc::new(|_| Some(3)), Arc::new(|_| true));
+        assert!(feature.is_ok());
+        let feature = feature.unwrap();
+        // Now only has objective, no constraint
+        assert!(feature.objective.is_some());
+    }
+
+    #[test]
+    fn min_activity_objective_calculates_penalty_correctly() {
+        // Route with 1 activity when minimum is 3 should have penalty of 4
+        let insertion_ctx = TestInsertionContextBuilder::default()
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(&test_fleet(), "v1")
+                            .add_activities((0..1).map(|idx| ActivityBuilder::with_location(idx).build()))
+                            .build(),
+                    )
+                    .build(),
+            ])
+            .build();
+
+        let objective = create_min_activity_limit_feature(
+            "min_activity_limit",
+            Arc::new(|_| Some(3)), // minimum 3, route has 1
+            Arc::new(|_| true),
+        )
+        .unwrap()
+        .objective
+        .unwrap();
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        // Penalty is squared: (3 - 1)^2 = 4
+        assert!((fitness - 4.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn min_activity_objective_returns_zero_when_satisfied() {
+        // Route with 3 activities when minimum is 3 should have zero penalty
+        let insertion_ctx = TestInsertionContextBuilder::default()
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(&test_fleet(), "v1")
+                            .add_activities((0..3).map(|idx| ActivityBuilder::with_location(idx).build()))
+                            .build(),
+                    )
+                    .build(),
+            ])
+            .build();
+
+        let objective = create_min_activity_limit_feature(
+            "min_activity_limit",
+            Arc::new(|_| Some(3)), // minimum 3, route has 3
+            Arc::new(|_| true),
+        )
+        .unwrap()
+        .objective
+        .unwrap();
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        // No penalty when constraint is satisfied
+        assert!((fitness - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn min_activity_objective_ignores_empty_routes() {
+        // Empty routes should not be penalized
+        let insertion_ctx = TestInsertionContextBuilder::default()
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(RouteBuilder::default().with_vehicle(&test_fleet(), "v1").build())
+                    .build(),
+            ])
+            .build();
+
+        let objective =
+            create_min_activity_limit_feature("min_activity_limit", Arc::new(|_| Some(3)), Arc::new(|_| true))
+                .unwrap()
+                .objective
+                .unwrap();
+
+        let fitness = objective.fitness(&insertion_ctx);
+
+        // No penalty for empty routes
+        assert!((fitness - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn min_activity_objective_leaves_uncounted_activities_out() {
+        // Two stops and a break under a minimum of three: the break is not a stop, so the route
+        // is one short and carries a penalty of (3 - 2)^2 = 1.
+        let stop = |idx: Location| {
+            ActivityBuilder::with_location(idx)
+                .job(Some(TestSingleBuilder::default().id(&format!("stop{idx}")).build_shared()))
+                .build()
+        };
+        let taken_break = ActivityBuilder::with_location(9)
+            .job(Some(TestSingleBuilder::default().id("break").build_shared()))
+            .build();
+        let insertion_ctx = TestInsertionContextBuilder::default()
+            .with_routes(vec![
+                RouteContextBuilder::default()
+                    .with_route(
+                        RouteBuilder::default()
+                            .with_vehicle(&test_fleet(), "v1")
+                            .add_activities(vec![stop(0), taken_break, stop(1)])
+                            .build(),
+                    )
+                    .build(),
+            ])
+            .build();
+
+        let objective = create_min_activity_limit_feature(
+            "min_activity_limit",
+            Arc::new(|_| Some(3)),
+            Arc::new(|single| single.dimens.get_job_id().is_none_or(|id| id != "break")),
+        )
+        .unwrap()
+        .objective
+        .unwrap();
+
+        assert!((objective.fitness(&insertion_ctx) - 1.0).abs() < f64::EPSILON);
     }
 }
 
@@ -147,7 +358,12 @@ mod traveling {
 
     #[test]
     fn can_consider_waiting_time() {
-        let (feature, route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        let (feature, mut route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        // a route which already carries a job keeps paying for waiting time: its departure is pinned
+        // by the activities already scheduled and cannot be moved forward freely.
+        route_ctx.route_mut().tour.insert_last(
+            ActivityBuilder::with_location(50).job(Some(TestSingleBuilder::default().build_shared())).build(),
+        );
         let solution_ctx = TestInsertionContextBuilder::default().build().solution;
 
         let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(
@@ -162,6 +378,29 @@ mod traveling {
         ));
 
         assert_eq!(result, ConstraintViolation::skip(DURATION_CODE));
+    }
+
+    #[test]
+    fn can_reclaim_leading_wait_on_empty_route() {
+        // same numbers as `can_consider_waiting_time`, but on a route without any job: the idle
+        // stretch in front of the first job is reclaimable, because the departure can simply be
+        // moved forward. Charging it would make a late time window unable to ever open a tour.
+        let (feature, route_ctx) = create_test_data("v1", "v1", (None, Some(100.)));
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        assert_eq!(route_ctx.route().tour.job_count(), 0);
+
+        let result = feature.constraint.unwrap().evaluate(&MoveContext::activity(
+            &solution_ctx,
+            &route_ctx,
+            &ActivityContext {
+                index: 0,
+                prev: &ActivityBuilder::with_location(50).build(),
+                target: &ActivityBuilder::with_location_and_tw(75, TimeWindow::new(100., 100.)).build(),
+                next: Some(&ActivityBuilder::with_location(50).build()),
+            },
+        ));
+
+        assert_eq!(result, None);
     }
 }
 
