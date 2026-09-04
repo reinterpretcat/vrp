@@ -69,8 +69,13 @@ jobs:
             asset_target: windows-x86_64
             archive_ext: zip
     steps:
-      - name: Check out the repo
+      - name: Check out the tag being published
         uses: actions/checkout@v4
+        with:
+          # Explicit, because a dispatched run defaults to the branch the workflow came from —
+          # which would build master's code and upload it under a tag's name. A release event
+          # already checks this commit out; saying so keeps both entry points honest.
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
