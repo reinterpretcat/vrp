@@ -3,13 +3,24 @@ name: Publish release assets
 on:
   release:
     types: [published]
+  # Rebuilding a tag by hand is what turns one flaky target from a lost release into a retry:
+  # the upload waits on the whole matrix, so a single failed leg still leaves the release with
+  # no assets. Dispatching the same tag again rebuilds every target and clobbers what is there.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of an existing release to build and upload assets for
+        required: true
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
   build-binaries:
@@ -23,17 +34,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # A cross-compiled target names its own `apt_packages` and `linker`; everything else about
+        # a target is the same three fields. Adding one is a row here, never a new build step.
+        #
+        # Linux builds run on the OLDEST supported runner on purpose. A glibc-linked binary runs
+        # against its build-time glibc or newer and never older, so building on `ubuntu-latest`
+        # silently raises the floor the day that label moves — and the worker snapshot boots
+        # Ubuntu 24.04. 22.04 (glibc 2.35) clears every machine we deploy on with room to spare.
+        # Static musl builds would drop the floor entirely, but musl's allocator is slow under the
+        # threaded, allocation-heavy search this binary does, so the portability is not worth it.
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             asset_target: linux-x86_64
             archive_ext: tar.gz
-          # No ARM64 Linux target. Nothing we run is ARM Linux — the solver pool boots x86 boxes
-          # and the worker provisioning fetches linux-x86_64 by name — and cross-compiling it is
-          # what broke the last two releases: the runner image carries the aarch64 gcc driver but
-          # no ARM64 libc, so linking dies on a missing crti.o. Because the upload waits on the
-          # whole matrix, that one target left v0.1.16 and v0.1.17 with no assets at all. If ARM64
-          # Linux is ever needed, build it on a native arm64 runner instead of cross-linking.
+          - os: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
+            asset_target: linux-aarch64
+            archive_ext: tar.gz
+            # Both halves, or the link fails: the compiler driver AND the ARM64 libc that carries
+            # crti.o. Installing only the driver is what broke v0.1.16 and v0.1.17.
+            apt_packages: gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+            linker: aarch64-linux-gnu-gcc
           - os: macos-latest
             target: x86_64-apple-darwin
             asset_target: macos-x86_64
@@ -55,26 +77,56 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install cross-compilation packages
+        if: matrix.apt_packages != ''
+        # Both earlier hangs sat here, in `apt-get update`, never reaching the compiler.
+        # `noninteractive` takes away apt's one way of waiting for an answer nobody is there to
+        # give, and the step timeout bounds a mirror that stops responding — a retry costs a
+        # minute, the wedge cost three hours.
+        timeout-minutes: 5
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ${{ matrix.apt_packages }}
+
       - name: Build vrp-cli
-        run: cargo build -p vrp-cli --release --locked --target ${{ matrix.target }}
+        shell: bash
+        env:
+          MATRIX_TARGET: ${{ matrix.target }}
+          MATRIX_LINKER: ${{ matrix.linker }}
+        run: |
+          set -euo pipefail
+
+          # Cargo takes a cross linker from CARGO_TARGET_<TARGET>_LINKER, the triple upper-cased
+          # with dashes as underscores. Deriving it keeps the target list the only place that
+          # knows about cross-compiling.
+          if [ -n "${MATRIX_LINKER}" ]; then
+            linker_var="CARGO_TARGET_$(printf '%s' "${MATRIX_TARGET}" | tr 'a-z-' 'A-Z_')_LINKER"
+            echo "using ${linker_var}=${MATRIX_LINKER}"
+            export "${linker_var}=${MATRIX_LINKER}"
+          fi
+
+          cargo build -p vrp-cli --release --locked --target "${MATRIX_TARGET}"
 
       - name: Package binary
         shell: bash
+        env:
+          MATRIX_TARGET: ${{ matrix.target }}
+          ASSET_TARGET: ${{ matrix.asset_target }}
         run: |
           set -euo pipefail
-          tag="${{ github.event.release.tag_name }}"
-          target="${{ matrix.target }}"
-          asset_target="${{ matrix.asset_target }}"
+          [ -n "${RELEASE_TAG}" ] || { echo "RELEASE_TAG is empty"; exit 1; }
           out_dir="release-artifacts"
           mkdir -p "$out_dir"
 
           if [ "${{ runner.os }}" = "Windows" ]; then
-            bin_path="target/$target/release/vrp-cli.exe"
-            archive_path="$out_dir/vrp-cli-${tag}-${asset_target}.zip"
+            bin_path="target/${MATRIX_TARGET}/release/vrp-cli.exe"
+            archive_path="$out_dir/vrp-cli-${RELEASE_TAG}-${ASSET_TARGET}.zip"
             7z a -tzip "$archive_path" "$bin_path" > /dev/null
           else
-            bin_path="target/$target/release/vrp-cli"
-            archive_path="$out_dir/vrp-cli-${tag}-${asset_target}.tar.gz"
+            bin_path="target/${MATRIX_TARGET}/release/vrp-cli"
+            archive_path="$out_dir/vrp-cli-${RELEASE_TAG}-${ASSET_TARGET}.tar.gz"
             tar -czf "$archive_path" -C "$(dirname "$bin_path")" "$(basename "$bin_path")"
           fi
 
@@ -82,7 +134,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vrp-cli-${{ matrix.asset_target }}
-          path: release-artifacts/vrp-cli-${{ github.event.release.tag_name }}-${{ matrix.asset_target }}.${{ matrix.archive_ext }}
+          path: release-artifacts/
           if-no-files-found: error
 
   create-checksums:
@@ -137,10 +189,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
-          [ -n "$RELEASE_TAG" ] || { echo "RELEASE_TAG is empty"; exit 1; }
+          [ -n "${RELEASE_TAG}" ] || { echo "RELEASE_TAG is empty"; exit 1; }
 
           mapfile -t files < <(find release-artifacts -maxdepth 1 -type f \( -name 'vrp-cli-*' -o -name 'SHA256SUMS' \) | sort)
           [ "${#files[@]}" -gt 0 ] || { echo "No release files found to upload"; exit 1; }
