@@ -119,6 +119,51 @@ pub fn can_check_tour_size_limit() {
     );
 }
 
+/// A break on the tour is an activity, but not a stop: two stops and a break fit a
+/// tour size of two, as they do for the solver's own constraint.
+#[test]
+pub fn can_leave_a_break_out_of_the_tour_size() {
+    let problem = create_test_problem(Some(VehicleLimits {
+        max_distance: None,
+        max_duration: None,
+        tour_size: Some(2),
+        min_tour_size: None,
+    }));
+    let solution = create_test_solution(
+        Statistic::default(),
+        vec![
+            StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![2]).build_departure(),
+            StopBuilder::default()
+                .coordinate((1., 0.))
+                .schedule_stamp(1., 1.)
+                .load(vec![1])
+                .distance(1)
+                .build_single("job1", "delivery"),
+            StopBuilder::default()
+                .coordinate((1., 0.))
+                .schedule_stamp(1., 3.)
+                .load(vec![1])
+                .distance(1)
+                .build_single("break", "break"),
+            StopBuilder::default()
+                .coordinate((2., 0.))
+                .schedule_stamp(4., 4.)
+                .load(vec![0])
+                .distance(2)
+                .build_single("job2", "delivery"),
+            StopBuilder::default()
+                .coordinate((0., 0.))
+                .schedule_stamp(6., 6.)
+                .load(vec![0])
+                .distance(4)
+                .build_arrival(),
+        ],
+    );
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
+
+    assert_eq!(check_shift_limits(&ctx), Ok(()));
+}
+
 /// `minTourSize` feeds an objective, not a constraint, so an under-sized tour is a
 /// worse solution and never an infeasible one — the checker must let it pass.
 #[test]

@@ -98,6 +98,7 @@ pub(super) fn create_goal_context(
             "activity_limit",
             TOUR_SIZE_CONSTRAINT_CODE,
             Arc::new(|actor| actor.vehicle.dimens.get_tour_size().copied()),
+            Arc::new(is_stop),
         )?);
     }
 
@@ -300,6 +301,7 @@ fn get_objective_feature_layer(
         Objective::MinimizeTourSizeViolation => create_min_activity_limit_feature(
             "min_tour_size_objective",
             Arc::new(|actor| actor.vehicle.dimens.get_min_tour_size().copied()),
+            Arc::new(is_stop),
         ),
         Objective::FastService => get_fast_service_feature("fast_service", blocks),
         Objective::MinimizeOverdue => MinimizeOverdueBuilder::new("min_overdue")
@@ -898,6 +900,13 @@ where
                 })
         })
         .collect()
+}
+
+/// Whether a job's activity is a stop for the purposes of `tourSize` / `minTourSize`. A break, a
+/// reload or a recharge is on the tour as an activity, but it is not a customer visit, so the two
+/// limits leave it out — a cap of ten stops means ten stops whether or not a break is taken.
+fn is_stop(single: &Single) -> bool {
+    !matches!(single.dimens.get_job_type().map(String::as_str), Some("break" | "reload" | "recharge"))
 }
 
 fn create_optional_break_feature(name: &str) -> GenericResult<Feature> {

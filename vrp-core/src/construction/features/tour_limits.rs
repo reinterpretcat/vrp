@@ -9,10 +9,14 @@ use std::cmp::Ordering;
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::common::{Distance, Duration};
-use crate::models::problem::{Actor, TransportCost};
+use crate::models::problem::{Actor, Single, TransportCost};
+use crate::models::solution::Tour;
 
 /// A function which returns activity size limit for a given actor.
 pub type ActivitySizeResolver = Arc<dyn Fn(&Actor) -> Option<usize> + Sync + Send>;
+/// A function which tells whether a job's activity counts toward the tour size. A break, a reload
+/// or a recharge sits on the tour as an activity too, but it is not a stop.
+pub type ActivityCountFn = Arc<dyn Fn(&Single) -> bool + Sync + Send>;
 /// A function to resolve travel limit.
 pub type TravelLimitFn<T> = Arc<dyn Fn(&Actor) -> Option<T> + Send + Sync>;
 
@@ -22,10 +26,11 @@ pub fn create_activity_limit_feature(
     name: &str,
     code: ViolationCode,
     limit_func: ActivitySizeResolver,
+    is_counted: ActivityCountFn,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
-        .with_constraint(ActivityLimitConstraint { code, limit_fn: limit_func })
+        .with_constraint(ActivityLimitConstraint { code, limit_fn: limit_func, is_counted })
         .build()
 }
 
@@ -37,8 +42,25 @@ pub fn create_activity_limit_feature(
 pub fn create_min_activity_limit_feature(
     name: &str,
     min_limit_fn: ActivitySizeResolver,
+    is_counted: ActivityCountFn,
 ) -> Result<Feature, GenericError> {
-    FeatureBuilder::default().with_name(name).with_objective(MinActivityLimitObjective { min_limit_fn }).build()
+    FeatureBuilder::default()
+        .with_name(name)
+        .with_objective(MinActivityLimitObjective { min_limit_fn, is_counted })
+        .build()
+}
+
+/// The activities on the tour that count toward its size.
+fn counted_activities(tour: &Tour, is_counted: &ActivityCountFn) -> usize {
+    tour.all_activities().filter(|activity| activity.job.as_ref().is_some_and(|single| is_counted(single))).count()
+}
+
+/// The activities a job would add to the count once inserted.
+fn counted_job_activities(job: &Job, is_counted: &ActivityCountFn) -> usize {
+    match job {
+        Job::Single(single) => usize::from(is_counted(single)),
+        Job::Multi(multi) => multi.jobs.iter().filter(|single| is_counted(single)).count(),
+    }
 }
 
 /// Creates a travel limits such as distance and/or duration.
@@ -68,6 +90,7 @@ pub fn create_travel_limit_feature(
 struct ActivityLimitConstraint {
     code: ViolationCode,
     limit_fn: ActivitySizeResolver,
+    is_counted: ActivityCountFn,
 }
 
 impl FeatureConstraint for ActivityLimitConstraint {
@@ -75,12 +98,8 @@ impl FeatureConstraint for ActivityLimitConstraint {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => {
                 (self.limit_fn)(route_ctx.route().actor.as_ref()).and_then(|limit| {
-                    let tour_activities = route_ctx.route().tour.job_activity_count();
-
-                    let job_activities = match job {
-                        Job::Single(_) => 1,
-                        Job::Multi(multi) => multi.jobs.len(),
-                    };
+                    let tour_activities = counted_activities(&route_ctx.route().tour, &self.is_counted);
+                    let job_activities = counted_job_activities(job, &self.is_counted);
 
                     if tour_activities + job_activities > limit {
                         ConstraintViolation::fail(self.code)
@@ -102,6 +121,7 @@ impl FeatureConstraint for ActivityLimitConstraint {
 /// This guides the solver toward valid solutions while still allowing exploration.
 struct MinActivityLimitObjective {
     min_limit_fn: ActivitySizeResolver,
+    is_counted: ActivityCountFn,
 }
 
 /// Penalty carried by a single route for staying below the minimum activity count.
@@ -127,7 +147,9 @@ impl FeatureObjective for MinActivityLimitObjective {
     fn fitness(&self, solution: &InsertionContext) -> Cost {
         solution.solution.routes.iter().fold(0., |acc, route_ctx| {
             match (self.min_limit_fn)(route_ctx.route().actor.as_ref()) {
-                Some(min_limit) => acc + min_activity_penalty(route_ctx.route().tour.job_activity_count(), min_limit),
+                Some(min_limit) => {
+                    acc + min_activity_penalty(counted_activities(&route_ctx.route().tour, &self.is_counted), min_limit)
+                }
                 None => acc,
             }
         })
@@ -141,11 +163,8 @@ impl FeatureObjective for MinActivityLimitObjective {
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => (self.min_limit_fn)(route_ctx.route().actor.as_ref())
                 .map(|min_limit| {
-                    let current = route_ctx.route().tour.job_activity_count();
-                    let added = match job {
-                        Job::Single(_) => 1,
-                        Job::Multi(multi) => multi.jobs.len(),
-                    };
+                    let current = counted_activities(&route_ctx.route().tour, &self.is_counted);
+                    let added = counted_job_activities(job, &self.is_counted);
 
                     min_activity_penalty(current + added, min_limit) - min_activity_penalty(current, min_limit)
                 })
