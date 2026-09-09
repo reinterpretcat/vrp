@@ -144,6 +144,36 @@ impl FeatureConstraint for CombinedFeatureConstraint {
     fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
         merge_with_constraints(&self.constraints, source, candidate)
     }
+
+    fn relaxation(&self) -> Option<&dyn RelaxedFeatureConstraint> {
+        self.constraints.iter().any(|constraint| constraint.relaxation().is_some()).then_some(self)
+    }
+}
+
+impl RelaxedFeatureConstraint for CombinedFeatureConstraint {
+    fn evaluate_relaxed(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        self.constraints.iter().find_map(|constraint| {
+            constraint
+                .relaxation()
+                .map_or_else(|| constraint.evaluate(move_ctx), |relaxation| relaxation.evaluate_relaxed(move_ctx))
+        })
+    }
+
+    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
+        self.constraints
+            .iter()
+            .filter_map(|constraint| constraint.relaxation())
+            .map(|relaxation| relaxation.violation(solution_ctx))
+            .sum()
+    }
+
+    fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {
+        self.constraints
+            .iter()
+            .filter_map(|constraint| constraint.relaxation())
+            .map(|relaxation| relaxation.estimate_violation(move_ctx))
+            .sum()
+    }
 }
 
 struct SumFeatureObjective {

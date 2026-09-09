@@ -101,7 +101,9 @@ pub(crate) fn get_rosomaxa_solution_features(insertion_ctx: &InsertionContext) -
     for route_ctx in routes {
         let route = route_ctx.route();
         let state = route_ctx.state();
-        let route_max_load = state.get_max_vehicle_load().copied().unwrap_or_default();
+        // Capacity excess is tracked separately by relaxed search. Keep the structural descriptor inside its natural
+        // feasible range so an overloaded stepping stone does not stretch the GSOM scale for regular solutions.
+        let route_max_load = state.get_max_vehicle_load().copied().unwrap_or_default().min(1.);
 
         max_load.add(route_max_load);
         full_load_count += usize::from(route_max_load > 0.9);
@@ -174,7 +176,7 @@ pub(crate) fn get_rosomaxa_solution_features(insertion_ctx: &InsertionContext) -
     let customer_count_mean = customer_count.value();
     let (max_load_first, max_load_second, customer_count_first, customer_count_second) =
         routes.iter().fold((0., 0., 0., 0.), |acc, route_ctx| {
-            let max_load = route_ctx.state().get_max_vehicle_load().copied().unwrap_or_default();
+            let max_load = route_ctx.state().get_max_vehicle_load().copied().unwrap_or_default().min(1.);
             let max_load_deviation = max_load - max_load_mean;
             let customer_count_deviation = route_ctx.route().tour.job_count() as Float - customer_count_mean;
 

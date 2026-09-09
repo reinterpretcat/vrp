@@ -131,25 +131,13 @@ impl<T: LoadOps> CapacityFeatureBuilder<T> {
     pub fn build(self) -> GenericResult<Feature> {
         let name = self.name.as_str();
         let violation_code = self.violation_code.unwrap_or_default();
+        let multi_trip = Arc::new(CapacitatedMultiTrip::<T> {
+            route_intervals: self.route_intervals.unwrap_or(RouteIntervals::Single),
+            violation_code,
+            phantom: Default::default(),
+        });
 
-        match self.route_intervals {
-            Some(route_intervals) => create_multi_trip_feature(
-                name,
-                violation_code,
-                MarkerInsertionPolicy::Last,
-                Arc::new(CapacitatedMultiTrip::<T> { route_intervals, violation_code, phantom: Default::default() }),
-            ),
-            _ => create_multi_trip_feature(
-                name,
-                violation_code,
-                MarkerInsertionPolicy::Last,
-                Arc::new(CapacitatedMultiTrip::<T> {
-                    route_intervals: RouteIntervals::Single,
-                    violation_code,
-                    phantom: Default::default(),
-                }),
-            ),
-        }
+        create_multi_trip_feature(name, violation_code, MarkerInsertionPolicy::Last, multi_trip)
     }
 }
 
@@ -186,6 +174,53 @@ where
             }
             _ => Err(self.violation_code),
         }
+    }
+
+    fn relaxation(&self) -> Option<&dyn RelaxedFeatureConstraint> {
+        Some(self)
+    }
+}
+
+impl<T> RelaxedFeatureConstraint for CapacitatedMultiTrip<T>
+where
+    T: LoadOps,
+{
+    fn evaluate_relaxed(&self, _move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        // The generic violation band controls overload; remove only the binary capacity rejection here.
+        None
+    }
+
+    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
+        solution_ctx
+            .routes
+            .iter()
+            .filter_map(|route_ctx| route_ctx.state().get_max_vehicle_load())
+            .map(|ratio| (ratio - 1.).max(0.))
+            .sum()
+    }
+
+    fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {
+        let MoveContext::Activity { route_ctx, activity_ctx, .. } = move_ctx else { return 0. };
+        let Some(demand) = activity_ctx.target.job.as_ref().and_then(|job| job.dimens.get_job_demand::<T>()) else {
+            return 0.;
+        };
+        let Some(states) = route_ctx.state().get_capacity_states::<T>() else { return 0. };
+        let Some(capacity) = states.capacity else { return 0. };
+        let Some(state) = states.activities.get(activity_ctx.index) else { return 0. };
+
+        let current_max = states.activities.iter().fold(T::default(), |max, state| max.max_load(state.current));
+        let projected_max = [
+            current_max,
+            state.max_past + demand.delivery.0,
+            state.max_future + demand.pickup.0,
+            state.max_future + demand.change(),
+            state.current + demand.change(),
+        ]
+        .into_iter()
+        .fold(T::default(), Load::max_load);
+        let overload = |load: T| (load.ratio(&capacity) - 1.).max(0.);
+
+        overload(projected_max) - overload(current_max)
     }
 }
 

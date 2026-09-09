@@ -67,6 +67,35 @@ fn create_objective_feature_with_dynamic_cost(name: &str, fitness_fn: FitnessFn)
         .unwrap()
 }
 
+struct TestRelaxableConstraint {
+    violation: Float,
+    strict: Option<ConstraintViolation>,
+}
+
+impl FeatureConstraint for TestRelaxableConstraint {
+    fn evaluate(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        self.strict.clone()
+    }
+
+    fn relaxation(&self) -> Option<&dyn RelaxedFeatureConstraint> {
+        Some(self)
+    }
+}
+
+impl RelaxedFeatureConstraint for TestRelaxableConstraint {
+    fn evaluate_relaxed(&self, _: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        None
+    }
+
+    fn violation(&self, _: &SolutionContext) -> Float {
+        self.violation
+    }
+
+    fn estimate_violation(&self, _: &MoveContext<'_>) -> Float {
+        self.violation
+    }
+}
+
 #[test]
 pub fn can_create_goal_context_with_objective() -> GenericResult<()> {
     GoalContextBuilder::with_features(&[create_minimize_tours_feature("min-tours").unwrap()])?
@@ -80,6 +109,15 @@ pub fn cannot_create_goal_context_without_objectives() -> GenericResult<()> {
     let features = vec![CapacityFeatureBuilder::<SingleDimLoad>::new("capacity").build().unwrap()];
 
     assert!(GoalContextBuilder::with_features(&features).is_err());
+    Ok(())
+}
+
+#[test]
+fn cannot_relax_goal_without_capability() -> GenericResult<()> {
+    let goal = GoalContextBuilder::with_features(&[create_feature("hard", 0., None)])?.build()?;
+
+    assert!(goal.relaxed(0.).is_none());
+
     Ok(())
 }
 
@@ -127,6 +165,111 @@ pub fn can_evaluate_constraints() -> GenericResult<()> {
             .evaluate(&move_ctx),
         ConstraintViolation::skip(ViolationCode(1))
     );
+
+    Ok(())
+}
+
+#[test]
+fn can_relax_only_opted_in_constraint_and_track_exact_violation() -> GenericResult<()> {
+    let relaxable =
+        FeatureBuilder::from_feature(create_feature("relaxable", 0., ConstraintViolation::fail(ViolationCode(1))))
+            .with_constraint(TestRelaxableConstraint {
+                violation: 0.25,
+                strict: ConstraintViolation::fail(ViolationCode(1)),
+            })
+            .build()?;
+    let hard = create_feature("hard", 1., ConstraintViolation::fail(ViolationCode(2)));
+    let goal = GoalContextBuilder::with_features(&[relaxable, hard])?.build()?;
+    let relaxed = goal.relaxed(0.).expect("a controlled relaxation should be available");
+    let mut insertion_ctx = TestInsertionContextBuilder::default().build();
+    let route_ctx = RouteContext::new(test_actor());
+    let activity = ActivityBuilder::default().job(None).build();
+    let activity_ctx = ActivityContext { index: 0, prev: &activity, target: &activity, next: None };
+
+    assert_eq!(
+        relaxed.evaluate(&MoveContext::activity(&insertion_ctx.solution, &route_ctx, &activity_ctx)),
+        ConstraintViolation::fail(ViolationCode(2))
+    );
+
+    relaxed.accept_solution_state(&mut insertion_ctx.solution);
+    assert_eq!(insertion_ctx.solution.state.get_relaxed_violation(), Some(&0.25));
+
+    goal.accept_solution_state(&mut insertion_ctx.solution);
+    assert!(insertion_ctx.solution.state.get_relaxed_violation().is_none());
+
+    Ok(())
+}
+
+#[test]
+fn can_preserve_relaxation_when_combining_features() -> GenericResult<()> {
+    let create_relaxable = |name, violation| {
+        FeatureBuilder::from_feature(create_feature(name, 0., ConstraintViolation::fail(ViolationCode(1))))
+            .with_constraint(TestRelaxableConstraint { violation, strict: ConstraintViolation::fail(ViolationCode(1)) })
+            .build()
+    };
+    let combined = FeatureCombinator::default()
+        .add_features(&[
+            create_relaxable("first", 0.1)?,
+            create_relaxable("second", 0.2)?,
+            create_feature("hard", 0., ConstraintViolation::fail(ViolationCode(2))),
+        ])
+        .combine()?;
+    let goal = GoalContextBuilder::with_features(&[combined])?.build()?.relaxed(0.).unwrap();
+    let mut insertion_ctx = TestInsertionContextBuilder::default().build();
+    let route_ctx = RouteContext::new(test_actor());
+    let activity = ActivityBuilder::default().job(None).build();
+    let activity_ctx = ActivityContext { index: 0, prev: &activity, target: &activity, next: None };
+
+    assert_eq!(
+        goal.evaluate(&MoveContext::activity(&insertion_ctx.solution, &route_ctx, &activity_ctx)),
+        ConstraintViolation::fail(ViolationCode(2))
+    );
+    goal.accept_solution_state(&mut insertion_ctx.solution);
+    assert!((insertion_ctx.solution.state.get_relaxed_violation().unwrap() - 0.3).abs() < 1E-9);
+
+    Ok(())
+}
+
+#[test]
+fn can_compare_relaxed_solutions_inside_violation_tolerance() -> GenericResult<()> {
+    let relaxable = FeatureBuilder::default()
+        .with_name("relaxable")
+        .with_constraint(TestRelaxableConstraint { violation: 0., strict: None })
+        .build()?;
+    let goal = GoalContextBuilder::with_features(&[create_minimize_tours_feature("tours")?, relaxable])?.build()?;
+    let create_solution = |route_count: usize, violation: Float| {
+        TestInsertionContextBuilder::default()
+            .with_routes((0..route_count).map(|_| RouteContext::new(test_actor())).collect())
+            .with_state(|state| {
+                state.set_relaxed_violation(violation);
+            })
+            .build()
+    };
+    let one_route = create_solution(1, 0.2);
+    let two_routes = create_solution(2, 0.1);
+
+    assert_eq!(goal.relaxed(0.2).unwrap().total_order(&one_route, &two_routes), Ordering::Less);
+    assert_eq!(goal.relaxed(0.05).unwrap().total_order(&one_route, &two_routes), Ordering::Greater);
+
+    Ok(())
+}
+
+#[test]
+fn can_prioritize_projected_violation_outside_relaxed_tolerance() -> GenericResult<()> {
+    let relaxable = FeatureBuilder::from_feature(create_feature("relaxable", 2., None))
+        .with_constraint(TestRelaxableConstraint { violation: 0.25, strict: None })
+        .build()?;
+    let goal = GoalContextBuilder::with_features(&[relaxable])?.build()?.relaxed(0.2).unwrap();
+    let mut solution_ctx = TestInsertionContextBuilder::default().build().solution;
+    solution_ctx.state.set_relaxed_violation(0.1);
+    let route_ctx = RouteContext::new(test_actor());
+    let activity = ActivityBuilder::default().job(None).build();
+    let activity_ctx = ActivityContext { index: 0, prev: &activity, target: &activity, next: None };
+    let costs =
+        goal.estimate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx)).iter().collect::<Vec<_>>();
+
+    assert!((costs[0] - 0.15).abs() < 1E-9);
+    assert_eq!(costs[1], 2.);
 
     Ok(())
 }

@@ -31,6 +31,7 @@ where
     search_group: HeuristicSearchGroup<C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     intensify_operators: HeuristicIntensifyOperators<C, O, S>,
+    escape_operator: Option<HeuristicEscapeOperator<C, O, S>>,
 }
 
 impl<C, O, S> HyperHeuristic for StaticSelective<C, O, S>
@@ -48,7 +49,21 @@ where
     }
 
     fn search_many(&mut self, heuristic_ctx: &Self::Context, solutions: Vec<&Self::Solution>) -> Vec<Self::Solution> {
-        parallel_collect(solutions, ParallelismPolicy::Coarse, |solution| self.search_once(heuristic_ctx, solution))
+        parallel_collect(
+            create_search_tasks(
+                heuristic_ctx,
+                solutions,
+                self.escape_operator.is_some() && heuristic_ctx.supports_relaxed_search(),
+            ),
+            ParallelismPolicy::Coarse,
+            |task| match task {
+                SearchTask::Regular(solution) => self.search_once(heuristic_ctx, solution),
+                SearchTask::Escape(solution) => self.escape_operator.as_ref().map_or_else(
+                    || self.search_once(heuristic_ctx, solution),
+                    |operator| operator.search(heuristic_ctx, solution),
+                ),
+            },
+        )
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
@@ -78,7 +93,7 @@ where
     pub fn new(search_group: HeuristicSearchGroup<C, O, S>) -> Self {
         assert!(!search_group.is_empty());
 
-        Self { search_group, diversify_operators: Vec::new(), intensify_operators: Vec::new() }
+        Self { search_group, diversify_operators: Vec::new(), intensify_operators: Vec::new(), escape_operator: None }
     }
 
     /// Adds operators which diversify search during exploration.
@@ -90,6 +105,12 @@ where
     /// Adds operators which intensify search during exploitation.
     pub fn with_intensify_operators(mut self, operators: HeuristicIntensifyOperators<C, O, S>) -> Self {
         self.intensify_operators = operators;
+        self
+    }
+
+    /// Adds an operator which periodically replaces one regular search attempt.
+    pub fn with_escape_operator(mut self, operator: HeuristicEscapeOperator<C, O, S>) -> Self {
+        self.escape_operator = Some(operator);
         self
     }
 

@@ -1,11 +1,100 @@
 use super::*;
-use crate::example::{VectorContext, VectorObjective, VectorSolution};
+use crate::example::{VectorContext, VectorObjective, VectorRosomaxaContext, VectorSolution};
 use crate::helpers::example::{
     create_default_heuristic_context, create_example_objective, create_heuristic_context_with_solutions,
 };
-use crate::population::Greedy;
+use crate::population::{Greedy, Rosomaxa, RosomaxaConfig};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
+
+#[test]
+fn can_schedule_escape_without_increasing_search_batch() {
+    assert!(!should_use_escape(0, 0., SelectionPhase::Initial, 8));
+    assert!(!should_use_escape(32, 0., SelectionPhase::Exploration, 1));
+    assert!(should_use_escape(32, 0.1, SelectionPhase::Exploration, 8));
+    assert!(!should_use_escape(33, 0.1, SelectionPhase::Exploration, 8));
+    assert!(should_use_escape(16, 0., SelectionPhase::Exploitation, 8));
+}
+
+#[test]
+fn can_replace_regular_search_with_escape_without_updating_posterior() {
+    struct CountingSearch(Arc<AtomicUsize>);
+
+    impl HeuristicSearchOperator for CountingSearch {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            solution.deep_copy()
+        }
+    }
+
+    let environment = Arc::new(Environment::default());
+    let objective = create_example_objective();
+    let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
+    let config = RosomaxaConfig { initial_size: 4, ..RosomaxaConfig::new_with_defaults(8) };
+    let mut population = Rosomaxa::new(VectorRosomaxaContext, objective.clone(), environment.clone(), config).unwrap();
+    population.add_all(
+        (0..4)
+            .map(|value| VectorSolution::new(vec![value as Float, 0.], value as Float, vec![value as Float, 0.]))
+            .collect(),
+    );
+    population.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+    let population = Box::new(population);
+    let heuristic_ctx = VectorContext::new(objective, population, TelemetryMode::None, environment.clone());
+    let regular_count = Arc::new(AtomicUsize::new(0));
+    let escape_count = Arc::new(AtomicUsize::new(0));
+    let mut heuristic = DynamicSelective::new(
+        vec![HeuristicSearchOperatorConfig::new(Arc::new(CountingSearch(regular_count.clone())), "regular", 1.)],
+        environment.as_ref(),
+    )
+    .with_escape_operator(Arc::new(CountingSearch(escape_count.clone())));
+
+    let result = heuristic.search_many(&heuristic_ctx, vec![&solution; 8]);
+
+    assert_eq!(result.len(), 8);
+    assert_eq!(regular_count.load(Ordering::Relaxed), 7);
+    assert_eq!(escape_count.load(Ordering::Relaxed), 1);
+    assert_eq!(heuristic.agent.get_params().iter().map(|sample| sample.calls).sum::<usize>(), 7);
+}
+
+#[test]
+fn can_disable_escape_when_population_cannot_isolate_relaxed_solutions() {
+    struct CountingSearch(Arc<AtomicUsize>);
+
+    impl HeuristicSearchOperator for CountingSearch {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            solution.deep_copy()
+        }
+    }
+
+    let environment = Arc::new(Environment::default());
+    let objective = create_example_objective();
+    let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
+    let population = Box::new(Greedy::new(objective.clone(), 8, Some(solution.deep_copy())));
+    let heuristic_ctx = VectorContext::new(objective, population, TelemetryMode::None, environment.clone());
+    let regular_count = Arc::new(AtomicUsize::new(0));
+    let escape_count = Arc::new(AtomicUsize::new(0));
+    let mut heuristic = DynamicSelective::new(
+        vec![HeuristicSearchOperatorConfig::new(Arc::new(CountingSearch(regular_count.clone())), "regular", 1.)],
+        environment.as_ref(),
+    )
+    .with_escape_operator(Arc::new(CountingSearch(escape_count.clone())));
+
+    let result = heuristic.search_many(&heuristic_ctx, vec![&solution; 8]);
+
+    assert_eq!(result.len(), 8);
+    assert_eq!(regular_count.load(Ordering::Relaxed), 8);
+    assert_eq!(escape_count.load(Ordering::Relaxed), 0);
+    assert_eq!(heuristic.agent.get_params().iter().map(|sample| sample.calls).sum::<usize>(), 8);
+}
 
 #[test]
 fn can_run_intensify_operator_without_replacing_search() {

@@ -77,6 +77,14 @@ impl HeuristicContext for VectorContext {
         self.inner_context.population.select()
     }
 
+    fn selected_relaxed(&self, solution: &Self::Solution) -> Option<&Self::Solution> {
+        self.inner_context.population.select_relaxed(solution)
+    }
+
+    fn supports_relaxed_search(&self) -> bool {
+        self.inner_context.population.supports_relaxed_search()
+    }
+
     fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {
         self.inner_context.population.ranked()
     }

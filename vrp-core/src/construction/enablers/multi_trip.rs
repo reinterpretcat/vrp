@@ -9,6 +9,7 @@ use crate::models::*;
 use rosomaxa::prelude::*;
 use std::collections::HashSet;
 use std::iter::once;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 /// Specifies multi trip extension behavior.
@@ -28,6 +29,7 @@ pub trait MultiTrip: Send + Sync {
 }
 
 /// Marker insertion policy.
+#[derive(Clone, Copy)]
 pub enum MarkerInsertionPolicy {
     /// Any position.
     Any,
@@ -57,15 +59,62 @@ struct MultiTripConstraint {
 
 impl FeatureConstraint for MultiTripConstraint {
     fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        match self.evaluate_marker(move_ctx) {
+            ControlFlow::Break(result) => result,
+            ControlFlow::Continue(()) => self.multi_trip.get_constraint().evaluate(move_ctx),
+        }
+    }
+
+    fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
+        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.get_route_intervals().is_marker_job(job)) {
+            return Err(self.code);
+        }
+
+        self.multi_trip.get_constraint().merge(source, candidate)
+    }
+
+    fn relaxation(&self) -> Option<&dyn RelaxedFeatureConstraint> {
+        self.multi_trip.get_constraint().relaxation().map(|_| self as &dyn RelaxedFeatureConstraint)
+    }
+}
+
+impl RelaxedFeatureConstraint for MultiTripConstraint {
+    fn evaluate_relaxed(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        match self.evaluate_marker(move_ctx) {
+            ControlFlow::Break(result) => result,
+            ControlFlow::Continue(()) => {
+                let constraint = self.multi_trip.get_constraint();
+                constraint
+                    .relaxation()
+                    .map_or_else(|| constraint.evaluate(move_ctx), |relaxation| relaxation.evaluate_relaxed(move_ctx))
+            }
+        }
+    }
+
+    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
+        self.multi_trip.get_constraint().relaxation().map_or(0., |relaxation| relaxation.violation(solution_ctx))
+    }
+
+    fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {
+        self.multi_trip.get_constraint().relaxation().map_or(0., |relaxation| relaxation.estimate_violation(move_ctx))
+    }
+}
+
+impl MultiTripConstraint {
+    fn new(code: ViolationCode, policy: MarkerInsertionPolicy, multi_trip: Arc<dyn MultiTrip>) -> Self {
+        Self { code, policy, multi_trip }
+    }
+
+    fn evaluate_marker(&self, move_ctx: &MoveContext<'_>) -> ControlFlow<Option<ConstraintViolation>> {
         let intervals = self.multi_trip.get_route_intervals();
         match move_ctx {
             MoveContext::Route { route_ctx, job, .. } => {
                 if intervals.is_marker_job(job) {
-                    return if intervals.is_marker_assignable(route_ctx.route(), job) {
+                    return ControlFlow::Break(if intervals.is_marker_assignable(route_ctx.route(), job) {
                         None
                     } else {
                         Some(ConstraintViolation { code: self.code, stopped: true })
-                    };
+                    });
                 };
             }
             MoveContext::Activity { activity_ctx, .. } => {
@@ -82,7 +131,7 @@ impl FeatureConstraint for MultiTripConstraint {
                             let is_not_last = activity_ctx.next.as_ref().and_then(|next| next.job.as_ref()).is_some();
 
                             if is_first || is_not_last {
-                                return ConstraintViolation::skip(self.code);
+                                return ControlFlow::Break(ConstraintViolation::skip(self.code));
                             }
                         }
                     }
@@ -90,21 +139,7 @@ impl FeatureConstraint for MultiTripConstraint {
             }
         }
 
-        self.multi_trip.get_constraint().evaluate(move_ctx)
-    }
-
-    fn merge(&self, source: Job, candidate: Job) -> Result<Job, ViolationCode> {
-        if once(&source).chain(once(&candidate)).any(|job| self.multi_trip.get_route_intervals().is_marker_job(job)) {
-            return Err(self.code);
-        }
-
-        self.multi_trip.get_constraint().merge(source, candidate)
-    }
-}
-
-impl MultiTripConstraint {
-    fn new(code: ViolationCode, policy: MarkerInsertionPolicy, multi_trip: Arc<dyn MultiTrip>) -> Self {
-        Self { code, policy, multi_trip }
+        ControlFlow::Continue(())
     }
 }
 

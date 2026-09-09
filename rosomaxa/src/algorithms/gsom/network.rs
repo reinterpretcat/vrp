@@ -231,6 +231,11 @@ where
         self.nodes.values()
     }
 
+    /// Returns mutable nodes in arbitrary order.
+    pub(crate) fn iter_nodes_mut(&mut self) -> impl Iterator<Item = &mut Node<I, S>> + '_ {
+        self.nodes.values_mut()
+    }
+
     /// Iterates over coordinates and their nodes.
     pub fn iter(&self) -> impl Iterator<Item = (&Coordinate, &Node<I, S>)> {
         self.nodes.iter()
@@ -249,6 +254,11 @@ where
     /// Returns current time.
     pub fn get_current_time(&self) -> usize {
         self.time
+    }
+
+    /// Finds the coordinate which best represents the input.
+    pub(crate) fn find_bmu_coordinate(&self, input: &I) -> Coordinate {
+        self.find_bmu(input).0.coordinate
     }
 
     /// Calculates mean squared error of the whole network.
@@ -284,7 +294,7 @@ where
         (0..rebalance_count).for_each(|_| {
             let mut data = self.nodes.iter_mut().flat_map(|(_, node)| node.storage.drain(0..)).collect::<Vec<_>>();
             data.sort_unstable_by(compare_input);
-            data.dedup_by(|a, b| compare_input(a, b) == Ordering::Equal);
+            let mut data = deduplicate_sorted_inputs(data);
             data.shuffle(&mut self.random.get_rng());
             data.iter_mut().for_each(&node_fn);
 
@@ -627,7 +637,27 @@ fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
         .zip(right.weights().iter())
         .map(|(lhs, rhs)| lhs.total_cmp(rhs))
         .find(|ord| *ord != Ordering::Equal)
-        .unwrap_or(Ordering::Equal)
+        .unwrap_or_else(|| left.weights().len().cmp(&right.weights().len()))
+}
+
+/// Removes duplicate replay items from inputs ordered by [`compare_input`].
+///
+/// Inputs with equal features form a contiguous group, but their complete identity can include additional state.
+fn deduplicate_sorted_inputs<I: Input>(data: Vec<I>) -> Vec<I> {
+    let mut unique = Vec::with_capacity(data.len());
+    let mut group_start = 0;
+
+    for input in data {
+        if unique.last().is_none_or(|known| compare_input(known, &input) != Ordering::Equal) {
+            group_start = unique.len();
+        }
+
+        if !unique[group_start..].iter().any(|known| known.is_same(&input)) {
+            unique.push(input);
+        }
+    }
+
+    unique
 }
 
 fn normalize<'a>(values: &'a [Float], min_max: &'a MinMaxWeights) -> impl Iterator<Item = Float> + 'a {

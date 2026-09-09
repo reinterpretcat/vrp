@@ -19,12 +19,14 @@ const STAGNATION_WINDOW: usize = 1000;
 /// Only strict improvements of the configured objective are accepted. After an improvement, every
 /// neighborhood becomes eligible again because the move can expose opportunities which previously
 /// did not exist. The search stops after a complete pass without improvement or after the accepted
-/// move budget is exhausted. A configured extended neighborhood is tried periodically, at most once
-/// per descent, and becomes more frequent during stagnation.
+/// move budget is exhausted. Repeated attempts can be bounded when the search should favor interaction
+/// between neighborhoods over a complete descent. A configured extended neighborhood is tried
+/// periodically, at most once per descent, and becomes more frequent during stagnation.
 pub struct VariableNeighborhoodSearch {
     operators: Vec<Arc<dyn LocalOperator>>,
     extended_operator: Option<Arc<dyn LocalOperator>>,
     max_improvements: usize,
+    max_operator_attempts: Option<usize>,
 }
 
 impl VariableNeighborhoodSearch {
@@ -33,12 +35,19 @@ impl VariableNeighborhoodSearch {
         assert!(!operators.is_empty());
         assert!(max_improvements > 0);
 
-        Self { operators, extended_operator: None, max_improvements }
+        Self { operators, extended_operator: None, max_improvements, max_operator_attempts: None }
     }
 
     /// Adds a broad neighborhood which is sampled periodically and more often during stagnation.
     pub fn with_extended_operator(mut self, operator: Arc<dyn LocalOperator>) -> Self {
         self.extended_operator = Some(operator);
+        self
+    }
+
+    /// Limits how often each regular neighborhood can be tried in one descent.
+    pub(crate) fn with_operator_attempt_limit(mut self, limit: usize) -> Self {
+        assert!(limit > 0);
+        self.max_operator_attempts = Some(limit);
         self
     }
 }
@@ -55,6 +64,7 @@ impl LocalOperator for VariableNeighborhoodSearch {
             self.extended_operator.is_some() && should_use_extended_operator(refinement_ctx.statistics());
         let operator_count = self.operators.len() + usize::from(use_extended);
         let mut remaining = (0..operator_count).collect::<Vec<_>>();
+        let mut operator_attempts = self.max_operator_attempts.map(|_| vec![0; self.operators.len()]);
         let mut improvements = 0;
         let mut extended_attempted = false;
 
@@ -65,6 +75,9 @@ impl LocalOperator for VariableNeighborhoodSearch {
 
             let index = random.uniform_int(0, remaining.len() as i32 - 1) as usize;
             let operator_idx = remaining.swap_remove(index);
+            if let Some(attempts) = operator_attempts.as_mut().filter(|_| operator_idx < self.operators.len()) {
+                attempts[operator_idx] += 1;
+            }
             let operator = if operator_idx < self.operators.len() {
                 &self.operators[operator_idx]
             } else {
@@ -81,7 +94,12 @@ impl LocalOperator for VariableNeighborhoodSearch {
                 current = Some(candidate);
                 improvements += 1;
                 remaining.clear();
-                remaining.extend(0..self.operators.len());
+                remaining.extend((0..self.operators.len()).filter(|&operator_idx| {
+                    operator_attempts
+                        .as_ref()
+                        .zip(self.max_operator_attempts)
+                        .is_none_or(|(attempts, limit)| attempts[operator_idx] < limit)
+                }));
                 if use_extended && !extended_attempted {
                     remaining.push(self.operators.len());
                 }

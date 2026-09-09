@@ -59,6 +59,51 @@ pub trait HeuristicIntensifyOperator {
 pub type HeuristicIntensifyOperators<C, O, S> =
     Vec<Arc<dyn HeuristicIntensifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
 
+/// A search operator which periodically replaces one regular search attempt to escape the feasible search space.
+pub type HeuristicEscapeOperator<C, O, S> =
+    Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>;
+
+enum SearchTask<'a, S> {
+    Regular(&'a S),
+    Escape(&'a S),
+}
+
+const ESCAPE_INTERVAL: usize = 32;
+const STAGNANT_ESCAPE_INTERVAL: usize = 16;
+
+fn create_search_tasks<'a, C, O, S>(
+    heuristic_ctx: &C,
+    mut solutions: Vec<&'a S>,
+    can_escape: bool,
+) -> Vec<SearchTask<'a, S>>
+where
+    C: HeuristicContext<Objective = O, Solution = S>,
+    O: HeuristicObjective<Solution = S>,
+    S: HeuristicSolution,
+{
+    let statistics = heuristic_ctx.statistics();
+    let should_escape = can_escape
+        && should_use_escape(
+            statistics.generation,
+            statistics.improvement_1000_ratio,
+            heuristic_ctx.selection_phase(),
+            solutions.len(),
+        );
+    let escape = if should_escape { solutions.pop().map(SearchTask::Escape) } else { None };
+
+    solutions.into_iter().map(SearchTask::Regular).chain(escape).collect()
+}
+
+fn should_use_escape(generation: usize, improvement_ratio: Float, phase: SelectionPhase, search_count: usize) -> bool {
+    // Preserve the full regular search when coarse parallelism has already reduced the parent batch to one.
+    if search_count <= 1 || phase == SelectionPhase::Initial {
+        return false;
+    }
+
+    let interval = if improvement_ratio == 0. { STAGNANT_ESCAPE_INTERVAL } else { ESCAPE_INTERVAL };
+    generation.is_multiple_of(interval)
+}
+
 /// Represents a hyper heuristic functionality.
 pub trait HyperHeuristic: Display {
     /// A heuristic context type.

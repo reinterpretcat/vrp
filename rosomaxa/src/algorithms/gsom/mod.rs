@@ -1,6 +1,7 @@
 //! Provides customized implementation of Growing Self Organizing Map.
 
 use crate::utils::Float;
+use std::cmp::Ordering;
 use std::fmt::Display;
 use std::ops::RangeBounds;
 
@@ -20,6 +21,12 @@ pub use self::state::*;
 pub trait Input: Send + Sync {
     /// Returns weights.
     fn weights(&self) -> &[Float];
+
+    /// Returns true when two retained inputs represent the same replay item.
+    fn is_same(&self, other: &Self) -> bool {
+        self.weights().len() == other.weights().len()
+            && self.weights().iter().zip(other.weights()).all(|(left, right)| left.total_cmp(right) == Ordering::Equal)
+    }
 }
 
 /// Represents input data storage.

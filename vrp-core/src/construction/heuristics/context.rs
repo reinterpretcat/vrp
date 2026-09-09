@@ -244,6 +244,11 @@ impl SolutionState {
     pub fn set_value<K: 'static, V: 'static + Sync + Send>(&mut self, value: V) {
         self.index.insert(TypeId::of::<K>(), Arc::new(value));
     }
+
+    /// Removes the value from solution state using the key type provided.
+    pub(crate) fn remove_value<K: 'static>(&mut self) -> bool {
+        self.index.remove(&TypeId::of::<K>()).is_some()
+    }
 }
 
 /// Specifies insertion context for route.

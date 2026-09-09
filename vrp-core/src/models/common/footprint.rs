@@ -5,6 +5,7 @@
 mod footprint_test;
 
 use crate::algorithms::structures::BitVec;
+use crate::models::RelaxedViolationSolutionState;
 use crate::models::common::Location;
 use crate::prelude::*;
 use rosomaxa::population::RosomaxaContext;
@@ -174,7 +175,9 @@ impl RosomaxaContext for Footprint {
             solutions,
             || Footprint::new(&problem),
             |mut footprint, solution| {
-                footprint.add(&Shadow::from(solution));
+                if solution.solution.state.get_relaxed_violation().is_none() {
+                    footprint.add(&Shadow::from(solution));
+                }
                 footprint
             },
             |mut left, right| {

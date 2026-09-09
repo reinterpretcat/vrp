@@ -49,6 +49,16 @@ pub trait HeuristicPopulation: Send + Sync {
     /// Selects parents from the population based on the current selection phase.
     fn select(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_>;
 
+    /// Selects a relaxed solution relative to the given regular solution, when the population supports it.
+    fn select_relaxed(&self, _: &Self::Individual) -> Option<&Self::Individual> {
+        None
+    }
+
+    /// Returns true when relaxed solutions are stored separately from the regular population.
+    fn supports_relaxed_search(&self) -> bool {
+        false
+    }
+
     /// Returns subset of individuals within their rank sorted according their quality.
     fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_>;
 

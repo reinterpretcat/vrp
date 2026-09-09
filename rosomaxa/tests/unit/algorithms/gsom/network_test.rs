@@ -71,6 +71,47 @@ fn can_calculate_squared_distance() {
 }
 
 #[test]
+fn can_compare_replay_inputs_without_changing_float_identity() {
+    let negative_zero = Data { values: vec![-0.] };
+    let positive_zero = Data { values: vec![0.] };
+
+    assert_ne!(compare_input(&negative_zero, &positive_zero), Ordering::Equal);
+    assert!(!negative_zero.is_same(&positive_zero));
+}
+
+#[test]
+fn can_deduplicate_replay_inputs_with_identity_finer_than_weights() {
+    struct ReplayData {
+        weights: [Float; 1],
+        identity: usize,
+    }
+
+    impl Input for ReplayData {
+        fn weights(&self) -> &[Float] {
+            &self.weights
+        }
+
+        fn is_same(&self, other: &Self) -> bool {
+            self.weights() == other.weights() && self.identity == other.identity
+        }
+    }
+
+    let data = vec![
+        ReplayData { weights: [1.], identity: 1 },
+        ReplayData { weights: [1.], identity: 2 },
+        ReplayData { weights: [1.], identity: 1 },
+        ReplayData { weights: [2.], identity: 1 },
+    ];
+
+    let data = deduplicate_sorted_inputs(data);
+
+    assert_eq!(
+        data.iter().map(|data| (data.weights[0] as usize, data.identity)).collect::<Vec<_>>(),
+        [(1, 1), (1, 2), (2, 1)]
+    );
+}
+
+#[test]
 fn rejects_empty_initial_data() {
     let result =
         NetworkType::new(&(), Vec::<Data>::new(), create_config(2), Arc::new(IdentityRandom), |_| DataStorageFactory);

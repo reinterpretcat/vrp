@@ -147,6 +147,14 @@ impl HeuristicContext for RefinementContext {
         self.inner_context.selected()
     }
 
+    fn selected_relaxed(&self, solution: &Self::Solution) -> Option<&Self::Solution> {
+        self.inner_context.selected_relaxed(solution)
+    }
+
+    fn supports_relaxed_search(&self) -> bool {
+        self.inner_context.supports_relaxed_search()
+    }
+
     fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {
         self.inner_context.ranked()
     }

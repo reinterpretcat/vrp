@@ -2,7 +2,8 @@ use super::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::*;
-use crate::models::problem::{VehicleDetail, VehiclePlace};
+use crate::models::problem::{Actor, ActorDetail, VehicleDetail, VehiclePlace};
+use crate::models::solution::{Route, Tour};
 
 const VIOLATION_CODE: ViolationCode = ViolationCode(1);
 type VehicleData = (Location, Location, Timestamp, Timestamp);
@@ -134,6 +135,74 @@ mod timing {
             feature.constraint.unwrap().evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn can_measure_relaxed_time_window_violation() {
+        let fleet = FleetBuilder::default()
+            .add_driver(test_driver())
+            .add_vehicles(vec![
+                TestVehicleBuilder::default()
+                    .id("v1")
+                    .details(vec![create_detail((Some(0), Some(0)), Some((0., 100.)))])
+                    .build(),
+            ])
+            .build();
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activity(ActivityBuilder::with_location_and_tw(50, TimeWindow::new(0., 30.)).build())
+                    .build(),
+            )
+            .build();
+        let mut solution_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build().solution;
+        let feature = create_feature();
+        feature.state.as_ref().unwrap().accept_solution_state(&mut solution_ctx);
+
+        let constraint = feature.constraint.as_ref().unwrap();
+        let violation = constraint.relaxation().unwrap().violation(&solution_ctx);
+
+        assert_eq!(violation, 0.2);
+    }
+
+    #[test]
+    fn can_estimate_relaxed_time_window_violation() {
+        let (feature, mut route_ctx) = create_feature_and_route((0, 0, 0., 100.));
+        feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let target = ActivityBuilder::with_location_and_tw(51, TimeWindow::new(0., 40.)).build();
+        let activity_ctx = ActivityContext {
+            index: 3,
+            prev: route_ctx.route().tour.get(3).unwrap(),
+            target: &target,
+            next: route_ctx.route().tour.get(4),
+        };
+        let move_ctx = MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx);
+        let relaxation = feature.constraint.as_ref().unwrap().relaxation().unwrap();
+
+        assert_eq!(relaxation.evaluate_relaxed(&move_ctx), None);
+        assert_eq!(relaxation.estimate_violation(&move_ctx), 0.11);
+    }
+
+    #[test]
+    fn can_measure_vehicle_horizon_violation_on_open_route() {
+        let original = test_actor();
+        let actor = Arc::new(Actor {
+            vehicle: original.vehicle.clone(),
+            driver: original.driver.clone(),
+            detail: ActorDetail { start: original.detail.start.clone(), end: None, time: TimeWindow::new(0., 100.) },
+        });
+        let mut tour = Tour::new(&actor);
+        tour.insert_last(ActivityBuilder::with_location_and_tw(0, TimeWindow::new(120., 200.)).build());
+        let route_ctx = RouteContext::new_with_state(Route { actor, tour }, RouteState::default());
+        let mut solution_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build().solution;
+        let feature = create_feature();
+        feature.state.as_ref().unwrap().accept_solution_state(&mut solution_ctx);
+
+        let violation = feature.constraint.as_ref().unwrap().relaxation().unwrap().violation(&solution_ctx);
+
+        assert_eq!(violation, 0.2);
     }
 
     #[test]

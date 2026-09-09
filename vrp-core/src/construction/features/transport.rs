@@ -137,13 +137,7 @@ where
         .with_objective(objective);
 
     if is_constrained {
-        builder
-            .with_constraint(TransportConstraint {
-                transport: transport.clone(),
-                activity: activity.clone(),
-                time_window_code,
-            })
-            .build()
+        builder.with_constraint(TransportConstraint { transport, activity, time_window_code }).build()
     } else {
         builder.build()
     }
@@ -282,6 +276,45 @@ impl TransportConstraint {
             ConstraintViolation::success()
         }
     }
+
+    fn estimate_activity_violation(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Float {
+        let route = route_ctx.route();
+        let prev = activity_ctx.prev;
+        let target = activity_ctx.target;
+        let current = route_ctx.state().get_time_window_violation().copied().unwrap_or_default();
+
+        let arrival = prev.schedule.departure
+            + self.transport.duration(
+                route,
+                prev.place.location,
+                target.place.location,
+                TravelTime::Departure(prev.schedule.departure),
+            );
+        let departure = self.activity.estimate_departure(route, target, arrival).unwrap_value();
+        let target_violation = (departure - target.place.duration - target.place.time.end).max(0.);
+
+        let downstream_violation = activity_ctx.next.map_or_else(
+            || (departure - target.place.duration - route.actor.detail.time.end).max(0.),
+            |next| {
+                let arrival = departure
+                    + self.transport.duration(
+                        route,
+                        target.place.location,
+                        next.place.location,
+                        TravelTime::Departure(departure),
+                    );
+                let latest_arrival = route_ctx
+                    .state()
+                    .get_schedule_at(activity_ctx.index + 1)
+                    .map_or(next.place.time.end, |state| state.latest_arrival);
+
+                (arrival - latest_arrival).max(0.)
+            },
+        );
+        let projected = current.value.max(target_violation).max(downstream_violation) / current.scale.max(1.);
+
+        projected - current.normalized()
+    }
 }
 
 impl FeatureConstraint for TransportConstraint {
@@ -295,6 +328,35 @@ impl FeatureConstraint for TransportConstraint {
     fn merge(&self, source: Job, _: Job) -> Result<Job, ViolationCode> {
         // NOTE we don't change temporal parameters here, it is responsibility of the caller
         Ok(source)
+    }
+
+    fn relaxation(&self) -> Option<&dyn RelaxedFeatureConstraint> {
+        Some(self)
+    }
+}
+
+impl RelaxedFeatureConstraint for TransportConstraint {
+    fn evaluate_relaxed(&self, _move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        // The generic violation band controls lateness; remove only the binary time-window rejection here.
+        None
+    }
+
+    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
+        solution_ctx
+            .routes
+            .iter()
+            .filter_map(|route_ctx| route_ctx.state().get_time_window_violation())
+            .map(|violation| violation.normalized())
+            .sum()
+    }
+
+    fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {
+        match move_ctx {
+            MoveContext::Route { .. } => 0.,
+            MoveContext::Activity { route_ctx, activity_ctx, .. } => {
+                self.estimate_activity_violation(route_ctx, activity_ctx)
+            }
+        }
     }
 }
 

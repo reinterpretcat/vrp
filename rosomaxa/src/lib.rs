@@ -91,6 +91,16 @@ pub trait HeuristicContext: Send + Sync {
     /// Returns selected solutions base on current context.
     fn selected(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_>;
 
+    /// Returns a relaxed solution relative to the given regular solution, when available.
+    fn selected_relaxed(&self, _: &Self::Solution) -> Option<&Self::Solution> {
+        None
+    }
+
+    /// Returns true when relaxed solutions are isolated from regular ranking and final output.
+    fn supports_relaxed_search(&self) -> bool {
+        false
+    }
+
     /// Returns subset of solutions within their rank sorted according their quality.
     fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_>;
 
@@ -201,6 +211,14 @@ where
 
     fn selected(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {
         self.population.select()
+    }
+
+    fn selected_relaxed(&self, solution: &Self::Solution) -> Option<&Self::Solution> {
+        self.population.select_relaxed(solution)
+    }
+
+    fn supports_relaxed_search(&self) -> bool {
+        self.population.supports_relaxed_search()
     }
 
     fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Solution> + '_> {

@@ -139,6 +139,28 @@ fn can_limit_accepted_improvements() {
 }
 
 #[test]
+fn can_limit_operator_attempts() {
+    let insertion_ctx = create_insertion_ctx();
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+    let first_calls = Arc::new(AtomicUsize::new(0));
+    let second_calls = Arc::new(AtomicUsize::new(0));
+    let search = VariableNeighborhoodSearch::new(
+        vec![
+            Arc::new(CountingOperator { calls: first_calls.clone(), delta: -1. }),
+            Arc::new(CountingOperator { calls: second_calls.clone(), delta: -1. }),
+        ],
+        8,
+    )
+    .with_operator_attempt_limit(2);
+
+    let result = search.explore(&refinement_ctx, &insertion_ctx).unwrap();
+
+    assert_eq!(result.solution.state.get_test_cost(), Some(&6.));
+    assert_eq!(first_calls.load(AtomicOrdering::Relaxed), 2);
+    assert_eq!(second_calls.load(AtomicOrdering::Relaxed), 2);
+}
+
+#[test]
 fn can_stop_on_reached_quota() {
     let mut insertion_ctx = create_insertion_ctx();
     Arc::make_mut(&mut insertion_ctx.environment).quota = Some(Arc::new(ReachedQuota));

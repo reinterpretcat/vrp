@@ -101,6 +101,7 @@ where
     search_operators: Option<HeuristicSearchOperators<C, O, S>>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     intensify_operators: HeuristicIntensifyOperators<C, O, S>,
+    escape_operator: Option<HeuristicEscapeOperator<C, O, S>>,
 
     objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
 
@@ -128,6 +129,7 @@ where
             search_operators: None,
             diversify_operators: Vec::new(),
             intensify_operators: Vec::new(),
+            escape_operator: None,
             objective: None,
             initial: InitialConfig { operators: vec![], max_size: 4, quota: 0.05, individuals: vec![] },
             processing: ProcessingConfig { context: vec![], solution: vec![] },
@@ -245,6 +247,12 @@ where
         self
     }
 
+    /// Sets an operator which periodically replaces one regular search attempt.
+    pub fn with_escape_operator(mut self, escape_operator: HeuristicEscapeOperator<C, O, S>) -> Self {
+        self.escape_operator = Some(escape_operator);
+        self
+    }
+
     /// Gets termination criterias.
     #[allow(clippy::type_complexity)]
     fn get_termination(
@@ -353,15 +361,20 @@ where
                 _ => {
                     let heuristic = match self.heuristic {
                         Some(heuristic) => heuristic,
-                        _ => Box::new(
-                            DynamicSelective::new(
+                        _ => {
+                            let heuristic = DynamicSelective::new(
                                 self.search_operators
                                     .ok_or_else(|| "missing search operators or heuristic".to_string())?,
                                 context.environment(),
                             )
                             .with_diversify_operators(self.diversify_operators)
-                            .with_intensify_operators(self.intensify_operators),
-                        ),
+                            .with_intensify_operators(self.intensify_operators);
+                            let heuristic = match self.escape_operator {
+                                Some(operator) => heuristic.with_escape_operator(operator),
+                                None => heuristic,
+                            };
+                            Box::new(heuristic)
+                        }
                     };
                     Box::new(strategies::Iterative::new(heuristic, 1))
                 }

@@ -65,6 +65,7 @@ where
     agent: SearchAgent<'static, C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     intensify_operators: HeuristicIntensifyOperators<C, O, S>,
+    escape_operator: Option<HeuristicEscapeOperator<C, O, S>>,
 }
 
 impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
@@ -91,18 +92,40 @@ where
         self.agent.reset_if_stagnant(heuristic_ctx.statistics());
         // Population is unchanged while the batch runs, so all searches can use the same best solution.
         let best_known = heuristic_ctx.ranked().next();
-        let feedbacks = parallel_collect(solutions, ParallelismPolicy::Coarse, |solution| {
-            self.agent.search_with_best(heuristic_ctx, solution, best_known)
-        });
+        let results = parallel_collect(
+            create_search_tasks(
+                heuristic_ctx,
+                solutions,
+                self.escape_operator.is_some() && heuristic_ctx.supports_relaxed_search(),
+            ),
+            ParallelismPolicy::Coarse,
+            |task| match task {
+                SearchTask::Regular(solution) => {
+                    SearchResult::Regular(self.agent.search_with_best(heuristic_ctx, solution, best_known))
+                }
+                SearchTask::Escape(solution) => match &self.escape_operator {
+                    Some(operator) => SearchResult::Escape(operator.search(heuristic_ctx, solution)),
+                    None => SearchResult::Regular(self.agent.search_with_best(heuristic_ctx, solution, best_known)),
+                },
+            },
+        );
 
         let generation = heuristic_ctx.statistics().generation;
-        feedbacks.iter().for_each(|feedback| {
-            self.agent.update(generation, feedback);
+        results.iter().for_each(|result| {
+            if let SearchResult::Regular(feedback) = result {
+                self.agent.update(generation, feedback);
+            }
         });
 
         self.agent.save_params(generation);
 
-        feedbacks.into_iter().filter_map(|feedback| feedback.solution).collect()
+        results
+            .into_iter()
+            .filter_map(|result| match result {
+                SearchResult::Regular(feedback) => feedback.solution,
+                SearchResult::Escape(solution) => Some(solution),
+            })
+            .collect()
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
@@ -134,6 +157,7 @@ where
             agent: SearchAgent::new(search_operators, environment),
             diversify_operators: Vec::new(),
             intensify_operators: Vec::new(),
+            escape_operator: None,
         }
     }
 
@@ -148,6 +172,17 @@ where
         self.intensify_operators = operators;
         self
     }
+
+    /// Adds an operator which periodically replaces one regular search attempt.
+    pub fn with_escape_operator(mut self, operator: HeuristicEscapeOperator<C, O, S>) -> Self {
+        self.escape_operator = Some(operator);
+        self
+    }
+}
+
+enum SearchResult<S> {
+    Regular(SearchFeedback<S>),
+    Escape(S),
 }
 
 struct SearchSlot<'a, C, O, S> {
@@ -180,10 +215,10 @@ where
     fn update(&mut self, feedback: &SearchFeedback<S>) {
         self.progress.update(feedback);
 
-        if feedback.sample.is_parent_improvement {
-            if let Some(promotion) = self.promotion.as_mut() {
-                promotion.update(feedback.sample.is_new_best);
-            }
+        if feedback.sample.is_parent_improvement
+            && let Some(promotion) = self.promotion.as_mut()
+        {
+            promotion.update(feedback.sample.is_new_best);
         }
     }
 }

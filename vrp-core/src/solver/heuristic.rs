@@ -5,13 +5,14 @@ mod heuristic_test;
 use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::FootprintSolutionState;
-use crate::models::{Extras, GoalContext};
+use crate::models::{Extras, GoalContext, RelaxedViolationSolutionState};
 use crate::rosomaxa::get_default_selection_size;
 use crate::solver::search::*;
 use rosomaxa::algorithms::gsom::Input;
 use rosomaxa::hyper::*;
 use rosomaxa::population::*;
 use rosomaxa::termination::*;
+use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 /// A type alias for domain specific evolution strategy.
@@ -162,11 +163,15 @@ pub fn get_static_heuristic_from_heuristic_group(
     heuristic_group: TargetHeuristicGroup,
 ) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
     let guided_ejection = Arc::new(GuidedEjectionSearch::new());
-    let diversify_operators = create_diversify_operators(problem, environment, guided_ejection.clone());
-
-    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(heuristic_group)
+    let diversify_operators = create_diversify_operators(problem.clone(), environment.clone(), guided_ejection.clone());
+    let heuristic = StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(heuristic_group)
         .with_diversify_operators(diversify_operators)
-        .with_intensify_operators(vec![guided_ejection])
+        .with_intensify_operators(vec![guided_ejection]);
+
+    match create_escape_operator(problem, environment) {
+        Some(operator) => heuristic.with_escape_operator(operator),
+        None => heuristic,
+    }
 }
 
 /// Gets dynamic heuristic using default settings.
@@ -176,11 +181,19 @@ pub fn get_dynamic_heuristic(
 ) -> DynamicSelective<RefinementContext, GoalContext, InsertionContext> {
     let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
     let guided_ejection = Arc::new(GuidedEjectionSearch::new());
-    let diversify_operators = create_diversify_operators(problem, environment.clone(), guided_ejection.clone());
+    let diversify_operators = create_diversify_operators(problem.clone(), environment.clone(), guided_ejection.clone());
 
-    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(search_operators, environment.as_ref())
-        .with_diversify_operators(diversify_operators)
-        .with_intensify_operators(vec![guided_ejection])
+    let heuristic = DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
+        search_operators,
+        environment.as_ref(),
+    )
+    .with_diversify_operators(diversify_operators)
+    .with_intensify_operators(vec![guided_ejection]);
+
+    match create_escape_operator(problem, environment) {
+        Some(operator) => heuristic.with_escape_operator(operator),
+        None => heuristic,
+    }
 }
 
 /// Creates elitism population algorithm.
@@ -207,11 +220,43 @@ impl RosomaxaSolution for InsertionContext {
     fn on_update(&mut self, context: &Self::Context) {
         self.solution.state.set_footprint(context.clone());
     }
+
+    fn relaxed_violation(&self) -> Option<Float> {
+        self.solution.state.get_relaxed_violation().copied()
+    }
 }
 
 impl Input for InsertionContext {
     fn weights(&self) -> &[Float] {
         self.solution.state.get_solution_weights().unwrap().as_slice()
+    }
+
+    fn is_same(&self, other: &Self) -> bool {
+        if self.relaxed_violation().is_some() != other.relaxed_violation().is_some()
+            || self.weights().len() != other.weights().len()
+            || !self.weights().iter().zip(other.weights()).all(|(left, right)| left.total_cmp(right) == Ordering::Equal)
+        {
+            return false;
+        }
+
+        if self.relaxed_violation().is_none() {
+            return true;
+        }
+
+        let is_same_violation = self
+            .relaxed_violation()
+            .zip(other.relaxed_violation())
+            .is_some_and(|(left, right)| left.total_cmp(&right) == Ordering::Equal);
+        let mut left_fitness = self.fitness();
+        let mut right_fitness = other.fitness();
+        let is_same_fitness = left_fitness
+            .by_ref()
+            .zip(right_fitness.by_ref())
+            .all(|(left, right)| left.total_cmp(&right) == Ordering::Equal)
+            && left_fitness.next().is_none()
+            && right_fitness.next().is_none();
+
+        is_same_violation && is_same_fitness
     }
 }
 
@@ -356,19 +401,6 @@ fn create_diversify_operators(
     ];
 
     let redistribute_search = Arc::new(RedistributeSearch::new(Arc::new(WeightedRecreate::new(recreates))));
-    let infeasible_search = Arc::new(InfeasibleSearch::new(
-        Arc::new(WeightedHeuristicOperator::new(
-            vec![
-                dynamic::create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
-                dynamic::create_default_local_search(random.clone()),
-            ],
-            vec![10, 1],
-        )),
-        Arc::new(RecreateWithCheapest::new(random)),
-        4,
-        (0.05, 0.2),
-        (0.33, 0.75),
-    ));
     let local_search = Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
         vec![(Arc::new(ExchangeSequence::new(8, 0.5, 0.1)), 1)],
         2,
@@ -376,19 +408,28 @@ fn create_diversify_operators(
     ))));
     let path_relinking = Arc::new(PathRelinkingSearch::new(
         Arc::new(RecreateWithBlinks::new_with_defaults(environment.random.clone())),
-        dynamic::create_default_inner_ruin_recreate(problem, environment),
+        dynamic::create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
         64,
         5,
     ));
 
-    let regular = Arc::new(WeightedHeuristicOperator::new(
-        vec![redistribute_search, local_search, infeasible_search],
-        vec![10, 2, 1],
-    ));
+    let regular = Arc::new(WeightedHeuristicOperator::new(vec![redistribute_search, local_search], vec![10, 2]));
 
     // Deep population-level searches are additive: a scheduled success contributes an extra
     // offspring without replacing the regular diversification selected for this parent.
     vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, guided_ejection, path_relinking]))]
+}
+
+fn create_escape_operator(problem: Arc<Problem>, environment: Arc<Environment>) -> Option<TargetSearchOperator> {
+    problem.goal.has_relaxations().then(|| {
+        let random = environment.random.clone();
+        Arc::new(InfeasibleSearch::new(
+            dynamic::create_escape_education(environment.as_ref()),
+            Arc::new(RecreateWithCheapest::new(random)),
+            3,
+            (0.05, 0.2),
+        )) as TargetSearchOperator
+    })
 }
 
 mod statik {
@@ -692,14 +733,32 @@ mod dynamic {
         Arc::new(LocalSearch::new(Arc::new(search)))
     }
 
-    fn create_variable_neighborhood_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {
+    /// Creates the bounded local descent used to improve a solution close to the feasibility boundary.
+    pub(super) fn create_escape_education(environment: &Environment) -> TargetSearchOperator {
+        const MAX_IMPROVEMENTS: usize = 4;
+
+        let search = VariableNeighborhoodSearch::new(create_escape_education_operators(environment), MAX_IMPROVEMENTS)
+            .with_operator_attempt_limit(2);
+
+        Arc::new(LocalSearch::new(Arc::new(search)))
+    }
+
+    fn create_escape_education_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {
         vec![
             Arc::new(RelocateInterRoute::default()),
             Arc::new(ExchangeSequenceBest::default()),
-            Arc::new(ExchangeTwoOptStar::default()),
             Arc::new(ExchangeInterRouteBest::new(0., 0., 0.)),
             Arc::new(ExchangeSwapStar::new(environment.random.clone())),
         ]
+    }
+
+    fn create_variable_neighborhood_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {
+        let mut operators = create_escape_education_operators(environment);
+        // Tail exchange remains useful in ordinary descent, but its broad feasibility checks produced no useful
+        // transitions during bounded relaxed education.
+        operators.insert(2, Arc::new(ExchangeTwoOptStar::default()));
+
+        operators
     }
 
     pub fn get_operators(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<TargetSearchOperatorConfig> {

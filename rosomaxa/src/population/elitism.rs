@@ -174,6 +174,11 @@ where
         self.individuals.first()
     }
 
+    /// Returns the best individual using another view of the same objective.
+    pub(crate) fn best_with_objective(&self, objective: &O) -> Option<&S> {
+        self.individuals.iter().min_by(|left, right| objective.total_order(left, right))
+    }
+
     /// Returns an individual by its objective rank.
     pub(crate) fn get(&self, index: usize) -> Option<&S> {
         self.individuals.get(index)

@@ -101,6 +101,24 @@ fn can_extract_rosomaxa_features() {
 }
 
 #[test]
+fn can_keep_capacity_features_inside_feasible_range() {
+    let routes = [0., 2.]
+        .into_iter()
+        .map(|load| {
+            let state = RouteStateBuilder::default().set_route_state(|state| state.set_max_vehicle_load(load)).build();
+
+            RouteContextBuilder::default().with_route(RouteBuilder::default().build()).with_state(state).build()
+        })
+        .collect();
+    let insertion_ctx = TestInsertionContextBuilder::default().with_routes(routes).build();
+    let features = Vec::from(get_rosomaxa_solution_features(&insertion_ctx));
+
+    assert_eq!(features[0], 0.25);
+    assert_eq!(features[1], 0.5);
+    assert_eq!(features[2], 0.5);
+}
+
+#[test]
 fn uses_actual_departure_time_for_last_route_leg() {
     let mut activity = ActivityBuilder::with_location(1);
     activity.schedule(Schedule::new(10., 17.));

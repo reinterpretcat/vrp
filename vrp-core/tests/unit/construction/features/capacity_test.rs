@@ -22,6 +22,35 @@ fn create_constraint_violation(stopped: bool) -> Option<ConstraintViolation> {
     Some(ConstraintViolation { code: VIOLATION_CODE, stopped })
 }
 
+#[test]
+fn can_measure_relaxed_capacity_without_disabling_other_multi_trip_rules() {
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&fleet, "v1")
+                .add_activity(create_activity_with_simple_demand(12))
+                .build(),
+        )
+        .build();
+    let feature = create_feature();
+    feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+
+    let mut insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
+    let constraint = feature.constraint.as_ref().unwrap();
+    let relaxation = constraint.relaxation().unwrap();
+    assert!((relaxation.violation(&insertion_ctx.solution) - 0.2).abs() < 1E-9);
+
+    let route_ctx =
+        RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
+    let job = TestSingleBuilder::default().demand(create_simple_demand(11)).build_as_job_ref();
+    assert!(constraint.evaluate(&MoveContext::route(&insertion_ctx.solution, &route_ctx, &job)).is_some());
+    assert!(relaxation.evaluate_relaxed(&MoveContext::route(&insertion_ctx.solution, &route_ctx, &job)).is_none());
+
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
+    assert!(insertion_ctx.solution.state.get_relaxed_violation().is_none());
+}
+
 fn create_activity_with_simple_demand(size: i32) -> Activity {
     let job = TestSingleBuilder::default().demand(create_simple_demand(size)).build_shared();
     ActivityBuilder::default().job(Some(job)).build()
@@ -183,6 +212,53 @@ fn can_match_static_insertion_with_recalculated_load() {
                 let is_feasible = inserted.state().get_max_vehicle_load().is_some_and(|load| *load <= 1.);
 
                 assert_eq!(is_allowed, is_feasible, "unexpected result for demand {size} at index {index}");
+            }
+        }
+    }
+}
+
+#[test]
+fn can_estimate_relaxed_capacity_change() {
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(create_test_vehicle(10)).build();
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+
+    for sizes in [vec![-4, -3], vec![4, 3], vec![-4, 3, -2, 2], vec![4, -3, 2, -1]] {
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activities(sizes.into_iter().map(create_activity_with_simple_demand))
+                    .build(),
+            )
+            .build();
+        let feature = create_feature();
+        let state = feature.state.as_ref().unwrap();
+        let relaxation = feature.constraint.as_ref().unwrap().relaxation().unwrap();
+        state.accept_route_state(&mut route_ctx);
+        let current =
+            relaxation.violation(&SolutionContext { routes: vec![route_ctx.deep_copy()], ..solution_ctx.deep_copy() });
+
+        for size in [-6, -3, 3, 6] {
+            let target = create_activity_with_simple_demand(size);
+
+            for (activities, index) in route_ctx.route().tour.legs() {
+                let (prev, next) = match activities {
+                    [prev, next] => (prev, Some(next)),
+                    [prev] => (prev, None),
+                    _ => unreachable!(),
+                };
+                let activity_ctx = ActivityContext { index, prev, target: &target, next };
+                let estimated =
+                    relaxation.estimate_violation(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
+
+                let mut inserted = route_ctx.deep_copy();
+                inserted.route_mut().tour.insert_at(target.deep_copy(), index + 1);
+                state.accept_route_state(&mut inserted);
+                let actual = relaxation
+                    .violation(&SolutionContext { routes: vec![inserted], ..solution_ctx.deep_copy() })
+                    - current;
+
+                assert!((estimated - actual).abs() < 1E-9, "unexpected estimate for demand {size} at index {index}");
             }
         }
     }
