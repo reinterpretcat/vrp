@@ -91,8 +91,15 @@ impl RelaxedFeatureConstraint for MultiTripConstraint {
         }
     }
 
-    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
-        self.multi_trip.get_constraint().relaxation().map_or(0., |relaxation| relaxation.violation(solution_ctx))
+    fn solution_violation(&self, solution_ctx: &SolutionContext) -> Float {
+        self.multi_trip
+            .get_constraint()
+            .relaxation()
+            .map_or(0., |relaxation| relaxation.solution_violation(solution_ctx))
+    }
+
+    fn route_violation(&self, route_ctx: &RouteContext) -> Option<Float> {
+        self.multi_trip.get_constraint().relaxation().and_then(|relaxation| relaxation.route_violation(route_ctx))
     }
 
     fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {

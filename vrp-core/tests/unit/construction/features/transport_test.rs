@@ -161,9 +161,11 @@ mod timing {
         feature.state.as_ref().unwrap().accept_solution_state(&mut solution_ctx);
 
         let constraint = feature.constraint.as_ref().unwrap();
-        let violation = constraint.relaxation().unwrap().violation(&solution_ctx);
+        let relaxation = constraint.relaxation().unwrap();
+        let violation = relaxation.solution_violation(&solution_ctx);
 
         assert_eq!(violation, 0.2);
+        assert_eq!(relaxation.route_violation(&solution_ctx.routes[0]), Some(0.2));
     }
 
     #[test]
@@ -200,7 +202,7 @@ mod timing {
         let feature = create_feature();
         feature.state.as_ref().unwrap().accept_solution_state(&mut solution_ctx);
 
-        let violation = feature.constraint.as_ref().unwrap().relaxation().unwrap().violation(&solution_ctx);
+        let violation = feature.constraint.as_ref().unwrap().relaxation().unwrap().solution_violation(&solution_ctx);
 
         assert_eq!(violation, 0.2);
     }

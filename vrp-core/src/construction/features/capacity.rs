@@ -190,13 +190,12 @@ where
         None
     }
 
-    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
-        solution_ctx
-            .routes
-            .iter()
-            .filter_map(|route_ctx| route_ctx.state().get_max_vehicle_load())
-            .map(|ratio| (ratio - 1.).max(0.))
-            .sum()
+    fn solution_violation(&self, solution_ctx: &SolutionContext) -> Float {
+        solution_ctx.routes.iter().filter_map(|route_ctx| self.route_violation(route_ctx)).sum()
+    }
+
+    fn route_violation(&self, route_ctx: &RouteContext) -> Option<Float> {
+        route_ctx.state().get_max_vehicle_load().map(|ratio| (ratio - 1.).max(0.))
     }
 
     fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {

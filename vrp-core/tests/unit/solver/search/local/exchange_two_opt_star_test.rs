@@ -10,8 +10,8 @@ use crate::helpers::solver::{
 };
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
-use crate::models::ViolationCode;
 use crate::models::common::SingleDimLoad;
+use crate::models::{Problem, RelaxedViolationSolutionState, ViolationCode};
 use rosomaxa::prelude::HeuristicObjective;
 use std::sync::Arc;
 
@@ -66,6 +66,23 @@ fn create_capacity_insertion_ctx(job_order: &[Vec<&str>]) -> InsertionContext {
     );
     let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
     rearrange_jobs_in_routes(&mut insertion_ctx, job_order);
+
+    insertion_ctx
+}
+
+fn relax_insertion_ctx(mut insertion_ctx: InsertionContext, tolerance: Float) -> InsertionContext {
+    let problem = &insertion_ctx.problem;
+    let goal = Arc::new(problem.goal.relaxed(tolerance).expect("capacity should support relaxation"));
+    insertion_ctx.problem = Arc::new(Problem {
+        fleet: problem.fleet.clone(),
+        jobs: problem.jobs.clone(),
+        locks: problem.locks.clone(),
+        goal,
+        activity: problem.activity.clone(),
+        transport: problem.transport.clone(),
+        extras: problem.extras.clone(),
+    });
+    finalize_insertion_ctx(&mut insertion_ctx);
 
     insertion_ctx
 }
@@ -130,4 +147,18 @@ fn can_skip_infeasible_reconnection() {
             vec!["c6".to_string(), "c5".to_string()]
         ]
     );
+}
+
+#[test]
+fn can_reduce_relaxed_capacity_violation_with_tail_exchange() {
+    let insertion_ctx = relax_insertion_ctx(
+        create_capacity_insertion_ctx(&[vec!["c6", "c4", "c0", "c2"], vec!["c1", "c3", "c5", "c7"]]),
+        0.05,
+    );
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+    let original_violation = *insertion_ctx.solution.state.get_relaxed_violation().unwrap();
+
+    let result = ExchangeTwoOptStar::default().explore(&refinement_ctx, &insertion_ctx).expect("no repair move");
+
+    assert!(result.solution.state.get_relaxed_violation().is_some_and(|violation| *violation < original_violation));
 }

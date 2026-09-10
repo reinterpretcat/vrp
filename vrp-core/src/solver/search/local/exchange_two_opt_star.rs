@@ -8,21 +8,25 @@ use crate::models::problem::{Job, TravelTime};
 use crate::models::solution::{Activity, Route};
 use crate::solver::RefinementContext;
 use crate::solver::search::LocalOperator;
-use rosomaxa::prelude::{HeuristicObjective, HeuristicSolution};
+use rosomaxa::prelude::{Float, HeuristicObjective, HeuristicSolution};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 
 // Route-only feasibility checks are much cheaper than complete solution copies, but still scale with
 // tail length. Keep this as a small fixed implementation budget rather than another runtime knob.
 const SCREEN_CANDIDATE_THRESHOLD: usize = 8;
+// Relaxed repair needs broader route-pair coverage than ordinary descent. Bound the expensive
+// route-state previews while retaining substantially more alternatives than the exact screen.
+const RELAXED_PREVIEW_CANDIDATE_THRESHOLD: usize = 256;
 
 /// A granular 2-opt* operator which exchanges ordered tails between nearby routes.
 ///
 /// Candidate cut edges are built from the problem's nearest-job index and ranked using the transport
 /// delta of reconnecting the two prefixes to the opposite tails. The best few candidates are screened
-/// using copies of only their two routes. Only the first route-locally feasible candidate is
-/// materialized: the complete solution is copied once, both tails are removed, and their jobs are
-/// inserted at the ends of the opposite prefixes through the normal constraint pipeline.
+/// using copies of only their two routes. During relaxed repair, the screen considers a wider bounded
+/// set and ranks it by remaining route-decomposable violation before transport cost. Only the selected
+/// candidate is materialized: the complete solution is copied once, both tails are removed, and their
+/// jobs are inserted at the ends of the opposite prefixes through the normal constraint pipeline.
 ///
 /// The neighbourhood is deliberately bounded. `neighbor_threshold` limits how many neighbours are
 /// inspected for each cut job, and `max_tail_jobs` prevents a single operator call from rebuilding very
@@ -79,6 +83,7 @@ struct TailExchangeCandidate {
     second_route_idx: usize,
     second_position: usize,
     estimated_cost: Cost,
+    violation_excess: Float,
 }
 
 fn select_tail_exchange(
@@ -96,6 +101,8 @@ fn select_tail_exchange(
         })
         .collect::<std::collections::HashMap<_, _>>();
     let locked = &insertion_ctx.solution.locked;
+    let route_violations = insertion_ctx.problem.goal.get_active_relaxed_route_violations(&insertion_ctx.solution);
+    let candidate_neighbor_threshold = route_violations.as_ref().map_or(1, |_| neighbor_threshold);
     let mut used = HashSet::new();
     let mut candidates = Vec::new();
 
@@ -117,7 +124,7 @@ fn select_tail_exchange(
                 .neighbors(profile, first_job, Timestamp::default())
                 .take(neighbor_threshold)
                 .filter_map(|(job, _)| job_positions.get(job).map(|position| (job, position)))
-                .find(|(_, position)| {
+                .filter(|(_, position)| {
                     if position.route_idx == first_route_idx {
                         return false;
                     }
@@ -127,44 +134,63 @@ fn select_tail_exchange(
                     !second_tail.is_empty()
                         && second_tail.len() <= max_tail_jobs
                         && !second_tail.iter().any(|job| locked.contains(job))
-                });
-            let Some((second_job, second_position)) = second else {
-                continue;
-            };
+                })
+                .take(candidate_neighbor_threshold);
 
-            let key = if first_route_idx < second_position.route_idx {
-                (first_route_idx, first_position, second_position.route_idx, second_position.position)
-            } else {
-                (second_position.route_idx, second_position.position, first_route_idx, first_position)
-            };
-            if !used.insert(key) {
-                continue;
+            for (second_job, second_position) in second {
+                if route_violations.as_ref().is_some_and(|violations| {
+                    violations[first_route_idx] == 0. && violations[second_position.route_idx] == 0.
+                }) {
+                    continue;
+                }
+
+                let key = if first_route_idx < second_position.route_idx {
+                    (first_route_idx, first_position, second_position.route_idx, second_position.position)
+                } else {
+                    (second_position.route_idx, second_position.position, first_route_idx, first_position)
+                };
+                if !used.insert(key) {
+                    continue;
+                }
+
+                let Some(cost) = estimate_exchange_cost(
+                    insertion_ctx,
+                    first_route_idx,
+                    first_job,
+                    second_position.route_idx,
+                    second_job,
+                ) else {
+                    continue;
+                };
+                candidates.push(TailExchangeCandidate {
+                    first_route_idx,
+                    first_position,
+                    second_route_idx: second_position.route_idx,
+                    second_position: second_position.position,
+                    estimated_cost: cost,
+                    violation_excess: 0.,
+                });
             }
 
-            let Some(cost) = estimate_exchange_cost(
-                insertion_ctx,
-                first_route_idx,
-                first_job,
-                second_position.route_idx,
-                second_job,
-            ) else {
-                continue;
-            };
-            candidates.push(TailExchangeCandidate {
-                first_route_idx,
-                first_position,
-                second_route_idx: second_position.route_idx,
-                second_position: second_position.position,
-                estimated_cost: cost,
-            });
+            if route_violations.is_some() && candidates.len() >= RELAXED_PREVIEW_CANDIDATE_THRESHOLD * 2 {
+                retain_best_transport_candidates(&mut candidates, RELAXED_PREVIEW_CANDIDATE_THRESHOLD);
+            }
         }
     }
 
-    candidates.sort_unstable_by(|left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
+    let is_prevalidated = if route_violations.is_some() {
+        candidates = rank_relaxed_candidates(insertion_ctx, &ordered_routes, candidates);
+        true
+    } else {
+        candidates.sort_unstable_by(|left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
+
+        false
+    };
+
     candidates
         .into_iter()
         .take(SCREEN_CANDIDATE_THRESHOLD)
-        .find(|candidate| is_route_locally_feasible(insertion_ctx, &ordered_routes, candidate))
+        .find(|candidate| is_prevalidated || is_route_locally_feasible(insertion_ctx, &ordered_routes, candidate))
         .map(|candidate| TailExchange {
             first_route_idx: candidate.first_route_idx,
             second_route_idx: candidate.second_route_idx,
@@ -173,35 +199,86 @@ fn select_tail_exchange(
         })
 }
 
+fn rank_relaxed_candidates(
+    insertion_ctx: &InsertionContext,
+    ordered_routes: &[Vec<Job>],
+    mut candidates: Vec<TailExchangeCandidate>,
+) -> Vec<TailExchangeCandidate> {
+    retain_best_transport_candidates(&mut candidates, RELAXED_PREVIEW_CANDIDATE_THRESHOLD);
+    candidates.sort_unstable_by(|left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
+    let mut evaluated = Vec::with_capacity(candidates.len());
+
+    for mut candidate in candidates {
+        let Some((first, second)) = create_candidate_routes(insertion_ctx, ordered_routes, &candidate) else {
+            continue;
+        };
+        let current = [
+            &insertion_ctx.solution.routes[candidate.first_route_idx],
+            &insertion_ctx.solution.routes[candidate.second_route_idx],
+        ];
+        let replacement = [&first, &second];
+        let Some(violation_excess) = insertion_ctx.problem.goal.estimate_relaxed_route_violation_excess(
+            &insertion_ctx.solution,
+            &current,
+            &replacement,
+        ) else {
+            continue;
+        };
+        candidate.violation_excess = violation_excess;
+        evaluated.push(candidate);
+
+        // Candidates are visited by increasing transport cost. The first one inside the band is
+        // therefore already optimal under the same lexicographic ranking used below.
+        if violation_excess == 0. {
+            break;
+        }
+    }
+
+    evaluated.sort_unstable_by(|left, right| {
+        left.violation_excess
+            .total_cmp(&right.violation_excess)
+            .then_with(|| left.estimated_cost.total_cmp(&right.estimated_cost))
+    });
+    evaluated
+}
+
+fn retain_best_transport_candidates(candidates: &mut Vec<TailExchangeCandidate>, limit: usize) {
+    if candidates.len() > limit {
+        candidates.select_nth_unstable_by(limit, |left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
+        candidates.truncate(limit);
+    }
+}
+
 fn is_route_locally_feasible(
     insertion_ctx: &InsertionContext,
     ordered_routes: &[Vec<Job>],
     candidate: &TailExchangeCandidate,
 ) -> bool {
+    create_candidate_routes(insertion_ctx, ordered_routes, candidate).is_some()
+}
+
+fn create_candidate_routes(
+    insertion_ctx: &InsertionContext,
+    ordered_routes: &[Vec<Job>],
+    candidate: &TailExchangeCandidate,
+) -> Option<(RouteContext, RouteContext)> {
     // This screen catches route-local failures such as capacity and time windows without cloning the
     // complete solution. Constraints which depend on shared solution state are intentionally left to
     // `exchange_tails`; consequently this is a ranking heuristic, not a feasibility guarantee.
     let first_tail = &ordered_routes[candidate.first_route_idx][candidate.first_position + 1..];
     let second_tail = &ordered_routes[candidate.second_route_idx][candidate.second_position + 1..];
-    let Some(mut first_route) =
-        insertion_ctx.solution.routes.get(candidate.first_route_idx).map(|route| route.deep_copy())
-    else {
-        return false;
-    };
-    let Some(mut second_route) =
-        insertion_ctx.solution.routes.get(candidate.second_route_idx).map(|route| route.deep_copy())
-    else {
-        return false;
-    };
+    let mut first_route = insertion_ctx.solution.routes.get(candidate.first_route_idx)?.deep_copy();
+    let mut second_route = insertion_ctx.solution.routes.get(candidate.second_route_idx)?.deep_copy();
 
     if !remove_jobs_from_route(insertion_ctx, &mut first_route, first_tail)
         || !remove_jobs_from_route(insertion_ctx, &mut second_route, second_tail)
     {
-        return false;
+        return None;
     }
 
-    can_insert_jobs_at_end(insertion_ctx, &mut first_route, second_tail)
-        && can_insert_jobs_at_end(insertion_ctx, &mut second_route, first_tail)
+    (can_insert_jobs_at_end(insertion_ctx, &mut first_route, second_tail)
+        && can_insert_jobs_at_end(insertion_ctx, &mut second_route, first_tail))
+    .then_some((first_route, second_route))
 }
 
 fn remove_jobs_from_route(insertion_ctx: &InsertionContext, route_ctx: &mut RouteContext, jobs: &[Job]) -> bool {

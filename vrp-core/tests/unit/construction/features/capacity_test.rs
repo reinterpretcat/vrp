@@ -39,7 +39,8 @@ fn can_measure_relaxed_capacity_without_disabling_other_multi_trip_rules() {
     let mut insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
     let constraint = feature.constraint.as_ref().unwrap();
     let relaxation = constraint.relaxation().unwrap();
-    assert!((relaxation.violation(&insertion_ctx.solution) - 0.2).abs() < 1E-9);
+    assert!((relaxation.solution_violation(&insertion_ctx.solution) - 0.2).abs() < 1E-9);
+    assert!((relaxation.route_violation(&insertion_ctx.solution.routes[0]).unwrap() - 0.2).abs() < 1E-9);
 
     let route_ctx =
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
@@ -235,8 +236,8 @@ fn can_estimate_relaxed_capacity_change() {
         let state = feature.state.as_ref().unwrap();
         let relaxation = feature.constraint.as_ref().unwrap().relaxation().unwrap();
         state.accept_route_state(&mut route_ctx);
-        let current =
-            relaxation.violation(&SolutionContext { routes: vec![route_ctx.deep_copy()], ..solution_ctx.deep_copy() });
+        let current = relaxation
+            .solution_violation(&SolutionContext { routes: vec![route_ctx.deep_copy()], ..solution_ctx.deep_copy() });
 
         for size in [-6, -3, 3, 6] {
             let target = create_activity_with_simple_demand(size);
@@ -255,7 +256,7 @@ fn can_estimate_relaxed_capacity_change() {
                 inserted.route_mut().tour.insert_at(target.deep_copy(), index + 1);
                 state.accept_route_state(&mut inserted);
                 let actual = relaxation
-                    .violation(&SolutionContext { routes: vec![inserted], ..solution_ctx.deep_copy() })
+                    .solution_violation(&SolutionContext { routes: vec![inserted], ..solution_ctx.deep_copy() })
                     - current;
 
                 assert!((estimated - actual).abs() < 1E-9, "unexpected estimate for demand {size} at index {index}");

@@ -159,12 +159,19 @@ impl RelaxedFeatureConstraint for CombinedFeatureConstraint {
         })
     }
 
-    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
+    fn solution_violation(&self, solution_ctx: &SolutionContext) -> Float {
         self.constraints
             .iter()
             .filter_map(|constraint| constraint.relaxation())
-            .map(|relaxation| relaxation.violation(solution_ctx))
+            .map(|relaxation| relaxation.solution_violation(solution_ctx))
             .sum()
+    }
+
+    fn route_violation(&self, route_ctx: &RouteContext) -> Option<Float> {
+        self.constraints
+            .iter()
+            .filter_map(|constraint| constraint.relaxation())
+            .try_fold(0., |total, relaxation| relaxation.route_violation(route_ctx).map(|value| total + value))
     }
 
     fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {

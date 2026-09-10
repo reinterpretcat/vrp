@@ -497,7 +497,12 @@ pub trait RelaxedFeatureConstraint: FeatureConstraint {
     fn evaluate_relaxed(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation>;
 
     /// Returns an exact normalized violation degree for a fully refreshed solution.
-    fn violation(&self, solution_ctx: &SolutionContext) -> Float;
+    fn solution_violation(&self, solution_ctx: &SolutionContext) -> Float;
+
+    /// Returns the normalized violation of one refreshed route when the constraint is route-decomposable.
+    fn route_violation(&self, _route_ctx: &RouteContext) -> Option<Float> {
+        None
+    }
 
     /// Estimates the change in normalized violation caused by an insertion move.
     fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float;
@@ -600,7 +605,7 @@ impl GoalContext {
                 .iter()
                 .filter_map(|constraint| constraint.relaxation())
                 .map(|relaxation| {
-                    let violation = relaxation.violation(solution_ctx);
+                    let violation = relaxation.solution_violation(solution_ctx);
                     debug_assert!(violation.is_finite() && violation >= 0.);
                     if violation.is_finite() { violation.max(0.) } else { Float::MAX }
                 })
@@ -608,6 +613,43 @@ impl GoalContext {
 
             solution_ctx.state.set_relaxed_violation(total);
         }
+    }
+
+    /// Returns route-local relaxed violations while the solution is outside its current feasibility band.
+    pub(crate) fn get_active_relaxed_route_violations(&self, solution_ctx: &SolutionContext) -> Option<Vec<Float>> {
+        let violation = solution_ctx.state.get_relaxed_violation().copied()?;
+        if !self.is_relaxed || violation <= self.infeasibility_tolerance {
+            return None;
+        }
+
+        solution_ctx.routes.iter().map(|route_ctx| self.get_relaxed_route_violation(route_ctx)).collect()
+    }
+
+    /// Estimates the violation excess after replacing a small set of refreshed routes.
+    pub(crate) fn estimate_relaxed_route_violation_excess(
+        &self,
+        solution_ctx: &SolutionContext,
+        current_routes: &[&RouteContext],
+        candidate_routes: &[&RouteContext],
+    ) -> Option<Float> {
+        let current = current_routes
+            .iter()
+            .try_fold(0., |total, route| self.get_relaxed_route_violation(route).map(|value| total + value))?;
+        let candidate = candidate_routes
+            .iter()
+            .try_fold(0., |total, route| self.get_relaxed_route_violation(route).map(|value| total + value))?;
+        let total = solution_ctx.state.get_relaxed_violation().copied()?;
+
+        Some((total + candidate - current - self.infeasibility_tolerance).max(0.))
+    }
+
+    fn get_relaxed_route_violation(&self, route_ctx: &RouteContext) -> Option<Float> {
+        self.constraints.iter().filter_map(|constraint| constraint.relaxation()).try_fold(0., |total, relaxation| {
+            relaxation
+                .route_violation(route_ctx)
+                .and_then(|value| value.is_finite().then_some(value.max(0.)))
+                .map(|value| total + value)
+        })
     }
 
     /// Notifies about a failed attempt to insert given jobs into given routes (indices).

@@ -87,7 +87,7 @@ impl RelaxedFeatureConstraint for TestRelaxableConstraint {
         None
     }
 
-    fn violation(&self, _: &SolutionContext) -> Float {
+    fn solution_violation(&self, _: &SolutionContext) -> Float {
         self.violation
     }
 

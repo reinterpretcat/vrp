@@ -341,13 +341,12 @@ impl RelaxedFeatureConstraint for TransportConstraint {
         None
     }
 
-    fn violation(&self, solution_ctx: &SolutionContext) -> Float {
-        solution_ctx
-            .routes
-            .iter()
-            .filter_map(|route_ctx| route_ctx.state().get_time_window_violation())
-            .map(|violation| violation.normalized())
-            .sum()
+    fn solution_violation(&self, solution_ctx: &SolutionContext) -> Float {
+        solution_ctx.routes.iter().filter_map(|route_ctx| self.route_violation(route_ctx)).sum()
+    }
+
+    fn route_violation(&self, route_ctx: &RouteContext) -> Option<Float> {
+        route_ctx.state().get_time_window_violation().map(|violation| violation.normalized())
     }
 
     fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {

@@ -747,18 +747,14 @@ mod dynamic {
         vec![
             Arc::new(RelocateInterRoute::default()),
             Arc::new(ExchangeSequenceBest::default()),
+            Arc::new(ExchangeTwoOptStar::default()),
             Arc::new(ExchangeInterRouteBest::new(0., 0., 0.)),
             Arc::new(ExchangeSwapStar::new(environment.random.clone())),
         ]
     }
 
     fn create_variable_neighborhood_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {
-        let mut operators = create_escape_education_operators(environment);
-        // Tail exchange remains useful in ordinary descent, but its broad feasibility checks produced no useful
-        // transitions during bounded relaxed education.
-        operators.insert(2, Arc::new(ExchangeTwoOptStar::default()));
-
-        operators
+        create_escape_education_operators(environment)
     }
 
     pub fn get_operators(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<TargetSearchOperatorConfig> {
