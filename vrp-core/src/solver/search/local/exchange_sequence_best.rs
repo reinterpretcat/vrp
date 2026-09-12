@@ -21,9 +21,10 @@ const SCREEN_CANDIDATE_THRESHOLD: usize = 8;
 ///
 /// One scan samples consecutive source pairs and proposes four related inter-route moves around nearby
 /// jobs: ordered and reversed relocation of two jobs, exchange of two jobs against one, and exchange
-/// of two jobs against two. Candidate generation is granular and transport-guided, but every moved
-/// job is handled through the normal constraint pipeline and only a strict configured-objective
-/// improvement is returned. Locked jobs are never moved.
+/// of two jobs against two. During relaxed education and global scans, it also tries to reposition a
+/// promising pair within its current route when the inter-route moves fail. Candidate generation is
+/// granular and transport-guided, but every moved job is handled through the normal constraint
+/// pipeline and only a strict configured-objective improvement is returned. Locked jobs are never moved.
 pub struct ExchangeSequenceBest {
     source_pair_threshold: usize,
     neighbor_threshold: usize,
@@ -62,23 +63,87 @@ impl Default for ExchangeSequenceBest {
 
 impl LocalOperator for ExchangeSequenceBest {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
-        if insertion_ctx.solution.routes.len() < 2
-            || insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached())
-        {
+        if insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached()) {
             return None;
         }
 
-        let sequence_move = select_sequence_move(
-            insertion_ctx,
-            self.source_pair_threshold,
-            self.neighbor_threshold,
-            self.target_threshold,
-            self.move_types,
-        )?;
-        let candidate = apply_sequence_move(insertion_ctx, sequence_move)?;
+        let evaluate_screened = insertion_ctx.problem.goal.is_relaxed();
+        let inter_route = (insertion_ctx.solution.routes.len() > 1)
+            .then(|| {
+                select_sequence_moves(
+                    insertion_ctx,
+                    self.source_pair_threshold,
+                    self.neighbor_threshold,
+                    self.target_threshold,
+                    self.move_types,
+                )
+            })
+            .and_then(|sequence_moves| apply_first_improvement(insertion_ctx, sequence_moves, evaluate_screened));
 
-        (insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx) == Ordering::Less).then_some(candidate)
+        // Keep the cheap default VND pass unchanged. Relaxed education needs the missing move for
+        // recovery, while the global variant is already reserved for periodic broad exploration.
+        let use_intra_route = self.move_types.relocate
+            && (insertion_ctx.problem.goal.is_relaxed() || self.source_pair_threshold == usize::MAX);
+        inter_route.or_else(|| {
+            use_intra_route.then(|| relocate_intra_route_sequence(insertion_ctx, SCREEN_CANDIDATE_THRESHOLD)).flatten()
+        })
     }
+}
+
+fn apply_first_improvement(
+    insertion_ctx: &InsertionContext,
+    sequence_moves: Vec<SequenceMove>,
+    evaluate_screened: bool,
+) -> Option<InsertionContext> {
+    let limit = if evaluate_screened { usize::MAX } else { 1 };
+
+    sequence_moves.into_iter().take(limit).find_map(|sequence_move| {
+        let candidate = apply_sequence_move(insertion_ctx, sequence_move)?;
+        (insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx) == Ordering::Less).then_some(candidate)
+    })
+}
+
+fn relocate_intra_route_sequence(
+    insertion_ctx: &InsertionContext,
+    source_pair_threshold: usize,
+) -> Option<InsertionContext> {
+    let locked = &insertion_ctx.solution.locked;
+    let mut source_pairs = insertion_ctx
+        .solution
+        .routes
+        .iter()
+        .enumerate()
+        .filter(|(_, route_ctx)| route_ctx.route().tour.job_count() > 2)
+        .flat_map(|(route_idx, route_ctx)| {
+            let jobs = get_ordered_jobs(route_ctx.route());
+            jobs.windows(2)
+                .filter(|jobs| jobs.iter().all(|job| !locked.contains(job)))
+                .filter_map(move |jobs| {
+                    let jobs = [jobs[0].clone(), jobs[1].clone()];
+                    estimate_replacement_cost(insertion_ctx, route_idx, &jobs, None)
+                        .map(|estimated_cost| (estimated_cost, route_idx, jobs))
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    if source_pairs.len() > source_pair_threshold {
+        source_pairs.select_nth_unstable_by(source_pair_threshold, |left, right| left.0.total_cmp(&right.0));
+        source_pairs.truncate(source_pair_threshold);
+    }
+    source_pairs.sort_unstable_by(|left, right| left.0.total_cmp(&right.0));
+
+    // This fallback runs only in relaxed or periodic global scans. At most twice the small source
+    // budget is materialized, and the first exact objective improvement stops the search.
+    let is_quota_reached = || insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
+    source_pairs.into_iter().take_while(|_| !is_quota_reached()).find_map(|(_, route_idx, jobs)| {
+        [jobs.clone(), [jobs[1].clone(), jobs[0].clone()]].into_iter().find_map(|jobs| {
+            if is_quota_reached() {
+                return None;
+            }
+            let candidate = relocate_sequence(insertion_ctx, route_idx, &jobs)?;
+            (insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx) == Ordering::Less).then_some(candidate)
+        })
+    })
 }
 
 #[derive(Clone, Copy)]
@@ -142,13 +207,13 @@ struct JobPosition {
     position: usize,
 }
 
-fn select_sequence_move(
+fn select_sequence_moves(
     insertion_ctx: &InsertionContext,
     source_pair_threshold: usize,
     neighbor_threshold: usize,
     target_threshold: usize,
     move_types: MoveTypes,
-) -> Option<SequenceMove> {
+) -> Vec<SequenceMove> {
     let ordered_routes =
         insertion_ctx.solution.routes.iter().map(|route_ctx| get_ordered_jobs(route_ctx.route())).collect::<Vec<_>>();
     let job_count = ordered_routes.iter().map(Vec::len).sum();
@@ -175,7 +240,7 @@ fn select_sequence_move(
 
     for &(source_route_idx, source_position) in source_pairs.iter() {
         if is_quota_reached() {
-            return None;
+            return Vec::new();
         }
 
         let source_jobs = &ordered_routes[source_route_idx];
@@ -200,7 +265,7 @@ fn select_sequence_move(
 
         for (anchor, target, neighbor_cost) in targets {
             if is_quota_reached() {
-                return None;
+                return Vec::new();
             }
 
             if move_types.relocate {
@@ -252,8 +317,10 @@ fn select_sequence_move(
     candidates.sort_unstable_by(|left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
     candidates
         .into_iter()
-        .find(|candidate| !is_quota_reached() && is_route_locally_feasible(insertion_ctx, &candidate.sequence_move))
+        .take_while(|_| !is_quota_reached())
+        .filter(|candidate| is_route_locally_feasible(insertion_ctx, &candidate.sequence_move))
         .map(|candidate| candidate.sequence_move)
+        .collect()
 }
 
 fn add_candidate(candidates: &mut Vec<MoveCandidate>, candidate: MoveCandidate) {
@@ -563,6 +630,42 @@ fn apply_sequence_move(insertion_ctx: &InsertionContext, sequence_move: Sequence
     }
 
     candidate.solution.remove_empty_routes();
+    candidate.problem.goal.accept_solution_state(&mut candidate.solution);
+
+    Some(candidate)
+}
+
+fn relocate_sequence(insertion_ctx: &InsertionContext, route_idx: usize, jobs: &[Job; 2]) -> Option<InsertionContext> {
+    let mut candidate = insertion_ctx.deep_copy();
+    remove_jobs_from_solution(&mut candidate, route_idx, jobs)?;
+    candidate.problem.goal.accept_solution_state(&mut candidate.solution);
+
+    let result_selector = BestResultSelector::default();
+    let mut position = None;
+    for job in jobs {
+        let eval_ctx = EvaluationContext {
+            goal: candidate.problem.goal.as_ref(),
+            job,
+            leg_selection: &LegSelection::Exhaustive,
+            result_selector: &result_selector,
+        };
+        let route_ctx = candidate.solution.routes.get(route_idx)?;
+        let insertion_position = position.map_or(InsertionPosition::Any, InsertionPosition::Concrete);
+        let result = eval_job_insertion_in_route(
+            &candidate,
+            &eval_ctx,
+            route_ctx,
+            insertion_position,
+            InsertionResult::make_failure(),
+        );
+        let InsertionResult::Success(success) = result else {
+            return None;
+        };
+
+        apply_insertion_success(&mut candidate, success);
+        position = candidate.solution.routes.get(route_idx)?.route().tour.index_last(job);
+    }
+
     candidate.problem.goal.accept_solution_state(&mut candidate.solution);
 
     Some(candidate)

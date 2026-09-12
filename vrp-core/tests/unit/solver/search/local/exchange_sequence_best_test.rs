@@ -118,6 +118,19 @@ fn can_exchange_two_jobs_with_two() {
 }
 
 #[test]
+fn can_relocate_sequence_within_route() {
+    let insertion_ctx = create_insertion_ctx_with_size(7, 1, &[vec!["c0", "c1", "c4", "c5", "c2", "c3", "c6"]]);
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+
+    let result = ExchangeSequenceBest::new_global(32, 2)
+        .explore(&refinement_ctx, &insertion_ctx)
+        .expect("no intra-route sequence relocation");
+
+    assert_eq!(get_customer_ids_from_routes(&result), vec![vec!["c0", "c1", "c2", "c3", "c4", "c5", "c6"]]);
+    assert_eq!(insertion_ctx.problem.goal.total_order(&result, &insertion_ctx), Ordering::Less);
+}
+
+#[test]
 fn does_not_move_locked_jobs() {
     let insertion_ctx = promote_to_locked(
         create_insertion_ctx(&[vec!["c0", "c1", "c6", "c7"], vec!["c4", "c5", "c2", "c3"]]),
@@ -126,6 +139,7 @@ fn does_not_move_locked_jobs() {
     let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
 
     assert!(ExchangeSequenceBest::default().explore(&refinement_ctx, &insertion_ctx).is_none());
+    assert!(ExchangeSequenceBest::new_global(32, 2).explore(&refinement_ctx, &insertion_ctx).is_none());
 }
 
 #[test]
