@@ -468,8 +468,7 @@ impl Alternative for GoalContext {
         const RANDOM_ALTERNATIVE_PROBABILITY: Float = 0.1;
 
         if !self.alternative_goals.is_empty() && random.is_hit(RANDOM_ALTERNATIVE_PROBABILITY) {
-            let idx = random.uniform_int(0, self.alternative_goals.len() as i32 - 1) as usize;
-            self.get_alternative(idx)
+            self.get_random_alternative(random).unwrap_or_else(|| self.clone())
         } else {
             self.clone()
         }
@@ -486,6 +485,16 @@ impl GoalContext {
     /// Returns goals with alternative objectives.
     pub(crate) fn get_alternatives(&self) -> impl Iterator<Item = Self> + '_ {
         self.alternative_goals.iter().enumerate().map(|(idx, _)| self.get_alternative(idx))
+    }
+
+    /// Returns a randomly selected alternative objective, if any.
+    pub(crate) fn get_random_alternative(&self, random: &dyn Random) -> Option<Self> {
+        if self.alternative_goals.is_empty() {
+            None
+        } else {
+            let idx = random.uniform_int(0, self.alternative_goals.len() as i32 - 1) as usize;
+            Some(self.get_alternative(idx))
+        }
     }
 
     /// Accepts job insertion.

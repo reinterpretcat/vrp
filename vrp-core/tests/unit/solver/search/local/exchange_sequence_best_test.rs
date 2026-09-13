@@ -1,17 +1,32 @@
 use super::*;
+use crate::algorithms::geometry::Point;
 use crate::construction::features::{TransportFeatureBuilder, create_minimize_tours_feature};
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::domain::get_customer_ids_from_routes;
+use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::solver::{
-    create_default_refinement_ctx, generate_matrix_routes_with_defaults, promote_to_locked, rearrange_jobs_in_routes,
+    create_default_refinement_ctx, generate_matrix_distances_from_points, generate_matrix_routes,
+    generate_matrix_routes_with_defaults, promote_to_locked, rearrange_jobs_in_routes,
 };
 use crate::helpers::utils::create_test_environment_with_random;
 use crate::helpers::utils::random::FakeRandom;
-use crate::models::ViolationCode;
-use rosomaxa::prelude::Quota;
+use crate::models::{FeatureBuilder, FeatureObjective, ViolationCode};
+use rosomaxa::prelude::{Float, Quota};
 use std::sync::Arc;
 
 struct ReachedQuota;
+
+struct PreferRouteOrder(Vec<String>);
+
+impl FeatureObjective for PreferRouteOrder {
+    fn fitness(&self, solution: &InsertionContext) -> Cost {
+        if get_customer_ids_from_routes(solution).first() == Some(&self.0) { 0. } else { 1. }
+    }
+
+    fn estimate(&self, _: &MoveContext<'_>) -> Cost {
+        Cost::default()
+    }
+}
 
 impl Quota for ReachedQuota {
     fn is_reached(&self) -> bool {
@@ -42,6 +57,39 @@ fn create_insertion_ctx_with_size(rows: usize, cols: usize, job_order: &[Vec<&st
 
 fn create_insertion_ctx(job_order: &[Vec<&str>]) -> InsertionContext {
     create_insertion_ctx_with_size(4, 2, job_order)
+}
+
+fn create_euclidean_insertion_ctx(points: &[(Float, Float)], job_order: &[&str]) -> InsertionContext {
+    let distances =
+        generate_matrix_distances_from_points(&points.iter().map(|&(x, y)| Point::new(x, y)).collect::<Vec<_>>());
+    let (mut problem, solution) = generate_matrix_routes(
+        points.len() - 1,
+        1,
+        false,
+        |_, _, _| TestGoalContextBuilder::default().build(),
+        |id, location| {
+            TestSingleBuilder::default().id(id).location(location.map(|location| location + 1)).build_shared()
+        },
+        |vehicle| vehicle,
+        |_| (distances.clone(), distances.clone()),
+    );
+    problem.goal = Arc::new(
+        TestGoalContextBuilder::empty()
+            .add_feature(
+                TransportFeatureBuilder::new("transport")
+                    .set_violation_code(ViolationCode(1))
+                    .set_transport_cost(problem.transport.clone())
+                    .set_activity_cost(problem.activity.clone())
+                    .build_minimize_cost()
+                    .unwrap(),
+            )
+            .build(),
+    );
+    let environment = create_test_environment_with_random(Arc::new(FakeRandom::new(vec![], vec![])));
+    let mut insertion_ctx = InsertionContext::new_from_solution(Arc::new(problem), (solution, None), environment);
+    rearrange_jobs_in_routes(&mut insertion_ctx, &[job_order.to_vec()]);
+
+    insertion_ctx
 }
 
 fn create_search(move_types: MoveTypes) -> ExchangeSequenceBest {
@@ -115,6 +163,78 @@ fn can_exchange_two_jobs_with_two() {
             vec!["c4".to_string(), "c5".to_string(), "c6".to_string(), "c7".to_string()]
         ]
     );
+}
+
+#[test]
+fn can_rank_complete_intra_route_pair_move() {
+    let insertion_ctx = create_euclidean_insertion_ctx(
+        &[(1., 16.), (4., 15.), (8., 8.), (19., 13.), (12., 4.), (7., 3.), (3., 5.), (11., 16.)],
+        &["c0", "c1", "c2", "c3", "c4", "c5", "c6"],
+    );
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+
+    assert!(ExchangeSequenceBest::default().explore(&refinement_ctx, &insertion_ctx).is_none());
+
+    let result = ExchangeSequenceBest::new_global(32, 2)
+        .explore(&refinement_ctx, &insertion_ctx)
+        .expect("no complete-pair relocation");
+
+    assert_eq!(
+        get_customer_ids_from_routes(&result),
+        vec![vec![
+            "c0".to_string(),
+            "c1".to_string(),
+            "c4".to_string(),
+            "c5".to_string(),
+            "c3".to_string(),
+            "c2".to_string(),
+            "c6".to_string()
+        ]]
+    );
+    assert_eq!(insertion_ctx.problem.goal.total_order(&result, &insertion_ctx), Ordering::Less);
+    assert!(result.solution.required.is_empty());
+    assert!(result.solution.unassigned.is_empty());
+    assert_eq!(
+        result.solution.registry.resources().available().count(),
+        insertion_ctx.solution.registry.resources().available().count()
+    );
+}
+
+#[test]
+fn can_move_final_pair_in_open_route_using_configured_objective() {
+    let mut insertion_ctx = create_insertion_ctx_with_size(3, 1, &[vec!["c0", "c1", "c2"]]);
+    let expected = vec!["c1".to_string(), "c2".to_string(), "c0".to_string()];
+    let problem = &insertion_ctx.problem;
+    insertion_ctx.problem = Arc::new(crate::models::Problem {
+        fleet: problem.fleet.clone(),
+        jobs: problem.jobs.clone(),
+        locks: problem.locks.clone(),
+        goal: Arc::new(
+            TestGoalContextBuilder::empty()
+                .add_feature(
+                    FeatureBuilder::default()
+                        .with_name("route_order")
+                        .with_objective(PreferRouteOrder(expected.clone()))
+                        .build()
+                        .unwrap(),
+                )
+                .build(),
+        ),
+        activity: problem.activity.clone(),
+        transport: problem.transport.clone(),
+        extras: problem.extras.clone(),
+    });
+    insertion_ctx.restore();
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+
+    let result = ExchangeSequenceBest::new_global(32, 2)
+        .explore(&refinement_ctx, &insertion_ctx)
+        .expect("no objective-improving relocation");
+
+    assert_eq!(get_customer_ids_from_routes(&result), vec![expected]);
+    assert_eq!(insertion_ctx.problem.goal.total_order(&result, &insertion_ctx), Ordering::Less);
+    assert!(result.solution.required.is_empty());
+    assert!(result.solution.unassigned.is_empty());
 }
 
 #[test]

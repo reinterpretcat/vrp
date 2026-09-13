@@ -3,6 +3,7 @@ use crate::construction::features::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, test_actor};
+use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::SingleDimLoad;
 
 fn create_feature(name: &str, cost: Cost, violation: Option<ConstraintViolation>) -> Feature {
@@ -212,4 +213,16 @@ fn can_detect_same_name_usage() {
             )
         }
     }
+}
+
+#[test]
+fn can_keep_goal_when_no_alternative_exists() {
+    let feature = create_objective_feature_with_dynamic_cost("0", Arc::new(|_, _| 0.));
+    let goal = Goal::simple(std::slice::from_ref(&feature)).unwrap();
+    let goal_ctx = GoalContext { goal, alternative_goals: vec![], constraints: vec![], states: vec![] };
+    let random = FakeRandom::new(vec![], vec![]);
+    let solution = TestInsertionContextBuilder::default().build();
+
+    assert!(goal_ctx.get_random_alternative(&random).is_none());
+    assert_eq!(goal_ctx.maybe_new(&random).total_order(&solution, &solution), Ordering::Equal);
 }

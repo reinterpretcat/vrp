@@ -21,14 +21,16 @@ const SCREEN_CANDIDATE_THRESHOLD: usize = 8;
 ///
 /// One scan samples consecutive source pairs and proposes four related inter-route moves around nearby
 /// jobs: ordered and reversed relocation of two jobs, exchange of two jobs against one, and exchange
-/// of two jobs against two. Candidate generation is granular and transport-guided, but every moved
-/// job is handled through the normal constraint pipeline and only a strict configured-objective
-/// improvement is returned. Locked jobs are never moved.
+/// of two jobs against two. Periodic global scans can also relocate a pair within its current route.
+/// Candidate generation is granular and transport-guided, but every moved job is handled through the
+/// normal constraint pipeline and only a strict configured-objective improvement is returned. Locked
+/// jobs are never moved.
 pub struct ExchangeSequenceBest {
     source_pair_threshold: usize,
     neighbor_threshold: usize,
     target_threshold: usize,
     move_types: MoveTypes,
+    intra_route_fallback: bool,
 }
 
 impl ExchangeSequenceBest {
@@ -38,17 +40,30 @@ impl ExchangeSequenceBest {
         assert!(neighbor_threshold > 0);
         assert!(target_threshold > 0);
 
-        Self { source_pair_threshold, neighbor_threshold, target_threshold, move_types: MoveTypes::all() }
+        Self {
+            source_pair_threshold,
+            neighbor_threshold,
+            target_threshold,
+            move_types: MoveTypes::all(),
+            intra_route_fallback: false,
+        }
     }
 
-    /// Creates a sequence search which considers every movable source pair.
+    /// Creates a sequence search which considers every inter-route source pair and uses a bounded
+    /// intra-route pair relocation as a fallback.
     pub fn new_global(neighbor_threshold: usize, target_threshold: usize) -> Self {
-        Self::new(usize::MAX, neighbor_threshold, target_threshold)
+        Self { intra_route_fallback: true, ..Self::new(usize::MAX, neighbor_threshold, target_threshold) }
     }
 
     #[cfg(test)]
     fn with_move_types(move_types: MoveTypes) -> Self {
-        Self { source_pair_threshold: 32, neighbor_threshold: 32, target_threshold: 2, move_types }
+        Self {
+            source_pair_threshold: 32,
+            neighbor_threshold: 32,
+            target_threshold: 2,
+            move_types,
+            intra_route_fallback: false,
+        }
     }
 }
 
@@ -62,22 +77,26 @@ impl Default for ExchangeSequenceBest {
 
 impl LocalOperator for ExchangeSequenceBest {
     fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
-        if insertion_ctx.solution.routes.len() < 2
-            || insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached())
-        {
+        if insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached()) {
             return None;
         }
 
-        let sequence_move = select_sequence_move(
-            insertion_ctx,
-            self.source_pair_threshold,
-            self.neighbor_threshold,
-            self.target_threshold,
-            self.move_types,
-        )?;
-        let candidate = apply_sequence_move(insertion_ctx, sequence_move)?;
+        let inter_route = (insertion_ctx.solution.routes.len() > 1)
+            .then(|| {
+                select_sequence_move(
+                    insertion_ctx,
+                    self.source_pair_threshold,
+                    self.neighbor_threshold,
+                    self.target_threshold,
+                    self.move_types,
+                )
+            })
+            .flatten()
+            .and_then(|sequence_move| apply_sequence_move(insertion_ctx, sequence_move))
+            .filter(|candidate| insertion_ctx.problem.goal.total_order(candidate, insertion_ctx) == Ordering::Less);
 
-        (insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx) == Ordering::Less).then_some(candidate)
+        inter_route
+            .or_else(|| self.intra_route_fallback.then(|| relocate_intra_route_sequence(insertion_ctx)).flatten())
     }
 }
 
@@ -135,6 +154,14 @@ impl JobSequence {
 struct MoveCandidate {
     estimated_cost: Cost,
     sequence_move: SequenceMove,
+}
+
+struct IntraRouteSource {
+    removal_cost: Cost,
+    route_idx: usize,
+    position: usize,
+    activity_bounds: (usize, usize),
+    jobs: [Job; 2],
 }
 
 struct JobPosition {
@@ -254,6 +281,222 @@ fn select_sequence_move(
         .into_iter()
         .find(|candidate| !is_quota_reached() && is_route_locally_feasible(insertion_ctx, &candidate.sequence_move))
         .map(|candidate| candidate.sequence_move)
+}
+
+fn relocate_intra_route_sequence(insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
+    let is_quota_reached = || insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
+    let candidates = select_intra_route_moves(insertion_ctx);
+
+    candidates.into_iter().take_while(|_| !is_quota_reached()).find_map(|sequence_move| {
+        let candidate = apply_sequence_move(insertion_ctx, sequence_move)?;
+        (insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx) == Ordering::Less).then_some(candidate)
+    })
+}
+
+fn select_intra_route_moves(insertion_ctx: &InsertionContext) -> Vec<SequenceMove> {
+    let is_quota_reached = || insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
+    let locked = &insertion_ctx.solution.locked;
+    let ordered_routes =
+        insertion_ctx.solution.routes.iter().map(|route_ctx| get_ordered_jobs(route_ctx.route())).collect::<Vec<_>>();
+    let mut sources = Vec::with_capacity(SCREEN_CANDIDATE_THRESHOLD);
+
+    // Ranking every pair against every destination would make the periodic global pass quadratic.
+    // Use removal saving to retain a small source set, then score each complete pair placement.
+    for (route_idx, route_ctx) in insertion_ctx.solution.routes.iter().enumerate() {
+        if is_quota_reached() {
+            return Vec::new();
+        }
+
+        let route = route_ctx.route();
+        let jobs = &ordered_routes[route_idx];
+        if jobs.len() < 3 {
+            continue;
+        }
+        let activity_bounds = get_job_activity_bounds(route);
+
+        for (position, pair) in jobs.windows(2).enumerate() {
+            if is_quota_reached() {
+                return Vec::new();
+            }
+            if pair.iter().any(|job| locked.contains(job)) {
+                continue;
+            }
+
+            let pair = [pair[0].clone(), pair[1].clone()];
+            let Some(bounds) = get_pair_activity_bounds(route, &activity_bounds, &pair) else {
+                continue;
+            };
+            let Some(removal_cost) = estimate_intra_route_replacement(insertion_ctx, route_idx, bounds, None) else {
+                continue;
+            };
+
+            add_intra_route_source(
+                &mut sources,
+                IntraRouteSource { removal_cost, route_idx, position, activity_bounds: bounds, jobs: pair },
+            );
+        }
+    }
+
+    sources.sort_unstable_by(|left, right| left.removal_cost.total_cmp(&right.removal_cost));
+    let mut candidates = Vec::with_capacity(SCREEN_CANDIDATE_THRESHOLD);
+
+    for source in sources {
+        let route_jobs = &ordered_routes[source.route_idx];
+        let remaining_len = route_jobs.len() - 2;
+
+        for target_position in 0..=remaining_len {
+            if is_quota_reached() {
+                return Vec::new();
+            }
+
+            let (anchor, position) = if target_position == 0 {
+                (get_remaining_job(route_jobs, source.position, 0), RelativePosition::Before)
+            } else {
+                (get_remaining_job(route_jobs, source.position, target_position - 1), RelativePosition::After)
+            };
+
+            for (jobs, is_reversed) in
+                [(source.jobs.clone(), false), ([source.jobs[1].clone(), source.jobs[0].clone()], true)]
+            {
+                if target_position == source.position && !is_reversed {
+                    continue;
+                }
+
+                let estimated_cost = if target_position == source.position {
+                    estimate_intra_route_replacement(
+                        insertion_ctx,
+                        source.route_idx,
+                        source.activity_bounds,
+                        Some(jobs.as_slice()),
+                    )
+                } else {
+                    estimate_intra_route_insertion(insertion_ctx, source.route_idx, anchor, position, &jobs)
+                        .map(|insertion_cost| source.removal_cost + insertion_cost)
+                };
+                let Some(estimated_cost) = estimated_cost else {
+                    continue;
+                };
+
+                // Transport is only a cheap proposal score. The normal insertion pipeline and
+                // configured objective validate the few finalists in `relocate_intra_route_sequence`.
+                add_candidate(
+                    &mut candidates,
+                    MoveCandidate {
+                        estimated_cost,
+                        sequence_move: SequenceMove::Relocate {
+                            source_route_idx: source.route_idx,
+                            target_route_idx: source.route_idx,
+                            jobs,
+                            anchor: anchor.clone(),
+                            position,
+                        },
+                    },
+                );
+            }
+        }
+    }
+
+    candidates.sort_unstable_by(|left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
+    candidates.into_iter().map(|candidate| candidate.sequence_move).collect()
+}
+
+fn add_intra_route_source(sources: &mut Vec<IntraRouteSource>, source: IntraRouteSource) {
+    if sources.len() < SCREEN_CANDIDATE_THRESHOLD {
+        sources.push(source);
+        return;
+    }
+
+    let (worst_idx, worst) = sources
+        .iter()
+        .enumerate()
+        .max_by(|(_, left), (_, right)| left.removal_cost.total_cmp(&right.removal_cost))
+        .expect("source list cannot be empty");
+
+    if source.removal_cost.total_cmp(&worst.removal_cost) == Ordering::Less {
+        sources[worst_idx] = source;
+    }
+}
+
+fn get_remaining_job(jobs: &[Job], source_position: usize, position: usize) -> &Job {
+    &jobs[if position < source_position { position } else { position + 2 }]
+}
+
+fn get_job_activity_bounds(route: &Route) -> HashMap<Job, (usize, usize)> {
+    let mut bounds = HashMap::with_capacity(route.tour.job_count());
+
+    route
+        .tour
+        .all_activities()
+        .enumerate()
+        .filter_map(|(idx, activity)| activity.retrieve_job().map(|job| (idx, job)))
+        .for_each(|(idx, job)| {
+            bounds.entry(job).and_modify(|(_, last)| *last = idx).or_insert((idx, idx));
+        });
+
+    bounds
+}
+
+fn get_pair_activity_bounds(
+    route: &Route,
+    activity_bounds: &HashMap<Job, (usize, usize)>,
+    jobs: &[Job; 2],
+) -> Option<(usize, usize)> {
+    let first = activity_bounds.get(&jobs[0])?;
+    let second = activity_bounds.get(&jobs[1])?;
+    let bounds = (first.0.min(second.0), first.1.max(second.1));
+
+    route
+        .tour
+        .activities_slice(bounds.0, bounds.1)
+        .iter()
+        .all(|activity| activity.retrieve_job().as_ref().is_some_and(|job| jobs.contains(job)))
+        .then_some(bounds)
+}
+
+fn estimate_intra_route_replacement(
+    insertion_ctx: &InsertionContext,
+    route_idx: usize,
+    (first_idx, last_idx): (usize, usize),
+    inserted_jobs: Option<&[Job]>,
+) -> Option<Cost> {
+    let route = insertion_ctx.solution.routes.get(route_idx)?.route();
+    let previous = route.tour.get(first_idx.checked_sub(1)?)?;
+    let next = route.tour.get(last_idx + 1);
+    let old_cost = get_path_cost(
+        insertion_ctx,
+        route,
+        std::iter::once(previous).chain(route.tour.activities_slice(first_idx, last_idx).iter()).chain(next),
+    );
+    let new_cost = get_path_cost(
+        insertion_ctx,
+        route,
+        std::iter::once(previous)
+            .chain(inserted_jobs.into_iter().flat_map(|jobs| get_job_activities(insertion_ctx, route_idx, jobs)))
+            .chain(next),
+    );
+
+    Some(new_cost - old_cost)
+}
+
+fn estimate_intra_route_insertion(
+    insertion_ctx: &InsertionContext,
+    route_idx: usize,
+    anchor: &Job,
+    position: RelativePosition,
+    inserted_jobs: &[Job],
+) -> Option<Cost> {
+    let route = insertion_ctx.solution.routes.get(route_idx)?.route();
+    let insertion_idx = get_insertion_position(route, anchor, position)?;
+    let previous = route.tour.get(insertion_idx)?;
+    let next = route.tour.get(insertion_idx + 1);
+    let old_cost = get_path_cost(insertion_ctx, route, std::iter::once(previous).chain(next));
+    let new_cost = get_path_cost(
+        insertion_ctx,
+        route,
+        std::iter::once(previous).chain(get_job_activities(insertion_ctx, route_idx, inserted_jobs)).chain(next),
+    );
+
+    Some(new_cost - old_cost)
 }
 
 fn add_candidate(candidates: &mut Vec<MoveCandidate>, candidate: MoveCandidate) {
