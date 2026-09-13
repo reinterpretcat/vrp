@@ -2,9 +2,10 @@
 #[path = "../../../../tests/unit/solver/search/local/exchange_sequence_best_test.rs"]
 mod exchange_sequence_best_test;
 
+use super::get_path_cost;
 use crate::construction::heuristics::*;
 use crate::models::common::{Cost, Timestamp};
-use crate::models::problem::{Job, TravelTime};
+use crate::models::problem::Job;
 use crate::models::solution::{Activity, Route};
 use crate::solver::RefinementContext;
 use crate::solver::search::LocalOperator;
@@ -639,30 +640,6 @@ fn get_job_activities<'a>(
 ) -> impl Iterator<Item = &'a Activity> + 'a {
     let route = insertion_ctx.solution.routes.get(route_idx).expect("invalid route index").route();
     jobs.iter().flat_map(move |job| route.tour.job_activities(job))
-}
-
-fn get_path_cost<'a>(
-    insertion_ctx: &InsertionContext,
-    route: &Route,
-    activities: impl IntoIterator<Item = &'a Activity>,
-) -> Cost {
-    let mut activities = activities.into_iter();
-    let Some(first) = activities.next() else {
-        return Cost::default();
-    };
-
-    activities
-        .fold((Cost::default(), first), |(acc, previous), current| {
-            let cost = insertion_ctx.problem.transport.cost(
-                route,
-                previous.place.location,
-                current.place.location,
-                TravelTime::Departure(previous.schedule.departure),
-            );
-
-            (acc + cost, current)
-        })
-        .0
 }
 
 fn get_insertion_position(route: &Route, anchor: &Job, position: RelativePosition) -> Option<usize> {

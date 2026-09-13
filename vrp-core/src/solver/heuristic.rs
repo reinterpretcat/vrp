@@ -692,10 +692,30 @@ mod dynamic {
         Arc::new(LocalSearch::new(Arc::new(search)))
     }
 
+    /// Groups related sequence moves into one VND neighborhood. Pair moves are tried first; the
+    /// single-job fallback is used only after that broader exchange cannot improve the solution.
+    #[derive(Default)]
+    struct SequenceNeighborhood {
+        exchange: ExchangeSequenceBest,
+        relocate: RelocateIntraRoute,
+    }
+
+    impl LocalOperator for SequenceNeighborhood {
+        fn explore(
+            &self,
+            refinement_ctx: &RefinementContext,
+            insertion_ctx: &InsertionContext,
+        ) -> Option<InsertionContext> {
+            self.exchange
+                .explore(refinement_ctx, insertion_ctx)
+                .or_else(|| self.relocate.explore(refinement_ctx, insertion_ctx))
+        }
+    }
+
     fn create_variable_neighborhood_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {
         vec![
             Arc::new(RelocateInterRoute::default()),
-            Arc::new(ExchangeSequenceBest::default()),
+            Arc::new(SequenceNeighborhood::default()),
             Arc::new(ExchangeTwoOptStar::default()),
             Arc::new(ExchangeInterRouteBest::new(0., 0., 0.)),
             Arc::new(ExchangeSwapStar::new(environment.random.clone())),
