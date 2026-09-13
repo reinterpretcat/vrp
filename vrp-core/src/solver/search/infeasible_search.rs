@@ -5,6 +5,7 @@ mod infeasible_search_test;
 use crate::construction::heuristics::*;
 use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::*;
+use crate::solver::search::guided_ejection_search::repair_with_ejection_pool;
 use crate::solver::search::{LocalOperator, VariableNeighborhoodResult, VariableNeighborhoodSearch};
 use crate::solver::*;
 use rosomaxa::hyper::HeuristicEscapeOperator;
@@ -19,6 +20,10 @@ const INITIAL_INFEASIBILITY_TOLERANCE: Float = 0.05;
 const INFEASIBILITY_TOLERANCE_CONTRACTION: Float = 0.5;
 // Escape calls are sparse, so an episode gets several visits, but its hidden trajectory cannot live forever.
 const RELAXED_CHECKPOINT_VISITS: usize = 16;
+// Repair usually starts with one rejected job. A short ejection chain can rearrange nearby routes without
+// letting an unsuccessful recovery consume the complete escape-operator budget.
+const MAX_REPAIR_EJECTION_ATTEMPTS: usize = 16;
+const REPAIR_EJECTION_BEAM_WIDTH: usize = 2;
 
 #[derive(Clone, Copy)]
 pub(crate) struct RelaxedSearchState {
@@ -183,16 +188,29 @@ impl InfeasibleSearch {
         &self,
         orig_refinement_ctx: &RefinementContext,
         new_insertion_ctx: InsertionContext,
+        parent: &InsertionContext,
     ) -> InsertionContext {
-        let new_insertion_ctx = repair_solution_from_unknown(&new_insertion_ctx, &|| {
+        let synchronized = repair_solution_from_unknown(&new_insertion_ctx, &|| {
             InsertionContext::new(orig_refinement_ctx.problem.clone(), orig_refinement_ctx.environment.clone())
         });
 
-        // NOTE: give a chance to rearrange unassigned jobs
-        let mut new_insertion_ctx = self.recovery_operator.run(orig_refinement_ctx, new_insertion_ctx);
-        finalize_insertion_ctx(&mut new_insertion_ctx);
+        // Keep the existing recovery path untouched when it already produces a useful child.
+        let mut recovered = self.recovery_operator.run(orig_refinement_ctx, synchronized.deep_copy());
+        finalize_insertion_ctx(&mut recovered);
+        if is_improvement(orig_refinement_ctx, &recovered, parent) {
+            return recovered;
+        }
 
-        new_insertion_ctx
+        // Reconstruction keeps an admissible route prefix, but the first rejected job is not necessarily the
+        // easiest one to reinsert. Before opening another route, try a bounded ejection chain which preserves
+        // strict feasibility and uses the existing insertion evaluator for every displacement.
+        let pending_jobs = synchronized.solution.required.len() + synchronized.solution.unassigned.len();
+        let repair_attempts = pending_jobs.saturating_mul(4).clamp(1, MAX_REPAIR_EJECTION_ATTEMPTS);
+        let ejection_repair = repair_with_ejection_pool(synchronized, repair_attempts, REPAIR_EJECTION_BEAM_WIDTH);
+
+        ejection_repair
+            .filter(|candidate| orig_refinement_ctx.objective().total_order(candidate, &recovered) == Ordering::Less)
+            .unwrap_or(recovered)
     }
 }
 
@@ -314,7 +332,7 @@ impl HeuristicEscapeOperator for InfeasibleSearch {
                 && get_violation(relaxed).is_some_and(|violation| violation > 0.)
                 && search_state.needs_recovery()
             {
-                let recovered = self.recover_individual(refinement_ctx, relaxed.deep_copy());
+                let recovered = self.recover_individual(refinement_ctx, relaxed.deep_copy(), solution);
                 let parent_order = objective.total_order(&recovered, solution);
                 let best_order = refinement_ctx.ranked().next().map(|best| objective.total_order(&recovered, best));
                 if is_repair_improvement(refinement_ctx.selection_phase(), parent_order, best_order) {

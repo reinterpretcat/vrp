@@ -186,7 +186,7 @@ fn eliminate_route(original: &InsertionContext, source_idx: usize, max_attempts:
     let mut candidate = original.deep_copy();
     let source = candidate.solution.routes.get(source_idx)?;
     let actor = source.route().actor.clone();
-    let mut pool = source.route().tour.jobs().cloned().collect::<Vec<_>>();
+    let pool = source.route().tour.jobs().cloned().collect::<Vec<_>>();
 
     // Removing the route creates the initial partial solution; all remaining routes stay feasible.
     candidate.solution.keep_routes(&|route| route.route().actor != actor);
@@ -195,6 +195,45 @@ fn eliminate_route(original: &InsertionContext, source_idx: usize, max_attempts:
     });
     candidate.problem.goal.accept_solution_state(&mut candidate.solution);
 
+    repair_ejection_pool(candidate, pool, max_attempts, None)
+}
+
+/// Tries to complete a strict partial solution by moving its pending jobs through an ejection pool.
+///
+/// Only the first displacement is branched using the existing penalty and insertion-cost order.
+/// Each branch then follows the regular greedy ejection chain, which avoids turning recovery into
+/// an exponentially growing search.
+pub(super) fn repair_with_ejection_pool(
+    insertion_ctx: InsertionContext,
+    max_attempts: usize,
+    beam_width: usize,
+) -> Option<InsertionContext> {
+    if beam_width == 0 || (insertion_ctx.solution.required.is_empty() && insertion_ctx.solution.unassigned.is_empty()) {
+        return None;
+    }
+
+    let goal = insertion_ctx.problem.goal.clone();
+    let alternatives = (1..beam_width).map(|rank| (rank, insertion_ctx.deep_copy())).collect::<Vec<_>>();
+    let mut best = repair_ejection_pool(insertion_ctx, Vec::new(), max_attempts, Some(0));
+
+    for (rank, candidate) in alternatives {
+        let Some(candidate) = repair_ejection_pool(candidate, Vec::new(), max_attempts, Some(rank)) else {
+            continue;
+        };
+        if best.as_ref().is_none_or(|best| goal.total_order(&candidate, best).is_lt()) {
+            best = Some(candidate);
+        }
+    }
+
+    best
+}
+
+fn repair_ejection_pool(
+    mut candidate: InsertionContext,
+    mut pool: Vec<Job>,
+    max_attempts: usize,
+    mut first_ejection_rank: Option<usize>,
+) -> Option<InsertionContext> {
     let mut insertion_attempts = HashMap::<Job, usize>::new();
     // Pair ejections are a fallback. Giving them one evaluated candidate per pool attempt on average
     // keeps the quadratic neighborhood bounded without reducing the depth of single-job chains.
@@ -208,12 +247,12 @@ fn eliminate_route(original: &InsertionContext, source_idx: usize, max_attempts:
         // Removing or inserting a job can activate conditional jobs such as breaks or reloads.
         // They are part of the partial solution and have to be reinserted before it can be returned.
         pool.retain(|job| !candidate.solution.ignored.contains(job));
-        pool.extend(candidate.solution.required.drain(..));
+        pool.append(&mut candidate.solution.required);
         add_unassigned(&candidate.solution, &mut pool);
         if pool.is_empty() {
             candidate.restore();
             pool.retain(|job| !candidate.solution.ignored.contains(job));
-            pool.extend(candidate.solution.required.drain(..));
+            pool.append(&mut candidate.solution.required);
             add_unassigned(&candidate.solution, &mut pool);
             if pool.is_empty() {
                 return Some(candidate);
@@ -229,7 +268,11 @@ fn eliminate_route(original: &InsertionContext, source_idx: usize, max_attempts:
         }
 
         // Otherwise exchange one or two served jobs for this job and continue the resulting chain.
-        let ejected = match find_ejection(&candidate, &job, &insertion_attempts, &mut ejection_budget) {
+        let ejection = match first_ejection_rank.take() {
+            Some(rank) => find_ranked_ejection(&candidate, &job, &insertion_attempts, &mut ejection_budget, rank),
+            None => find_ejection(&candidate, &job, &insertion_attempts, &mut ejection_budget),
+        };
+        let ejected = match ejection {
             Some(ejection) => {
                 // Feature transitions can make the real insertion differ from its route-only
                 // evaluation. The candidate is isolated, so discard the whole attempt instead of
@@ -332,6 +375,16 @@ fn find_ejection(
     attempts: &HashMap<Job, usize>,
     budget: &mut EjectionEvaluationBudget,
 ) -> Option<Ejection> {
+    find_ranked_ejection(insertion_ctx, job, attempts, budget, 0)
+}
+
+fn find_ranked_ejection(
+    insertion_ctx: &InsertionContext,
+    job: &Job,
+    attempts: &HashMap<Job, usize>,
+    budget: &mut EjectionEvaluationBudget,
+    rank: usize,
+) -> Option<Ejection> {
     // Penalty is the primary guide. Route and tour order provide a stable tie break, while source
     // route selection and the surrounding search still provide variation between calls.
     let mut singles = Vec::with_capacity(insertion_ctx.problem.jobs.size());
@@ -366,16 +419,24 @@ fn find_ejection(
             + singles[tier_start..].partition_point(|(candidate_penalty, _, _, _)| *candidate_penalty == penalty);
         let tier = &singles[tier_start..tier_end];
         let evaluated = parallel_collect(tier, ParallelismPolicy::Adaptive, evaluate);
-        let best_single = evaluated.into_iter().flatten().fold(None, |best, (cost, ejection)| match best {
-            Some((best_cost, best_ejection)) if best_cost <= cost => Some((best_cost, best_ejection)),
-            _ => Some((cost, ejection)),
-        });
 
         if insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached()) {
             return None;
         }
-        if let Some((_, ejection)) = best_single {
-            return Some(ejection);
+        if rank == 0 {
+            let best = evaluated.into_iter().flatten().fold(None, |best, (cost, ejection)| match best {
+                Some((best_cost, best_ejection)) if best_cost <= cost => Some((best_cost, best_ejection)),
+                _ => Some((cost, ejection)),
+            });
+            if let Some((_, ejection)) = best {
+                return Some(ejection);
+            }
+        } else {
+            let mut evaluated = evaluated.into_iter().flatten().collect::<Vec<_>>();
+            if !evaluated.is_empty() {
+                evaluated.sort_by(|(left, _), (right, _)| left.cmp(right));
+                return evaluated.into_iter().nth(rank).map(|(_, ejection)| ejection);
+            }
         }
         tier_start = tier_end;
     }
@@ -403,15 +464,17 @@ fn find_ejection(
     for (route_pos, (_, jobs)) in route_jobs.iter().enumerate() {
         for first in 0..jobs.len().saturating_sub(1) {
             let second = first + 1;
-            let penalty = attempts.get(&jobs[first]).copied().unwrap_or_default()
-                + attempts.get(&jobs[second]).copied().unwrap_or_default();
+            let penalty = attempts.get(jobs[first]).copied().unwrap_or_default()
+                + attempts.get(jobs[second]).copied().unwrap_or_default();
             pairs.push(Reverse((penalty, route_pos, first, second)));
         }
     }
 
     let mut best_pair = None;
+    let mut ranked_pairs = Vec::new();
+    let mut best_penalty = None;
     while let Some(Reverse((penalty, route_pos, first, second))) = pairs.pop() {
-        if best_pair.as_ref().is_some_and(|(_, best_penalty, _)| *best_penalty < penalty) {
+        if best_penalty.is_some_and(|best_penalty| best_penalty < penalty) {
             break;
         }
 
@@ -419,8 +482,8 @@ fn find_ejection(
         let ejection = Ejection::pair(*route_idx, jobs[first].clone(), jobs[second].clone());
         let next = second + 1;
         if next < jobs.len() {
-            let next_penalty = attempts.get(&jobs[first]).copied().unwrap_or_default()
-                + attempts.get(&jobs[next]).copied().unwrap_or_default();
+            let next_penalty = attempts.get(jobs[first]).copied().unwrap_or_default()
+                + attempts.get(jobs[next]).copied().unwrap_or_default();
             pairs.push(Reverse((next_penalty, route_pos, first, next)));
         }
 
@@ -429,9 +492,15 @@ fn find_ejection(
         }
         if let Some(cost) =
             evaluate_ejection(insertion_ctx, job, &insertion_ctx.solution.routes[*route_idx], ejection.jobs())
-            && best_pair.as_ref().is_none_or(|(best_cost, _, _)| cost < *best_cost)
         {
-            best_pair = Some((cost, penalty, ejection));
+            best_penalty = Some(penalty);
+            if rank == 0 {
+                if best_pair.as_ref().is_none_or(|(best_cost, _)| cost < *best_cost) {
+                    best_pair = Some((cost, ejection));
+                }
+            } else {
+                ranked_pairs.push((cost, ejection));
+            }
         }
 
         if insertion_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached()) {
@@ -439,7 +508,12 @@ fn find_ejection(
         }
     }
 
-    best_pair.map(|(_, _, ejection)| ejection)
+    if rank == 0 {
+        best_pair.map(|(_, ejection)| ejection)
+    } else {
+        ranked_pairs.sort_by(|(left, _), (right, _)| left.cmp(right));
+        ranked_pairs.into_iter().nth(rank).map(|(_, ejection)| ejection)
+    }
 }
 
 fn evaluate_ejection<'a>(

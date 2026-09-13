@@ -97,6 +97,29 @@ fn can_eliminate_route_using_single_job_ejection() {
 }
 
 #[test]
+fn can_repair_partial_solution_using_single_job_ejection() {
+    // The pending c4 cannot fit directly. Ejecting c1 makes room for it, and c1 then fits in the other route.
+    let mut insertion_ctx = create_default_insertion_ctx(&[5, 2, 4, 3, 4, 0]);
+    let source = insertion_ctx.solution.routes.last().unwrap();
+    let actor = source.route().actor.clone();
+    let job =
+        source.route().tour.jobs().find(|job| job.dimens().get_job_id().is_some_and(|id| id == "c4")).unwrap().clone();
+    insertion_ctx.solution.keep_routes(&|route| route.route().actor != actor);
+    insertion_ctx.solution.unassigned.insert(job, UnassignmentInfo::Unknown);
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
+
+    let result = repair_with_ejection_pool(insertion_ctx, 4, 2).unwrap();
+    let mut actual_jobs = get_customer_ids_from_routes(&result).into_iter().flatten().collect::<Vec<_>>();
+    actual_jobs.sort();
+
+    assert_eq!(result.solution.routes.len(), 2);
+    assert_eq!(result.solution.registry.resources().available().count(), 1);
+    assert!(result.solution.required.is_empty());
+    assert!(result.solution.unassigned.is_empty());
+    assert_eq!(actual_jobs, (0..6).map(|idx| format!("c{idx}")).collect::<Vec<_>>());
+}
+
+#[test]
 fn can_eliminate_route_using_two_job_ejection() {
     // The two remaining routes have only two units of spare capacity and contain unit-demand jobs.
     // Making room for c16 therefore requires ejecting two jobs at once; both fit in the other route.
@@ -327,6 +350,24 @@ fn can_use_first_feasible_ejection_penalty_tier() {
 
     assert_eq!(attempts.get(&ejection.first), Some(&1));
     assert!(ejection.second.is_none());
+}
+
+#[test]
+fn can_select_an_alternative_first_ejection() {
+    let mut insertion_ctx = create_default_insertion_ctx(&[5, 2, 4, 3, 4, 0]);
+    let source = insertion_ctx.solution.routes.pop().unwrap();
+    let job =
+        source.route().tour.jobs().find(|job| job.dimens().get_job_id().is_some_and(|id| id == "c4")).unwrap().clone();
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
+    let mut first_budget = EjectionEvaluationBudget::new(10);
+    let mut second_budget = EjectionEvaluationBudget::new(10);
+
+    let first = find_ranked_ejection(&insertion_ctx, &job, &HashMap::new(), &mut first_budget, 0).unwrap();
+    let second = find_ranked_ejection(&insertion_ctx, &job, &HashMap::new(), &mut second_budget, 1).unwrap();
+
+    assert_ne!(first.first, second.first);
+    assert!(first.second.is_none());
+    assert!(second.second.is_none());
 }
 
 #[test]
