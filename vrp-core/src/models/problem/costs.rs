@@ -51,6 +51,14 @@ pub trait ActivityCost: Send + Sync {
         activity: &Activity,
         departure: Timestamp,
     ) -> ControlFlow<Timestamp, Timestamp>;
+
+    /// Returns true when every scheduling failure is represented by lateness in the resulting schedule.
+    ///
+    /// Controlled infeasible search can relax time-window checks only under this contract. The default keeps
+    /// custom activity semantics strict because a `ControlFlow::Break` can represent more than lateness.
+    fn supports_time_window_relaxation(&self) -> bool {
+        false
+    }
 }
 
 /// An actor independent activity costs.
@@ -74,6 +82,10 @@ impl ActivityCost for SimpleActivityCost {
         departure: Timestamp,
     ) -> ControlFlow<Timestamp, Timestamp> {
         ControlFlow::Continue(activity.place.time.end.min(departure - activity.place.duration))
+    }
+
+    fn supports_time_window_relaxation(&self) -> bool {
+        true
     }
 }
 

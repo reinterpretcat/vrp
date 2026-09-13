@@ -116,7 +116,7 @@ pub fn cannot_create_goal_context_without_objectives() -> GenericResult<()> {
 fn cannot_relax_goal_without_capability() -> GenericResult<()> {
     let goal = GoalContextBuilder::with_features(&[create_feature("hard", 0., None)])?.build()?;
 
-    assert!(goal.relaxed(0.).is_none());
+    assert!(goal.relaxed(0., 0.).is_none());
 
     Ok(())
 }
@@ -180,7 +180,7 @@ fn can_relax_only_opted_in_constraint_and_track_exact_violation() -> GenericResu
             .build()?;
     let hard = create_feature("hard", 1., ConstraintViolation::fail(ViolationCode(2)));
     let goal = GoalContextBuilder::with_features(&[relaxable, hard])?.build()?;
-    let relaxed = goal.relaxed(0.).expect("a controlled relaxation should be available");
+    let relaxed = goal.relaxed(0., 0.).expect("a controlled relaxation should be available");
     let mut insertion_ctx = TestInsertionContextBuilder::default().build();
     let route_ctx = RouteContext::new(test_actor());
     let activity = ActivityBuilder::default().job(None).build();
@@ -214,7 +214,7 @@ fn can_preserve_relaxation_when_combining_features() -> GenericResult<()> {
             create_feature("hard", 0., ConstraintViolation::fail(ViolationCode(2))),
         ])
         .combine()?;
-    let goal = GoalContextBuilder::with_features(&[combined])?.build()?.relaxed(0.).unwrap();
+    let goal = GoalContextBuilder::with_features(&[combined])?.build()?.relaxed(0., 0.).unwrap();
     let mut insertion_ctx = TestInsertionContextBuilder::default().build();
     let route_ctx = RouteContext::new(test_actor());
     let activity = ActivityBuilder::default().job(None).build();
@@ -248,8 +248,8 @@ fn can_compare_relaxed_solutions_inside_violation_tolerance() -> GenericResult<(
     let one_route = create_solution(1, 0.2);
     let two_routes = create_solution(2, 0.1);
 
-    assert_eq!(goal.relaxed(0.2).unwrap().total_order(&one_route, &two_routes), Ordering::Less);
-    assert_eq!(goal.relaxed(0.05).unwrap().total_order(&one_route, &two_routes), Ordering::Greater);
+    assert_eq!(goal.relaxed(0.2, 0.2).unwrap().total_order(&one_route, &two_routes), Ordering::Less);
+    assert_eq!(goal.relaxed(0.05, 0.2).unwrap().total_order(&one_route, &two_routes), Ordering::Greater);
 
     Ok(())
 }
@@ -259,17 +259,78 @@ fn can_prioritize_projected_violation_outside_relaxed_tolerance() -> GenericResu
     let relaxable = FeatureBuilder::from_feature(create_feature("relaxable", 2., None))
         .with_constraint(TestRelaxableConstraint { violation: 0.25, strict: None })
         .build()?;
-    let goal = GoalContextBuilder::with_features(&[relaxable])?.build()?.relaxed(0.2).unwrap();
+    let goal = GoalContextBuilder::with_features(&[relaxable])?.build()?.relaxed(0.2, 0.2).unwrap();
     let mut solution_ctx = TestInsertionContextBuilder::default().build().solution;
     solution_ctx.state.set_relaxed_violation(0.1);
     let route_ctx = RouteContext::new(test_actor());
     let activity = ActivityBuilder::default().job(None).build();
     let activity_ctx = ActivityContext { index: 0, prev: &activity, target: &activity, next: None };
-    let costs =
-        goal.estimate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx)).iter().collect::<Vec<_>>();
+    let move_ctx = MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx);
+    let costs = goal.estimate(&move_ctx).iter().collect::<Vec<_>>();
 
     assert!((costs[0] - 0.15).abs() < 1E-9);
     assert_eq!(costs[1], 2.);
+    // An estimate guides candidate ranking but cannot safely reject a compound move whose other route changes are
+    // not represented by this insertion context. The complete refreshed solution decides admission.
+    assert_eq!(goal.evaluate(&move_ctx), None);
+
+    Ok(())
+}
+
+#[test]
+fn can_check_exact_relaxed_admission_limit() -> GenericResult<()> {
+    let relaxable = FeatureBuilder::default()
+        .with_name("relaxable")
+        .with_constraint(TestRelaxableConstraint { violation: 0., strict: None })
+        .build()?;
+    let goal = GoalContextBuilder::with_features(&[create_minimize_tours_feature("tours")?, relaxable])?
+        .build()?
+        .relaxed(0.05, 0.2)
+        .unwrap();
+    let create_solution = |violation| {
+        TestInsertionContextBuilder::default()
+            .with_state(|state| {
+                state.set_relaxed_violation(violation);
+            })
+            .build()
+    };
+
+    assert!(goal.is_relaxed_admissible(&create_solution(0.2)));
+    assert!(!goal.is_relaxed_admissible(&create_solution(0.21)));
+
+    Ok(())
+}
+
+#[test]
+fn can_admit_complete_repair_after_temporarily_removing_violation() -> GenericResult<()> {
+    let relaxable = FeatureBuilder::default()
+        .with_name("relaxable")
+        .with_constraint(TestRelaxableConstraint { violation: 0.03, strict: None })
+        .build()?;
+    let goal = GoalContextBuilder::with_features(&[create_minimize_tours_feature("tours")?, relaxable])?
+        .build()?
+        .relaxed(0.02, 0.04)
+        .unwrap();
+    let create_solution = |violation| {
+        TestInsertionContextBuilder::default()
+            .with_state(|state| {
+                state.set_relaxed_violation(violation);
+            })
+            .build()
+    };
+    let parent = create_solution(0.04);
+    let candidate = create_solution(0.03);
+    let partial = create_solution(0.);
+    let route_ctx = RouteContext::new(test_actor());
+    let activity = ActivityBuilder::default().job(None).build();
+    let activity_ctx = ActivityContext { index: 0, prev: &activity, target: &activity, next: None };
+    let move_ctx = MoveContext::activity(&partial.solution, &route_ctx, &activity_ctx);
+
+    // The insertion preview cannot see the relief obtained from the removed source route. It may rank the move,
+    // but only the refreshed 0.03 candidate is authoritative for the frozen 0.04 segment limit.
+    assert_eq!(goal.evaluate(&move_ctx), None);
+    assert!(goal.is_relaxed_admissible(&candidate));
+    assert_eq!(goal.total_order(&candidate, &parent), Ordering::Less);
 
     Ok(())
 }

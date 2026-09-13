@@ -41,6 +41,11 @@ struct CountingOperator {
     delta: f64,
 }
 
+struct ScriptedOperator {
+    calls: AtomicUsize,
+    candidates: Vec<(f64, f64)>,
+}
+
 struct ReachedQuota;
 
 impl Quota for ReachedQuota {
@@ -57,6 +62,16 @@ impl LocalOperator for CountingOperator {
     ) -> Option<InsertionContext> {
         self.calls.fetch_add(1, AtomicOrdering::Relaxed);
         TestOperator { delta: self.delta }.explore(refinement_ctx, insertion_ctx)
+    }
+}
+
+impl LocalOperator for ScriptedOperator {
+    fn explore(&self, _: &RefinementContext, insertion_ctx: &InsertionContext) -> Option<InsertionContext> {
+        let (cost, violation) = self.candidates.get(self.calls.fetch_add(1, AtomicOrdering::Relaxed))?;
+        let mut candidate = insertion_ctx.deep_copy();
+        candidate.solution.state.set_test_cost(*cost).set_relaxed_violation(*violation);
+
+        Some(candidate)
     }
 }
 
@@ -94,6 +109,41 @@ fn can_stop_after_complete_failed_pass() {
     );
 
     assert!(search.explore(&refinement_ctx, &insertion_ctx).is_none());
+}
+
+#[test]
+fn can_retain_best_feasible_intermediate_without_changing_endpoint() {
+    let mut insertion_ctx = create_insertion_ctx();
+    insertion_ctx.solution.state.set_relaxed_violation(0.);
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+    let search = VariableNeighborhoodSearch::new(
+        vec![Arc::new(ScriptedOperator {
+            calls: AtomicUsize::new(0),
+            candidates: vec![(9., 0.), (8., 0.), (7., 0.01)],
+        })],
+        3,
+    );
+
+    let result = search.explore_with_checkpoint(&refinement_ctx, &insertion_ctx, Some(refinement_ctx.objective()));
+
+    assert_eq!(result.endpoint.unwrap().solution.state.get_test_cost(), Some(&7.));
+    assert_eq!(result.feasible_intermediate.unwrap().solution.state.get_test_cost(), Some(&8.));
+}
+
+#[test]
+fn regular_vnd_does_not_retain_intermediate_solutions() {
+    let mut insertion_ctx = create_insertion_ctx();
+    insertion_ctx.solution.state.set_relaxed_violation(0.);
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+    let search = VariableNeighborhoodSearch::new(
+        vec![Arc::new(ScriptedOperator { calls: AtomicUsize::new(0), candidates: vec![(9., 0.), (8., 0.01)] })],
+        2,
+    );
+
+    let result = search.explore_with_checkpoint(&refinement_ctx, &insertion_ctx, None);
+
+    assert_eq!(result.endpoint.unwrap().solution.state.get_test_cost(), Some(&8.));
+    assert!(result.feasible_intermediate.is_none());
 }
 
 #[test]

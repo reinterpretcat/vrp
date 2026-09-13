@@ -15,6 +15,8 @@ struct RelaxedSolution {
     weights: Vec<Float>,
     fitness: Float,
     infeasibility: Option<Float>,
+    progress: Option<RelaxedSolutionProgress>,
+    is_active: bool,
 }
 
 impl HeuristicSolution for RelaxedSolution {
@@ -36,7 +38,9 @@ impl Input for RelaxedSolution {
         self.infeasibility.is_some() == other.infeasibility.is_some()
             && self.weights == other.weights
             && (self.infeasibility.is_none()
-                || (self.infeasibility == other.infeasibility && self.fitness == other.fitness))
+                || (self.infeasibility == other.infeasibility
+                    && self.fitness == other.fitness
+                    && self.progress == other.progress))
     }
 }
 
@@ -57,6 +61,18 @@ impl RosomaxaSolution for RelaxedSolution {
 
     fn relaxed_violation(&self) -> Option<Float> {
         self.infeasibility
+    }
+
+    fn relaxed_progress(&self) -> Option<RelaxedSolutionProgress> {
+        self.progress
+    }
+
+    fn is_relaxed_continuation(&self) -> bool {
+        self.is_active
+    }
+
+    fn end_relaxed_continuation(&mut self) {
+        self.is_active = false;
     }
 }
 

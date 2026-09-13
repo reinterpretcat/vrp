@@ -9,6 +9,7 @@ use crate::solver::search::Recreate;
 use crate::solver::{RefinementContext, TargetSearchOperator};
 use rosomaxa::algorithms::math::relative_distance;
 use rosomaxa::hyper::HeuristicDiversifyOperator;
+use rosomaxa::population::RosomaxaSolution;
 use rosomaxa::prelude::{Float, HeuristicContext, HeuristicObjective, HeuristicSolution};
 use std::cmp::{Ordering, Reverse};
 use std::collections::{HashMap, HashSet};
@@ -18,15 +19,17 @@ use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 /// A bounded route-based path relinking search.
 ///
 /// The search waits until the population has had time to form, then pairs a selected parent with
-/// a structurally different solution from the better half of the current selection. It starts from
-/// the worse endpoint and copies one guiding route at a time onto a compatible source actor. Source
-/// and guiding routes are used at most once, so every step commits another route block instead of
-/// overwriting previous progress. Normal insertion constraints validate every copied route and the
-/// configured recreate repairs displaced jobs.
+/// a structurally different solution. An objective-promising relaxed resident can guide the path,
+/// but the source and every returned child stay strictly feasible. Otherwise, the guide comes from
+/// the better half of the regular selection. The search copies one guiding route at a time onto a
+/// compatible source actor. Source and guiding routes are used at most once, so every step commits
+/// another route block instead of overwriting previous progress. Normal insertion constraints validate
+/// every copied route and the configured recreate repairs displaced jobs.
 ///
-/// Only the best repaired point on the path receives an additional ruin/recreate search. A child
-/// is returned only when it meaningfully improves both parents under the configured objective;
-/// unsuccessful recombination therefore cannot replace regular diversification. Calls are spaced
+/// Only the best repaired point on the path receives an additional ruin/recreate search. With a
+/// regular guide, a child must meaningfully improve both parents. With a relaxed guide, it must
+/// improve the feasible source; the relaxed donor is not treated as a competing endpoint.
+/// Unsuccessful recombination therefore cannot replace regular diversification. Calls are spaced
 /// by a problem-sized generation interval; a lock-free reservation lets one of the parallel selected
 /// parents attempt the search.
 ///
@@ -105,8 +108,8 @@ impl PathRelinkingSearch {
             let mut candidate = self.recreate.run(refinement_ctx, partial.deep_copy());
             finalize_insertion_ctx(&mut candidate);
 
-            // This operator starts from two feasible parents. Do not turn structural exploration into
-            // a growing backlog which makes every subsequent insertion search more expensive.
+            // The source is feasible even when the guide is not. Do not turn structural exploration
+            // into a growing backlog which makes every subsequent insertion search more expensive.
             if candidate.solution.unassigned.len() > source_unassigned {
                 continue;
             }
@@ -191,8 +194,15 @@ impl PathRelinkingSearch {
             return None;
         }
 
-        let (target, _) = select_target(refinement_ctx, source)?;
+        if let Some(target) = select_relaxed_guide(refinement_ctx, source) {
+            // A relaxed guide is a donor, not a competing endpoint. Starting from the regular source keeps
+            // every accepted route block under the strict constraint pipeline and avoids repairing the guide whole.
+            return self
+                .relink(refinement_ctx, source, target)
+                .filter(|candidate| is_meaningfully_better(refinement_ctx, candidate, source));
+        }
 
+        let (target, _) = select_target(refinement_ctx, source)?;
         self.relink_pair(refinement_ctx, source, target)
     }
 }
@@ -301,6 +311,20 @@ fn select_target<'a>(
     // attracting every path to the same farthest solution.
     let index = refinement_ctx.environment.random.uniform_int(0, candidates.len() as i32 - 1) as usize;
     candidates.into_iter().nth(index)
+}
+
+fn select_relaxed_guide<'a>(
+    refinement_ctx: &'a RefinementContext,
+    source: &InsertionContext,
+) -> Option<&'a InsertionContext> {
+    let target = refinement_ctx.selected_relaxed(source)?;
+    if target.relaxed_violation().is_none() || refinement_ctx.objective().total_order(target, source) != Ordering::Less
+    {
+        return None;
+    }
+
+    let distance = SolutionStructure::new(source).distance(&SolutionStructure::new(target));
+    (distance.attributes() >= MIN_RELINK_ATTRIBUTES).then_some(target)
 }
 
 fn select_quality_half<T>(mut candidates: Vec<T>, mut compare: impl FnMut(&T, &T) -> Ordering) -> Vec<T> {

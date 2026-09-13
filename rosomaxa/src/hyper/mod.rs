@@ -59,9 +59,22 @@ pub trait HeuristicIntensifyOperator {
 pub type HeuristicIntensifyOperators<C, O, S> =
     Vec<Arc<dyn HeuristicIntensifyOperator<Context = C, Objective = O, Solution = S> + Send + Sync>>;
 
-/// A search operator which periodically replaces one regular search attempt to escape the feasible search space.
-pub type HeuristicEscapeOperator<C, O, S> =
-    Arc<dyn HeuristicSearchOperator<Context = C, Objective = O, Solution = S> + Send + Sync>;
+/// A heuristic operator which periodically replaces one regular search attempt to escape the regular search space.
+pub trait HeuristicEscapeOperator {
+    /// A heuristic context type.
+    type Context: HeuristicContext<Objective = Self::Objective, Solution = Self::Solution>;
+    /// A heuristic objective type.
+    type Objective: HeuristicObjective<Solution = Self::Solution>;
+    /// A heuristic solution type.
+    type Solution: HeuristicSolution;
+
+    /// Performs one bounded escape and returns its independently useful offspring.
+    fn escape(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution>;
+}
+
+/// A dynamically dispatched escape operator.
+pub type HeuristicEscape<C, O, S> =
+    Arc<dyn HeuristicEscapeOperator<Context = C, Objective = O, Solution = S> + Send + Sync>;
 
 enum SearchTask<'a, S> {
     Regular(&'a S),

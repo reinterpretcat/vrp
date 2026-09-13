@@ -37,4 +37,8 @@ impl ActivityCost for OnlyVehicleActivityCost {
     ) -> ControlFlow<Timestamp, Timestamp> {
         self.inner.estimate_arrival(route, activity, departure)
     }
+
+    fn supports_time_window_relaxation(&self) -> bool {
+        true
+    }
 }

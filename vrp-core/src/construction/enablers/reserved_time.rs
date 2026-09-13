@@ -108,6 +108,10 @@ impl ActivityCost for DynamicActivityCost {
 
         ControlFlow::Continue(value)
     }
+
+    fn supports_time_window_relaxation(&self) -> bool {
+        true
+    }
 }
 
 /// Provides way to calculate transport costs which might contain reserved time.

@@ -31,6 +31,9 @@ pub use self::decompose_search::DecomposeSearch;
 
 mod infeasible_search;
 pub use self::infeasible_search::InfeasibleSearch;
+pub(crate) use self::infeasible_search::{
+    end_relaxed_solution_continuation, get_relaxed_solution_progress, is_relaxed_solution_continuation,
+};
 
 mod guided_ejection_search;
 pub use self::guided_ejection_search::GuidedEjectionSearch;

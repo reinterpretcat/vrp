@@ -1,5 +1,5 @@
 use super::selection::{BasinCandidate, select_diverse_basin_candidates, select_diverse_data};
-use super::storage::compare_relaxed;
+use super::storage::{compare_relaxed, is_relaxed_selectable};
 use super::{IndividualNetwork, RosomaxaContext, RosomaxaSolution};
 use crate::algorithms::gsom::Coordinate;
 use crate::algorithms::math::relative_distance;
@@ -12,6 +12,7 @@ pub(super) fn select_relaxed_solution<'a, C, O, S>(
     objective: &O,
     reference: &S,
     archive_size: usize,
+    prefer_continuation: bool,
 ) -> Option<&'a S>
 where
     C: RosomaxaContext<Solution = S>,
@@ -22,11 +23,11 @@ where
     let coordinate = Coordinate(x, y);
 
     let local =
-        network.find(&coordinate).and_then(|node| node.storage.relaxed.select(objective, reference)).or_else(|| {
+        network.find(&coordinate).and_then(|node| node.storage.relaxed.select(prefer_continuation)).or_else(|| {
             [Coordinate(x - 1, y), Coordinate(x + 1, y), Coordinate(x, y - 1), Coordinate(x, y + 1)]
                 .iter()
                 .filter_map(|coordinate| {
-                    network.find(coordinate).and_then(|node| node.storage.relaxed.select(objective, reference))
+                    network.find(coordinate).and_then(|node| node.storage.relaxed.select(prefer_continuation))
                 })
                 .min_by(|left, right| compare_relaxed(objective, left, right))
         });
@@ -36,7 +37,7 @@ where
 
     let mut candidates = network
         .iter_nodes()
-        .filter_map(|node| node.storage.relaxed.select(objective, reference).map(|solution| (node, solution)))
+        .filter_map(|node| node.storage.relaxed.select(prefer_continuation).map(|solution| (node, solution)))
         .collect::<Vec<_>>();
 
     // Seed an uncovered regular region while the archive has capacity. Once full, continue from its global
@@ -57,12 +58,22 @@ where
         .map(|(_, solution)| solution)
 }
 
-pub(super) fn select_relaxed_archive<'a, O, S>(archive: &'a [S], objective: &O, reference: &S) -> Option<&'a S>
+pub(super) fn select_relaxed_archive<'a, O, S>(
+    archive: &'a [S],
+    objective: &O,
+    reference: &S,
+    prefer_continuation: bool,
+) -> Option<&'a S>
 where
     O: HeuristicObjective<Solution = S>,
     S: RosomaxaSolution,
 {
-    let mut candidates = archive.iter().collect::<Vec<_>>();
+    let mut candidates = archive
+        .iter()
+        .filter(|solution| {
+            is_relaxed_selectable(*solution) && (!prefer_continuation || solution.is_relaxed_continuation())
+        })
+        .collect::<Vec<_>>();
     candidates.sort_unstable_by(|left, right| compare_relaxed(objective, left, right));
     candidates.truncate(candidates.len().div_ceil(2).max(1));
 
@@ -77,6 +88,9 @@ where
     O: HeuristicObjective<Solution = S>,
     S: RosomaxaSolution,
 {
+    // Historical checkpoints can help describe a node while its episode is active there, but a flat archive has
+    // no such locality. Keep its limited capacity for work that selection can actually resume.
+    archive.retain(is_relaxed_selectable);
     archive.sort_unstable_by(|left, right| compare_relaxed(objective, left, right));
     archive.dedup_by(|left, right| left.is_same(right));
 
@@ -95,9 +109,7 @@ where
 {
     let mut candidates = network
         .iter()
-        .filter_map(|(coordinate, node)| {
-            node.storage.relaxed.representative(objective).map(|solution| (*coordinate, solution))
-        })
+        .filter_map(|(coordinate, node)| node.storage.relaxed.select(false).map(|solution| (*coordinate, solution)))
         .collect::<Vec<_>>();
     if candidates.len() <= keep_size {
         return;

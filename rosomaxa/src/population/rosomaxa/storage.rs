@@ -1,4 +1,4 @@
-use super::{RosomaxaContext, RosomaxaSolution};
+use super::{RelaxedSolutionProgress, RosomaxaContext, RosomaxaSolution};
 use crate::algorithms::gsom::{Storage, StorageFactory};
 use crate::algorithms::math::relative_distance;
 use crate::evolution::objectives::HeuristicObjective;
@@ -52,73 +52,82 @@ where
         .then_with(|| objective.total_order(left, right))
 }
 
-/// Keeps complementary representatives of a node's infeasible neighborhood.
+pub(super) fn is_relaxed_selectable<S: RosomaxaSolution>(solution: &S) -> bool {
+    solution.is_relaxed_continuation() || solution.relaxed_progress().is_none()
+}
+
+/// Keeps complementary representatives of a node's relaxed-search neighborhood.
 ///
-/// The boundary stays close to feasibility. A bridge is allowed farther away only while it improves upon the
-/// node's feasible solution under the original objective. During shuffled replay, before a feasible resident arrives,
-/// the two slots provisionally retain the violation-best and objective-best candidates.
+/// The boundary records the best repair progress. The continuation records a checkpoint which is still being
+/// educated, even when that checkpoint is temporarily worse under boundary ordering.
 pub(super) struct RelaxedStorage<S> {
     pub(super) boundary: Option<Box<S>>,
-    pub(super) bridge: Option<Box<S>>,
+    pub(super) continuation: Option<Box<S>>,
 }
 
 impl<S> Default for RelaxedStorage<S> {
     fn default() -> Self {
-        Self { boundary: None, bridge: None }
+        Self { boundary: None, continuation: None }
     }
 }
 
 impl<S: RosomaxaSolution> RelaxedStorage<S> {
-    pub(super) fn add<O: HeuristicObjective<Solution = S>>(&mut self, objective: &O, regular: Option<&S>, input: S) {
-        match regular {
-            Some(regular) => {
-                let is_bridge = objective.total_order(&input, regular) == Ordering::Less;
-                Self::update(objective, if is_bridge { &mut self.bridge } else { &mut self.boundary }, Box::new(input));
-            }
-            None => self.add_unclassified(objective, input),
+    pub(super) fn add<O: HeuristicObjective<Solution = S>>(&mut self, objective: &O, input: S) {
+        let mut candidates = [self.boundary.take(), self.continuation.take(), Some(Box::new(input))];
+        let (boundary_idx, continuation_idx) = select_relaxed_roles(objective, &candidates);
+
+        self.boundary = candidates[boundary_idx].take();
+        self.continuation = continuation_idx.and_then(|index| candidates[index].take());
+    }
+
+    /// Replaces an updated checkpoint and prevents an older step of its episode from remaining active after migration.
+    pub(super) fn supersede_continuation(&mut self, progress: RelaxedSolutionProgress) {
+        if self.boundary.as_deref().and_then(S::relaxed_progress) == Some(progress) {
+            self.boundary = None;
+        } else if let Some(boundary) = self.boundary.as_deref_mut()
+            && boundary
+                .relaxed_progress()
+                .is_some_and(|known| known.episode() == progress.episode() && known < progress)
+        {
+            boundary.end_relaxed_continuation();
+        }
+
+        if self.continuation.as_deref().and_then(S::relaxed_progress) == Some(progress)
+            || self
+                .continuation
+                .as_deref()
+                .and_then(S::relaxed_progress)
+                .is_some_and(|known| known.episode() == progress.episode() && known < progress)
+        {
+            self.continuation = None;
         }
     }
 
-    pub(super) fn on_regular_updated<O: HeuristicObjective<Solution = S>>(
-        &mut self,
-        objective: &O,
-        regular: Option<&S>,
-    ) {
-        if let Some(regular) = regular {
-            let boundary = self.boundary.take();
-            let bridge = self.bridge.take();
-            boundary.into_iter().chain(bridge).for_each(|input| {
-                let is_bridge = objective.total_order(input.as_ref(), regular) == Ordering::Less;
-                Self::update(objective, if is_bridge { &mut self.bridge } else { &mut self.boundary }, input);
-            });
+    pub(super) fn remove_episode(&mut self, episode: usize) {
+        if self.boundary.as_deref().and_then(S::relaxed_progress).is_some_and(|known| known.episode() == episode) {
+            self.boundary = None;
+        }
+        if self.continuation.as_deref().and_then(S::relaxed_progress).is_some_and(|known| known.episode() == episode) {
+            self.continuation = None;
         }
     }
 
-    pub(super) fn select<O: HeuristicObjective<Solution = S>>(&self, objective: &O, reference: &S) -> Option<&S> {
-        self.bridge
-            .as_deref()
-            .filter(|bridge| objective.total_order(bridge, reference) == Ordering::Less)
-            .or(self.boundary.as_deref())
-            .or(self.bridge.as_deref())
-    }
+    pub(super) fn select(&self, prefer_continuation: bool) -> Option<&S> {
+        let continuation = self
+            .iter()
+            .filter(|solution| solution.is_relaxed_continuation())
+            .max_by_key(|solution| solution.relaxed_progress());
+        let boundary = self.boundary.as_deref().filter(|solution| is_relaxed_selectable(*solution));
 
-    pub(super) fn representative<O: HeuristicObjective<Solution = S>>(&self, objective: &O) -> Option<&S> {
-        match (self.boundary.as_deref(), self.bridge.as_deref()) {
-            (Some(boundary), Some(bridge)) => {
-                Some(if compare_relaxed(objective, boundary, bridge) == Ordering::Greater { bridge } else { boundary })
-            }
-            (Some(boundary), None) => Some(boundary),
-            (None, Some(bridge)) => Some(bridge),
-            (None, None) => None,
-        }
+        if prefer_continuation { continuation } else { boundary.or(continuation) }
     }
 
     pub(super) fn iter(&self) -> impl Iterator<Item = &S> {
-        self.boundary.iter().chain(&self.bridge).map(Box::as_ref)
+        self.boundary.iter().chain(&self.continuation).map(Box::as_ref)
     }
 
     pub(super) fn drain_all(&mut self) -> impl Iterator<Item = S> {
-        self.boundary.take().into_iter().chain(self.bridge.take()).map(|solution| *solution)
+        self.boundary.take().into_iter().chain(self.continuation.take()).map(|solution| *solution)
     }
 
     pub(super) fn drain(&mut self, range: Range<usize>) -> Vec<S> {
@@ -133,9 +142,9 @@ impl<S: RosomaxaSolution> RelaxedStorage<S> {
             }
             rank += 1;
         }
-        if self.bridge.is_some()
+        if self.continuation.is_some()
             && range.contains(&rank)
-            && let Some(solution) = self.bridge.take()
+            && let Some(solution) = self.continuation.take()
         {
             result.push(*solution);
         }
@@ -145,50 +154,57 @@ impl<S: RosomaxaSolution> RelaxedStorage<S> {
 
     pub(super) fn clear(&mut self) {
         self.boundary = None;
-        self.bridge = None;
+        self.continuation = None;
     }
 
     pub(super) fn len(&self) -> usize {
-        usize::from(self.boundary.is_some()) + usize::from(self.bridge.is_some())
+        usize::from(self.boundary.is_some()) + usize::from(self.continuation.is_some())
     }
+}
 
-    fn update<O: HeuristicObjective<Solution = S>>(objective: &O, slot: &mut Option<Box<S>>, input: Box<S>) {
-        let is_better =
-            slot.as_deref().is_none_or(|known| compare_relaxed(objective, input.as_ref(), known) == Ordering::Less);
-        if is_better {
-            *slot = Some(input);
-        }
-    }
-
-    fn add_unclassified<O: HeuristicObjective<Solution = S>>(&mut self, objective: &O, input: S) {
-        let mut candidates = [self.boundary.take(), self.bridge.take(), Some(Box::new(input))];
-        let boundary_idx = (0..candidates.len())
-            .filter(|&index| candidates[index].is_some())
-            .min_by(|&left, &right| {
-                compare_relaxed(
-                    objective,
-                    candidates[left].as_deref().expect("candidate is present"),
-                    candidates[right].as_deref().expect("candidate is present"),
-                )
+fn select_relaxed_roles<O, S>(objective: &O, candidates: &[Option<Box<S>>]) -> (usize, Option<usize>)
+where
+    O: HeuristicObjective<Solution = S>,
+    S: RosomaxaSolution,
+{
+    let iter_candidates = || {
+        candidates
+            .iter()
+            .enumerate()
+            .filter_map(|(index, candidate)| candidate.as_deref().map(|candidate| (index, candidate)))
+            // The later value carries the latest lease/recovery metadata for this checkpoint.
+            .filter(|(index, candidate)| {
+                !candidates[index + 1..]
+                    .iter()
+                    .flatten()
+                    .any(|later| is_same_relaxed_checkpoint(*candidate, later.as_ref()))
             })
-            .expect("new relaxed candidate is present");
-        let objective_idx = (0..candidates.len())
-            .filter(|&index| candidates[index].is_some())
-            .min_by(|&left_idx, &right_idx| {
-                let left = candidates[left_idx].as_deref().expect("candidate is present");
-                let right = candidates[right_idx].as_deref().expect("candidate is present");
-                objective
-                    .total_order(left, right)
-                    .then_with(|| compare_relaxed(objective, left, right))
-                    .then_with(|| left_idx.cmp(&right_idx))
-            })
-            .expect("new relaxed candidate is present");
+    };
+    let boundary_idx = iter_candidates()
+        .min_by(|(left_idx, left), (right_idx, right)| {
+            compare_relaxed(objective, left, right)
+                // Prefer the latest checkpoint when repair quality is equal. This also preserves metadata updates.
+                .then_with(|| right.relaxed_progress().cmp(&left.relaxed_progress()))
+                .then_with(|| right_idx.cmp(left_idx))
+        })
+        .map(|(index, _)| index)
+        .expect("new relaxed candidate is present");
+    let boundary = candidates[boundary_idx].as_deref().expect("boundary is present");
+    let continuation_idx = iter_candidates()
+        .filter(|(index, candidate)| {
+            *index != boundary_idx && candidate.is_relaxed_continuation() && !candidate.is_same(boundary)
+        })
+        .max_by(|(left_idx, left), (right_idx, right)| {
+            left.relaxed_progress().cmp(&right.relaxed_progress()).then_with(|| left_idx.cmp(right_idx))
+        })
+        .map(|(index, _)| index);
 
-        self.boundary = candidates[boundary_idx].take();
-        if objective_idx != boundary_idx {
-            self.bridge = candidates[objective_idx].take();
-        }
-    }
+    (boundary_idx, continuation_idx)
+}
+
+fn is_same_relaxed_checkpoint<S: RosomaxaSolution>(left: &S, right: &S) -> bool {
+    left.relaxed_progress().zip(right.relaxed_progress()).is_some_and(|(left, right)| left == right)
+        || left.is_same(right)
 }
 
 pub(super) struct IndividualStorage<C, O, S>
@@ -232,13 +248,9 @@ where
     fn add(&mut self, input: Self::Item) {
         if input.relaxed_violation().is_some() {
             let objective = self.relaxed_objective.as_ref();
-            let feasible_reference = self.regular.best_with_objective(objective);
-            self.relaxed.add(objective, feasible_reference, input);
+            self.relaxed.add(objective, input);
         } else {
             self.regular.add(input);
-            let objective = self.relaxed_objective.as_ref();
-            let feasible_reference = self.regular.best_with_objective(objective);
-            self.relaxed.on_regular_updated(objective, feasible_reference);
         }
     }
 

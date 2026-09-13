@@ -52,6 +52,33 @@ fn can_measure_relaxed_capacity_without_disabling_other_multi_trip_rules() {
     assert!(insertion_ctx.solution.state.get_relaxed_violation().is_none());
 }
 
+#[test]
+fn cannot_relax_demand_on_actor_without_capacity() {
+    let feature = create_feature();
+    let constraint = feature.constraint.as_ref().unwrap();
+    let relaxation = constraint.relaxation().unwrap();
+    let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+    let route_ctx = RouteContext::new(test_actor());
+    let demand = TestSingleBuilder::default().demand(create_simple_demand(1)).build_as_job_ref();
+    let demand_activity = create_activity_with_simple_demand(1);
+    let empty_activity = ActivityBuilder::default().job(None).build();
+    let activity_ctx = ActivityContext { index: 0, prev: &empty_activity, target: &demand_activity, next: None };
+
+    assert_eq!(
+        relaxation.evaluate_relaxed(&MoveContext::route(&solution_ctx, &route_ctx, &demand)),
+        create_constraint_violation(true)
+    );
+    assert_eq!(
+        relaxation.evaluate_relaxed(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx)),
+        create_constraint_violation(true)
+    );
+
+    let mut route_ctx = route_ctx;
+    route_ctx.route_mut().tour.insert_last(demand_activity);
+    feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+    assert_eq!(relaxation.route_violation(&route_ctx), Some(Float::MAX));
+}
+
 fn create_activity_with_simple_demand(size: i32) -> Activity {
     let job = TestSingleBuilder::default().demand(create_simple_demand(size)).build_shared();
     ActivityBuilder::default().job(Some(job)).build()

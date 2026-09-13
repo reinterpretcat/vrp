@@ -30,6 +30,8 @@ pub type TargetSearchOperator = Arc<
         + Send
         + Sync,
 >;
+/// A type for the domain-specific escape operator.
+pub type TargetEscapeOperator = HeuristicEscape<RefinementContext, GoalContext, InsertionContext>;
 type TargetSearchOperatorConfig = HeuristicSearchOperatorConfig<RefinementContext, GoalContext, InsertionContext>;
 
 /// A type for greedy population.
@@ -224,6 +226,18 @@ impl RosomaxaSolution for InsertionContext {
     fn relaxed_violation(&self) -> Option<Float> {
         self.solution.state.get_relaxed_violation().copied()
     }
+
+    fn relaxed_progress(&self) -> Option<RelaxedSolutionProgress> {
+        get_relaxed_solution_progress(self)
+    }
+
+    fn is_relaxed_continuation(&self) -> bool {
+        is_relaxed_solution_continuation(self)
+    }
+
+    fn end_relaxed_continuation(&mut self) {
+        end_relaxed_solution_continuation(self)
+    }
 }
 
 impl Input for InsertionContext {
@@ -247,6 +261,7 @@ impl Input for InsertionContext {
             .relaxed_violation()
             .zip(other.relaxed_violation())
             .is_some_and(|(left, right)| left.total_cmp(&right) == Ordering::Equal);
+        let is_same_progress = self.relaxed_progress() == other.relaxed_progress();
         let mut left_fitness = self.fitness();
         let mut right_fitness = other.fitness();
         let is_same_fitness = left_fitness
@@ -256,7 +271,7 @@ impl Input for InsertionContext {
             && left_fitness.next().is_none()
             && right_fitness.next().is_none();
 
-        is_same_violation && is_same_fitness
+        is_same_violation && is_same_progress && is_same_fitness
     }
 }
 
@@ -420,7 +435,7 @@ fn create_diversify_operators(
     vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, guided_ejection, path_relinking]))]
 }
 
-fn create_escape_operator(problem: Arc<Problem>, environment: Arc<Environment>) -> Option<TargetSearchOperator> {
+fn create_escape_operator(problem: Arc<Problem>, environment: Arc<Environment>) -> Option<TargetEscapeOperator> {
     problem.goal.has_relaxations().then(|| {
         let random = environment.random.clone();
         Arc::new(InfeasibleSearch::new(
@@ -428,7 +443,7 @@ fn create_escape_operator(problem: Arc<Problem>, environment: Arc<Environment>) 
             Arc::new(RecreateWithCheapest::new(random)),
             3,
             (0.05, 0.2),
-        )) as TargetSearchOperator
+        )) as TargetEscapeOperator
     })
 }
 
@@ -734,13 +749,13 @@ mod dynamic {
     }
 
     /// Creates the bounded local descent used to improve a solution close to the feasibility boundary.
-    pub(super) fn create_escape_education(environment: &Environment) -> TargetSearchOperator {
+    pub(super) fn create_escape_education(environment: &Environment) -> Arc<VariableNeighborhoodSearch> {
         const MAX_IMPROVEMENTS: usize = 4;
 
         let search = VariableNeighborhoodSearch::new(create_escape_education_operators(environment), MAX_IMPROVEMENTS)
             .with_operator_attempt_limit(2);
 
-        Arc::new(LocalSearch::new(Arc::new(search)))
+        Arc::new(search)
     }
 
     fn create_escape_education_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {

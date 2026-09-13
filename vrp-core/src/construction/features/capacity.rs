@@ -185,9 +185,18 @@ impl<T> RelaxedFeatureConstraint for CapacitatedMultiTrip<T>
 where
     T: LoadOps,
 {
-    fn evaluate_relaxed(&self, _move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        // The generic violation band controls overload; remove only the binary capacity rejection here.
-        None
+    fn evaluate_relaxed(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+        let route_ctx = match move_ctx {
+            MoveContext::Route { route_ctx, .. } | MoveContext::Activity { route_ctx, .. } => route_ctx,
+        };
+
+        // Missing capacity is an actor incompatibility, not a measurable overload. Keep the strict check so a
+        // demand-bearing job cannot later be restored as a zero-violation solution on such an actor.
+        if route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity::<T>().is_none() {
+            self.evaluate(move_ctx)
+        } else {
+            None
+        }
     }
 
     fn solution_violation(&self, solution_ctx: &SolutionContext) -> Float {
@@ -195,7 +204,21 @@ where
     }
 
     fn route_violation(&self, route_ctx: &RouteContext) -> Option<Float> {
-        route_ctx.state().get_max_vehicle_load().map(|ratio| (ratio - 1.).max(0.))
+        match (
+            route_ctx.state().get_max_vehicle_load(),
+            route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity::<T>(),
+        ) {
+            (Some(ratio), Some(_)) => Some((ratio - 1.).max(0.)),
+            (None, None)
+                if route_ctx.route().tour.all_activities().any(|activity| self.get_demand(activity).is_some()) =>
+            {
+                Some(Float::MAX)
+            }
+            (None, None) => Some(0.),
+            // A refreshed capacitated route must have its load state. Fail closed if that invariant is broken.
+            (None, Some(_)) => Some(Float::MAX),
+            (Some(_), None) => Some(Float::MAX),
+        }
     }
 
     fn estimate_violation(&self, move_ctx: &MoveContext<'_>) -> Float {

@@ -268,6 +268,14 @@ where
         }))
     }
 
+    fn select_relaxed(&self, reference: &Self::Individual) -> Option<&Self::Individual> {
+        self.inner.select_relaxed(reference)
+    }
+
+    fn supports_relaxed_search(&self) -> bool {
+        self.inner.supports_relaxed_search()
+    }
+
     fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         self.inner.ranked()
     }

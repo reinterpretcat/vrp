@@ -31,7 +31,7 @@ where
     search_group: HeuristicSearchGroup<C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     intensify_operators: HeuristicIntensifyOperators<C, O, S>,
-    escape_operator: Option<HeuristicEscapeOperator<C, O, S>>,
+    escape_operator: Option<HeuristicEscape<C, O, S>>,
 }
 
 impl<C, O, S> HyperHeuristic for StaticSelective<C, O, S>
@@ -57,13 +57,16 @@ where
             ),
             ParallelismPolicy::Coarse,
             |task| match task {
-                SearchTask::Regular(solution) => self.search_once(heuristic_ctx, solution),
+                SearchTask::Regular(solution) => vec![self.search_once(heuristic_ctx, solution)],
                 SearchTask::Escape(solution) => self.escape_operator.as_ref().map_or_else(
-                    || self.search_once(heuristic_ctx, solution),
-                    |operator| operator.search(heuristic_ctx, solution),
+                    || vec![self.search_once(heuristic_ctx, solution)],
+                    |operator| operator.escape(heuristic_ctx, solution),
                 ),
             },
         )
+        .into_iter()
+        .flatten()
+        .collect()
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
@@ -109,7 +112,7 @@ where
     }
 
     /// Adds an operator which periodically replaces one regular search attempt.
-    pub fn with_escape_operator(mut self, operator: HeuristicEscapeOperator<C, O, S>) -> Self {
+    pub fn with_escape_operator(mut self, operator: HeuristicEscape<C, O, S>) -> Self {
         self.escape_operator = Some(operator);
         self
     }

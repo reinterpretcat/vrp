@@ -30,6 +30,30 @@ mod timing {
     use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::helpers::models::domain::test_random;
     use crate::models::solution::{Activity, Place, Registry};
+    use std::sync::Arc;
+
+    #[derive(Default)]
+    struct UnsupportedActivityCost(SimpleActivityCost);
+
+    impl ActivityCost for UnsupportedActivityCost {
+        fn estimate_departure(
+            &self,
+            route: &Route,
+            activity: &Activity,
+            arrival: Timestamp,
+        ) -> ControlFlow<Timestamp, Timestamp> {
+            self.0.estimate_departure(route, activity, arrival)
+        }
+
+        fn estimate_arrival(
+            &self,
+            route: &Route,
+            activity: &Activity,
+            departure: Timestamp,
+        ) -> ControlFlow<Timestamp, Timestamp> {
+            self.0.estimate_arrival(route, activity, departure)
+        }
+    }
 
     fn create_feature() -> Feature {
         TransportFeatureBuilder::new("transport")
@@ -69,6 +93,18 @@ mod timing {
         let feature = create_feature();
 
         (feature, route_ctx)
+    }
+
+    #[test]
+    fn cannot_relax_unknown_activity_failures() {
+        let feature = TransportFeatureBuilder::new("transport")
+            .set_violation_code(VIOLATION_CODE)
+            .set_transport_cost(TestTransportCost::new_shared())
+            .set_activity_cost(Arc::new(UnsupportedActivityCost::default()))
+            .build_minimize_cost()
+            .unwrap();
+
+        assert!(feature.constraint.as_ref().unwrap().relaxation().is_none());
     }
 
     parameterized_test! {can_properly_calculate_latest_arrival, (vehicle, activity, time), {
@@ -185,6 +221,39 @@ mod timing {
 
         assert_eq!(relaxation.evaluate_relaxed(&move_ctx), None);
         assert_eq!(relaxation.estimate_violation(&move_ctx), 0.11);
+    }
+
+    #[test]
+    fn can_measure_service_completion_after_vehicle_horizon_on_open_route() {
+        let original = test_actor();
+        let actor = Arc::new(Actor {
+            vehicle: original.vehicle.clone(),
+            driver: original.driver.clone(),
+            detail: ActorDetail { start: original.detail.start.clone(), end: None, time: TimeWindow::new(0., 100.) },
+        });
+        let mut route_ctx =
+            RouteContext::new_with_state(Route { tour: Tour::new(&actor), actor }, RouteState::default());
+        let feature = create_feature();
+        feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+        let mut solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let target = ActivityBuilder::with_location_tw_and_duration(95, TimeWindow::new(0., 200.), 10.).build();
+        let activity_ctx =
+            ActivityContext { index: 0, prev: route_ctx.route().tour.start().unwrap(), target: &target, next: None };
+        let move_ctx = MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx);
+        let constraint = feature.constraint.as_ref().unwrap();
+        let relaxation = constraint.relaxation().unwrap();
+
+        assert_eq!(constraint.evaluate(&move_ctx), ConstraintViolation::skip(VIOLATION_CODE));
+        assert_eq!(relaxation.evaluate_relaxed(&move_ctx), None);
+
+        route_ctx.route_mut().tour.insert_last(target);
+        solution_ctx.routes.push(route_ctx);
+        feature.state.as_ref().unwrap().accept_solution_state(&mut solution_ctx);
+
+        let route_ctx = &solution_ctx.routes[0];
+        assert_eq!(route_ctx.route().tour.end().unwrap().schedule, Schedule::new(95., 105.));
+        assert_eq!(relaxation.route_violation(route_ctx), Some(0.05));
+        assert_eq!(relaxation.solution_violation(&solution_ctx), 0.05);
     }
 
     #[test]

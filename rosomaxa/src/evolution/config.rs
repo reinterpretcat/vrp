@@ -101,7 +101,7 @@ where
     search_operators: Option<HeuristicSearchOperators<C, O, S>>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     intensify_operators: HeuristicIntensifyOperators<C, O, S>,
-    escape_operator: Option<HeuristicEscapeOperator<C, O, S>>,
+    escape_operator: Option<HeuristicEscape<C, O, S>>,
 
     objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
 
@@ -248,7 +248,7 @@ where
     }
 
     /// Sets an operator which periodically replaces one regular search attempt.
-    pub fn with_escape_operator(mut self, escape_operator: HeuristicEscapeOperator<C, O, S>) -> Self {
+    pub fn with_escape_operator(mut self, escape_operator: HeuristicEscape<C, O, S>) -> Self {
         self.escape_operator = Some(escape_operator);
         self
     }

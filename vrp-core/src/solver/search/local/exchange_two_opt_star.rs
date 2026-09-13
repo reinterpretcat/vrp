@@ -24,9 +24,10 @@ const RELAXED_PREVIEW_CANDIDATE_THRESHOLD: usize = 256;
 /// Candidate cut edges are built from the problem's nearest-job index and ranked using the transport
 /// delta of reconnecting the two prefixes to the opposite tails. The best few candidates are screened
 /// using copies of only their two routes. During relaxed repair, the screen considers a wider bounded
-/// set and ranks it by remaining route-decomposable violation before transport cost. Only the selected
-/// candidate is materialized: the complete solution is copied once, both tails are removed, and their
-/// jobs are inserted at the ends of the opposite prefixes through the normal constraint pipeline.
+/// set and ranks it by remaining route-decomposable violation before transport cost. The first ranked
+/// candidate is materialized by copying the complete solution and exchanging both tails through the normal
+/// constraint pipeline. Relaxed search can try the remaining screened candidates when the complete goal
+/// rejects the first proposal.
 ///
 /// The neighbourhood is deliberately bounded. `neighbor_threshold` limits how many neighbours are
 /// inspected for each cut job, and `max_tail_jobs` prevents a single operator call from rebuilding very
@@ -58,18 +59,18 @@ impl LocalOperator for ExchangeTwoOptStar {
             return None;
         }
 
-        let exchange = select_tail_exchange(insertion_ctx, self.neighbor_threshold, self.max_tail_jobs)?;
-        let candidate = exchange_tails(insertion_ctx, exchange)?;
-
-        (insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx) == Ordering::Less).then_some(candidate)
+        select_tail_exchanges(insertion_ctx, self.neighbor_threshold, self.max_tail_jobs)
+            .into_iter()
+            .filter_map(|exchange| exchange_tails(insertion_ctx, exchange))
+            .find(|candidate| insertion_ctx.problem.goal.total_order(candidate, insertion_ctx) == Ordering::Less)
     }
 }
 
 struct TailExchange {
     first_route_idx: usize,
     second_route_idx: usize,
-    first_tail: Vec<Job>,
-    second_tail: Vec<Job>,
+    first_position: usize,
+    second_position: usize,
 }
 
 struct JobPosition {
@@ -77,6 +78,7 @@ struct JobPosition {
     position: usize,
 }
 
+#[derive(Clone)]
 struct TailExchangeCandidate {
     first_route_idx: usize,
     first_position: usize,
@@ -86,11 +88,11 @@ struct TailExchangeCandidate {
     violation_excess: Float,
 }
 
-fn select_tail_exchange(
+fn select_tail_exchanges(
     insertion_ctx: &InsertionContext,
     neighbor_threshold: usize,
     max_tail_jobs: usize,
-) -> Option<TailExchange> {
+) -> Vec<TailExchange> {
     let ordered_routes =
         insertion_ctx.solution.routes.iter().map(|route_ctx| get_ordered_jobs(route_ctx.route())).collect::<Vec<_>>();
     let job_positions = ordered_routes
@@ -178,36 +180,51 @@ fn select_tail_exchange(
         }
     }
 
-    let is_prevalidated = if route_violations.is_some() {
-        candidates = rank_relaxed_candidates(insertion_ctx, &ordered_routes, candidates);
-        true
+    let is_relaxed = insertion_ctx.problem.goal.is_relaxed();
+    if route_violations.is_some() {
+        candidates = rank_relaxed_candidates(insertion_ctx, &ordered_routes, candidates, 1);
     } else {
         candidates.sort_unstable_by(|left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
 
-        false
-    };
+        // Close to feasibility, exact route previews of the short transport screen prevent an excessive cheapest
+        // proposal from hiding a valid runner-up. Complete-goal checks below still remain authoritative.
+        if is_relaxed {
+            candidates.truncate(SCREEN_CANDIDATE_THRESHOLD);
+            let transport_ranked = candidates.clone();
+            let ranked =
+                rank_relaxed_candidates(insertion_ctx, &ordered_routes, candidates, SCREEN_CANDIDATE_THRESHOLD);
+            candidates = if ranked.is_empty() { transport_ranked } else { ranked };
+        }
+    }
+    let needs_route_screen = !is_relaxed && route_violations.is_none();
 
     candidates
         .into_iter()
         .take(SCREEN_CANDIDATE_THRESHOLD)
-        .find(|candidate| is_prevalidated || is_route_locally_feasible(insertion_ctx, &ordered_routes, candidate))
+        .filter(|candidate| !needs_route_screen || is_route_locally_feasible(insertion_ctx, &ordered_routes, candidate))
         .map(|candidate| TailExchange {
             first_route_idx: candidate.first_route_idx,
             second_route_idx: candidate.second_route_idx,
-            first_tail: ordered_routes[candidate.first_route_idx][candidate.first_position + 1..].to_vec(),
-            second_tail: ordered_routes[candidate.second_route_idx][candidate.second_position + 1..].to_vec(),
+            first_position: candidate.first_position,
+            second_position: candidate.second_position,
         })
+        // Strict search keeps its existing single completed proposal. Relaxed search has a bounded fallback when a
+        // route-level preview cannot represent a solution-level constraint or objective.
+        .take(if is_relaxed { SCREEN_CANDIDATE_THRESHOLD } else { 1 })
+        .collect()
 }
 
 fn rank_relaxed_candidates(
     insertion_ctx: &InsertionContext,
     ordered_routes: &[Vec<Job>],
     mut candidates: Vec<TailExchangeCandidate>,
+    band_candidate_limit: usize,
 ) -> Vec<TailExchangeCandidate> {
     retain_best_transport_candidates(&mut candidates, RELAXED_PREVIEW_CANDIDATE_THRESHOLD);
     candidates.sort_unstable_by(|left, right| left.estimated_cost.total_cmp(&right.estimated_cost));
     let mut evaluated = Vec::with_capacity(candidates.len());
 
+    let mut admissible_count = 0;
     for mut candidate in candidates {
         let Some((first, second)) = create_candidate_routes(insertion_ctx, ordered_routes, &candidate) else {
             continue;
@@ -227,9 +244,12 @@ fn rank_relaxed_candidates(
         candidate.violation_excess = violation_excess;
         evaluated.push(candidate);
 
-        // Candidates are visited by increasing transport cost. The first one inside the band is
-        // therefore already optimal under the same lexicographic ranking used below.
+        // Candidates are visited by increasing transport cost. Once enough candidates inside the band are found,
+        // further ones cannot improve their order and are unnecessary as bounded complete-goal fallbacks.
         if violation_excess == 0. {
+            admissible_count += 1;
+        }
+        if admissible_count == band_candidate_limit {
             break;
         }
     }
@@ -371,14 +391,30 @@ fn get_cut_activities<'a>(route: &'a Route, job: &Job) -> Option<(&'a Activity, 
 }
 
 fn exchange_tails(insertion_ctx: &InsertionContext, exchange: TailExchange) -> Option<InsertionContext> {
+    let first_tail = insertion_ctx
+        .solution
+        .routes
+        .get(exchange.first_route_idx)
+        .map(|route_ctx| get_ordered_jobs(route_ctx.route()))?
+        .into_iter()
+        .skip(exchange.first_position + 1)
+        .collect::<Vec<_>>();
+    let second_tail = insertion_ctx
+        .solution
+        .routes
+        .get(exchange.second_route_idx)
+        .map(|route_ctx| get_ordered_jobs(route_ctx.route()))?
+        .into_iter()
+        .skip(exchange.second_position + 1)
+        .collect::<Vec<_>>();
     let mut candidate = insertion_ctx.deep_copy();
 
-    remove_tail(&mut candidate, exchange.first_route_idx, exchange.first_tail.as_slice())?;
-    remove_tail(&mut candidate, exchange.second_route_idx, exchange.second_tail.as_slice())?;
+    remove_tail(&mut candidate, exchange.first_route_idx, first_tail.as_slice())?;
+    remove_tail(&mut candidate, exchange.second_route_idx, second_tail.as_slice())?;
     candidate.problem.goal.accept_solution_state(&mut candidate.solution);
 
-    insert_tail(&mut candidate, exchange.first_route_idx, exchange.second_tail)?;
-    insert_tail(&mut candidate, exchange.second_route_idx, exchange.first_tail)?;
+    insert_tail(&mut candidate, exchange.first_route_idx, second_tail)?;
+    insert_tail(&mut candidate, exchange.second_route_idx, first_tail)?;
     candidate.problem.goal.accept_solution_state(&mut candidate.solution);
 
     Some(candidate)

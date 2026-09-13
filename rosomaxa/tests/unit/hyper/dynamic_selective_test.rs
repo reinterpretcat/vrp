@@ -31,6 +31,17 @@ fn can_replace_regular_search_with_escape_without_updating_posterior() {
         }
     }
 
+    impl HeuristicEscapeOperator for CountingSearch {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn escape(&self, _: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            vec![solution.deep_copy(), solution.deep_copy()]
+        }
+    }
+
     let environment = Arc::new(Environment::default());
     let objective = create_example_objective();
     let solution = VectorSolution::new(vec![0., 0.], 0., vec![0., 0.]);
@@ -54,7 +65,7 @@ fn can_replace_regular_search_with_escape_without_updating_posterior() {
 
     let result = heuristic.search_many(&heuristic_ctx, vec![&solution; 8]);
 
-    assert_eq!(result.len(), 8);
+    assert_eq!(result.len(), 9);
     assert_eq!(regular_count.load(Ordering::Relaxed), 7);
     assert_eq!(escape_count.load(Ordering::Relaxed), 1);
     assert_eq!(heuristic.agent.get_params().iter().map(|sample| sample.calls).sum::<usize>(), 7);
@@ -72,6 +83,17 @@ fn can_disable_escape_when_population_cannot_isolate_relaxed_solutions() {
         fn search(&self, _: &Self::Context, solution: &Self::Solution) -> Self::Solution {
             self.0.fetch_add(1, Ordering::Relaxed);
             solution.deep_copy()
+        }
+    }
+
+    impl HeuristicEscapeOperator for CountingSearch {
+        type Context = VectorContext;
+        type Objective = VectorObjective;
+        type Solution = VectorSolution;
+
+        fn escape(&self, _: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            vec![solution.deep_copy()]
         }
     }
 

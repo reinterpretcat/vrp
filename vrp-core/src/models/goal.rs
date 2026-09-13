@@ -37,6 +37,7 @@ pub struct GoalContext {
     states: Vec<Arc<dyn FeatureState>>,
     is_relaxed: bool,
     infeasibility_tolerance: Float,
+    max_infeasibility: Float,
 }
 
 custom_solution_state!(pub(crate) RelaxedViolation typeof Float);
@@ -51,6 +52,7 @@ impl GoalContext {
             constraints: constraints.collect(),
             is_relaxed: false,
             infeasibility_tolerance: 0.,
+            max_infeasibility: 0.,
             ..self.clone()
         }
     }
@@ -62,23 +64,34 @@ impl GoalContext {
 
     /// Creates a goal which evaluates relaxable constraints in their relaxed mode and compares objective values
     /// inside the supplied violation tolerance.
-    pub(crate) fn relaxed(&self, infeasibility_tolerance: Float) -> Option<Self> {
+    pub(crate) fn relaxed(&self, infeasibility_tolerance: Float, max_infeasibility: Float) -> Option<Self> {
         debug_assert!(infeasibility_tolerance.is_finite() && infeasibility_tolerance >= 0.);
+        debug_assert!(max_infeasibility.is_finite() && max_infeasibility >= infeasibility_tolerance);
 
         if self.is_relaxed() {
-            return Some(Self { infeasibility_tolerance, ..self.clone() });
+            return Some(Self { infeasibility_tolerance, max_infeasibility, ..self.clone() });
         }
 
         if !self.has_relaxations() {
             return None;
         }
 
-        Some(Self { is_relaxed: true, infeasibility_tolerance, ..self.clone() })
+        Some(Self { is_relaxed: true, infeasibility_tolerance, max_infeasibility, ..self.clone() })
     }
 
     /// Returns true when this goal uses explicitly relaxed constraints.
     pub(crate) fn is_relaxed(&self) -> bool {
         self.is_relaxed
+    }
+
+    /// Returns true when a refreshed solution stays inside this relaxed search segment.
+    pub(crate) fn is_relaxed_admissible(&self, solution: &InsertionContext) -> bool {
+        self.is_relaxed
+            && solution
+                .solution
+                .state
+                .get_relaxed_violation()
+                .is_some_and(|violation| violation.is_finite() && *violation <= self.max_infeasibility)
     }
 
     /// Returns true when at least one feature explicitly supports controlled relaxation.
@@ -99,6 +112,7 @@ impl Debug for GoalContext {
             )
             .field("relaxed", &self.is_relaxed)
             .field("infeasibility tolerance", &self.infeasibility_tolerance)
+            .field("maximum infeasibility", &self.max_infeasibility)
             .field("states", &self.states.len())
             .finish()
     }
@@ -151,7 +165,15 @@ impl GoalContextBuilder {
         let states = self.features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = self.features.iter().filter_map(|feature| feature.constraint.clone()).collect();
 
-        Ok(GoalContext { goal, alternative_goals, constraints, states, is_relaxed: false, infeasibility_tolerance: 0. })
+        Ok(GoalContext {
+            goal,
+            alternative_goals,
+            constraints,
+            states,
+            is_relaxed: false,
+            infeasibility_tolerance: 0.,
+            max_infeasibility: 0.,
+        })
     }
 
     fn get_heuristic_goal(features: &[Feature]) -> GenericResult<Goal> {
@@ -668,19 +690,15 @@ impl GoalContext {
 
     /// Evaluates feasibility of the refinement move.
     pub fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        self.constraints
-            .iter()
-            .find_map(|constraint| {
-                if self.is_relaxed {
-                    constraint.relaxation().map_or_else(
-                        || constraint.evaluate(move_ctx),
-                        |relaxation| relaxation.evaluate_relaxed(move_ctx),
-                    )
-                } else {
-                    constraint.evaluate(move_ctx)
-                }
-            })
-            .or_else(|| self.evaluate_infeasibility(move_ctx))
+        self.constraints.iter().find_map(|constraint| {
+            if self.is_relaxed {
+                constraint
+                    .relaxation()
+                    .map_or_else(|| constraint.evaluate(move_ctx), |relaxation| relaxation.evaluate_relaxed(move_ctx))
+            } else {
+                constraint.evaluate(move_ctx)
+            }
+        })
     }
 
     /// Estimates insertion cost (penalty) of the refinement move.
@@ -714,15 +732,6 @@ impl GoalContext {
             .sum::<Float>();
 
         Some((current, (current + change).max(0.)))
-    }
-
-    fn evaluate_infeasibility(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
-        let (current, projected) = self.estimate_infeasibility(move_ctx)?;
-
-        // A feasible or boundary solution may stay inside the current band. A lineage outside its contracted band
-        // may only move towards it, which avoids evaluating deeply infeasible insertions without blocking recovery.
-        (projected > current.max(self.infeasibility_tolerance))
-            .then(|| ConstraintViolation { code: ViolationCode::unknown(), stopped: false })
     }
 
     /// Calculates solution's fitness.

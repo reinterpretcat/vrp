@@ -1,6 +1,9 @@
 use super::*;
 use crate::helpers::solver::generate_matrix_routes_with_defaults;
-use rosomaxa::prelude::Environment;
+use crate::models::RelaxedViolationSolutionState;
+use crate::models::common::Footprint;
+use rosomaxa::population::{HeuristicPopulation, Rosomaxa, RosomaxaConfig};
+use rosomaxa::prelude::{Environment, HeuristicStatistics, TelemetryMode};
 
 fn create_parent_pair() -> (InsertionContext, InsertionContext, Job, Job) {
     let (problem, solution) = generate_matrix_routes_with_defaults(3, 2, false);
@@ -147,4 +150,32 @@ fn selects_quality_half_before_structural_filtering() {
     let selected = select_quality_half(values, Ord::cmp);
 
     assert_eq!(selected, vec![1, 2, 3]);
+}
+
+#[test]
+fn can_select_objective_promising_relaxed_guide() {
+    let (first, second, _, _) = create_parent_pair();
+    let objective = first.problem.goal.clone();
+    let (mut source, mut target) =
+        if objective.total_order(&first, &second) == Ordering::Less { (second, first) } else { (first, second) };
+    let environment = source.environment.clone();
+    let footprint = Footprint::new(source.problem.as_ref());
+    source.on_init(&footprint);
+    target.on_init(&footprint);
+    target.solution.state.set_relaxed_violation(0.1);
+
+    let mut config = RosomaxaConfig::new_with_defaults(2);
+    config.initial_size = 1;
+    let mut population = Rosomaxa::new(footprint, objective, environment.clone(), config).unwrap();
+    population.add(source.deep_copy());
+    population.add(target.deep_copy());
+    population.on_generation(&HeuristicStatistics::default());
+    population.on_generation(&HeuristicStatistics { termination_estimate: 1., ..HeuristicStatistics::default() });
+    let refinement_ctx =
+        RefinementContext::new(source.problem.clone(), Box::new(population), TelemetryMode::None, environment);
+
+    let selected = select_relaxed_guide(&refinement_ctx, &source).expect("relaxed guide should be selected");
+
+    assert_eq!(selected.relaxed_violation(), Some(0.1));
+    assert_eq!(refinement_ctx.objective().total_order(selected, &source), Ordering::Less);
 }

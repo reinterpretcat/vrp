@@ -331,7 +331,7 @@ impl FeatureConstraint for TransportConstraint {
     }
 
     fn relaxation(&self) -> Option<&dyn RelaxedFeatureConstraint> {
-        Some(self)
+        self.activity.supports_time_window_relaxation().then_some(self)
     }
 }
 

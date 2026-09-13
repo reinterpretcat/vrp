@@ -102,10 +102,13 @@ fn update_schedules(
         });
 
     let route = route_ctx.route();
-    let violation = route.tour.end().filter(|activity| activity.job.is_some()).map_or(violation, |activity| {
-        let service_start = activity.schedule.departure - activity.place.duration;
-        violation.max(service_start - route.actor.detail.time.end)
-    });
+    let violation = route
+        .tour
+        .end()
+        .filter(|activity| activity.job.is_some())
+        // An open route has no terminal activity whose arrival enforces the shift end. Use the last job's
+        // departure so that zero violation certifies the same service-completion boundary as strict insertion.
+        .map_or(violation, |activity| violation.max(activity.schedule.departure - route.actor.detail.time.end));
     let start_time = route.tour.start().unwrap().schedule.departure;
     let actor_horizon = route.actor.detail.time.end - route.actor.detail.time.start;
     let scale = if route.actor.detail.time.end < Float::MAX && actor_horizon.is_finite() && actor_horizon > 0. {

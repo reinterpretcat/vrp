@@ -65,7 +65,7 @@ where
     agent: SearchAgent<'static, C, O, S>,
     diversify_operators: HeuristicDiversifyOperators<C, O, S>,
     intensify_operators: HeuristicIntensifyOperators<C, O, S>,
-    escape_operator: Option<HeuristicEscapeOperator<C, O, S>>,
+    escape_operator: Option<HeuristicEscape<C, O, S>>,
 }
 
 impl<C, O, S> HyperHeuristic for DynamicSelective<C, O, S>
@@ -104,7 +104,7 @@ where
                     SearchResult::Regular(self.agent.search_with_best(heuristic_ctx, solution, best_known))
                 }
                 SearchTask::Escape(solution) => match &self.escape_operator {
-                    Some(operator) => SearchResult::Escape(operator.search(heuristic_ctx, solution)),
+                    Some(operator) => SearchResult::Escape(operator.escape(heuristic_ctx, solution)),
                     None => SearchResult::Regular(self.agent.search_with_best(heuristic_ctx, solution, best_known)),
                 },
             },
@@ -119,13 +119,13 @@ where
 
         self.agent.save_params(generation);
 
-        results
-            .into_iter()
-            .filter_map(|result| match result {
-                SearchResult::Regular(feedback) => feedback.solution,
-                SearchResult::Escape(solution) => Some(solution),
-            })
-            .collect()
+        let mut offspring = Vec::with_capacity(results.len() + 1);
+        results.into_iter().for_each(|result| match result {
+            SearchResult::Regular(feedback) => offspring.extend(feedback.solution),
+            SearchResult::Escape(solutions) => offspring.extend(solutions),
+        });
+
+        offspring
     }
 
     fn diversify(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Vec<Self::Solution> {
@@ -174,7 +174,7 @@ where
     }
 
     /// Adds an operator which periodically replaces one regular search attempt.
-    pub fn with_escape_operator(mut self, operator: HeuristicEscapeOperator<C, O, S>) -> Self {
+    pub fn with_escape_operator(mut self, operator: HeuristicEscape<C, O, S>) -> Self {
         self.escape_operator = Some(operator);
         self
     }
@@ -182,7 +182,7 @@ where
 
 enum SearchResult<S> {
     Regular(SearchFeedback<S>),
-    Escape(S),
+    Escape(Vec<S>),
 }
 
 struct SearchSlot<'a, C, O, S> {

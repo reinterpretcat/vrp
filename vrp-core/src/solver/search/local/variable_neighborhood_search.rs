@@ -3,6 +3,7 @@
 mod variable_neighborhood_search_test;
 
 use crate::construction::heuristics::InsertionContext;
+use crate::models::{GoalContext, RelaxedViolationSolutionState};
 use crate::solver::RefinementContext;
 use crate::solver::search::LocalOperator;
 use rosomaxa::prelude::{HeuristicContext, HeuristicObjective, HeuristicStatistics};
@@ -29,6 +30,12 @@ pub struct VariableNeighborhoodSearch {
     max_operator_attempts: Option<usize>,
 }
 
+/// Keeps the endpoint of a relaxed descent and the best feasible point it passed through.
+pub(crate) struct VariableNeighborhoodResult {
+    pub(crate) endpoint: Option<InsertionContext>,
+    pub(crate) feasible_intermediate: Option<InsertionContext>,
+}
+
 impl VariableNeighborhoodSearch {
     /// Creates a variable-neighborhood search from improvement and proposal operators.
     pub fn new(operators: Vec<Arc<dyn LocalOperator>>, max_improvements: usize) -> Self {
@@ -50,16 +57,28 @@ impl VariableNeighborhoodSearch {
         self.max_operator_attempts = Some(limit);
         self
     }
-}
 
-impl LocalOperator for VariableNeighborhoodSearch {
-    fn explore(
+    /// Runs relaxed education without losing a feasible point when the descent later crosses the boundary again.
+    pub(crate) fn explore_relaxed(
         &self,
         refinement_ctx: &RefinementContext,
         insertion_ctx: &InsertionContext,
-    ) -> Option<InsertionContext> {
+        objective: &GoalContext,
+    ) -> VariableNeighborhoodResult {
+        debug_assert!(insertion_ctx.problem.goal.is_relaxed());
+        debug_assert!(!objective.is_relaxed());
+
+        self.explore_with_checkpoint(refinement_ctx, insertion_ctx, Some(objective))
+    }
+
+    fn explore_with_checkpoint(
+        &self,
+        refinement_ctx: &RefinementContext,
+        insertion_ctx: &InsertionContext,
+        checkpoint_objective: Option<&GoalContext>,
+    ) -> VariableNeighborhoodResult {
         let random = insertion_ctx.environment.random.as_ref();
-        let mut current = None;
+        let mut result = VariableNeighborhoodResult { endpoint: None, feasible_intermediate: None };
         let use_extended =
             self.extended_operator.is_some() && should_use_extended_operator(refinement_ctx.statistics());
         let operator_count = self.operators.len() + usize::from(use_extended);
@@ -84,14 +103,18 @@ impl LocalOperator for VariableNeighborhoodSearch {
                 extended_attempted = true;
                 self.extended_operator.as_ref().expect("extended operator is not configured")
             };
-            let source = current.as_ref().unwrap_or(insertion_ctx);
+            let source = result.endpoint.as_ref().unwrap_or(insertion_ctx);
 
             let Some(candidate) = operator.explore(refinement_ctx, source) else {
                 continue;
             };
 
             if insertion_ctx.problem.goal.total_order(&candidate, source) == Ordering::Less {
-                current = Some(candidate);
+                if let Some(previous) = result.endpoint.replace(candidate) {
+                    // The previous endpoint is no longer needed by the descent. Move it into the checkpoint
+                    // instead of copying every accepted solution in case one of them is useful later.
+                    consider_feasible_checkpoint(&mut result.feasible_intermediate, previous, checkpoint_objective);
+                }
                 improvements += 1;
                 remaining.clear();
                 remaining.extend((0..self.operators.len()).filter(|&operator_idx| {
@@ -106,7 +129,33 @@ impl LocalOperator for VariableNeighborhoodSearch {
             }
         }
 
-        current
+        result
+    }
+}
+
+impl LocalOperator for VariableNeighborhoodSearch {
+    fn explore(
+        &self,
+        refinement_ctx: &RefinementContext,
+        insertion_ctx: &InsertionContext,
+    ) -> Option<InsertionContext> {
+        self.explore_with_checkpoint(refinement_ctx, insertion_ctx, None).endpoint
+    }
+}
+
+fn consider_feasible_checkpoint(
+    best: &mut Option<InsertionContext>,
+    candidate: InsertionContext,
+    objective: Option<&GoalContext>,
+) {
+    let Some(objective) = objective
+        .filter(|_| candidate.solution.state.get_relaxed_violation().is_some_and(|violation| *violation == 0.))
+    else {
+        return;
+    };
+
+    if best.as_ref().is_none_or(|best| objective.total_order(&candidate, best) == Ordering::Less) {
+        *best = Some(candidate);
     }
 }
 

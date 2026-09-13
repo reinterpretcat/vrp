@@ -72,7 +72,7 @@ fn create_capacity_insertion_ctx(job_order: &[Vec<&str>]) -> InsertionContext {
 
 fn relax_insertion_ctx(mut insertion_ctx: InsertionContext, tolerance: Float) -> InsertionContext {
     let problem = &insertion_ctx.problem;
-    let goal = Arc::new(problem.goal.relaxed(tolerance).expect("capacity should support relaxation"));
+    let goal = Arc::new(problem.goal.relaxed(tolerance, tolerance).expect("capacity should support relaxation"));
     insertion_ctx.problem = Arc::new(Problem {
         fleet: problem.fleet.clone(),
         jobs: problem.jobs.clone(),
@@ -133,6 +133,33 @@ fn can_skip_infeasible_reconnection() {
     let result = ExchangeTwoOptStar::default().explore(&refinement_ctx, &insertion_ctx).expect("no feasible fallback");
 
     assert_eq!(insertion_ctx.problem.goal.total_order(&result, &insertion_ctx), Ordering::Less);
+    assert_eq!(
+        get_customer_ids_from_routes(&result),
+        vec![
+            vec![
+                "c0".to_string(),
+                "c1".to_string(),
+                "c4".to_string(),
+                "c2".to_string(),
+                "c7".to_string(),
+                "c3".to_string()
+            ],
+            vec!["c6".to_string(), "c5".to_string()]
+        ]
+    );
+}
+
+#[test]
+fn can_try_feasible_runner_up_in_relaxed_search() {
+    let insertion_ctx = relax_insertion_ctx(
+        create_capacity_insertion_ctx(&[vec!["c0", "c1", "c4", "c5"], vec!["c6", "c2", "c7", "c3"]]),
+        0.05,
+    );
+    let refinement_ctx = create_default_refinement_ctx(insertion_ctx.problem.clone());
+
+    let result = ExchangeTwoOptStar::default().explore(&refinement_ctx, &insertion_ctx).expect("no feasible fallback");
+
+    assert_eq!(result.solution.state.get_relaxed_violation(), Some(&0.));
     assert_eq!(
         get_customer_ids_from_routes(&result),
         vec![
