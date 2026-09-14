@@ -291,6 +291,15 @@ impl TravelLimitConstraint {
     /// schedules they already have. It goes through the same activity and transport costs, so it
     /// charges reserved time exactly where the accepted route will be charged for it.
     ///
+    /// That holds for a route whose shift carries no reserved time too, which is what lets the
+    /// non-reserved path use the walk for a moved `FirstJobTo*` anchor. Do not read that as the costs
+    /// being the plain ones there: whether to wrap them in `DynamicActivityCost` /
+    /// `DynamicTransportCost` is decided once for the whole problem from a non-empty
+    /// `reserved_times_index`, so in a mixed fleet every actor carries the wrapped costs, those with
+    /// no break of their own included. What degenerates is the wrapping, not the choice —
+    /// `reserved_times_fn` finds no entry for such an actor, returns `None`, and leaves the plain
+    /// arithmetic underneath.
+    ///
     /// A route that is still empty is replayed from the departure it will move to rather than the
     /// shift's `earliest` it currently sits at — `apply_insertion` advances a new route's departure
     /// the moment the first job goes in. That is the same stretch `reclaimable_leading_wait`
