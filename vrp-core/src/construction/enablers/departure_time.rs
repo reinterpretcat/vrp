@@ -16,7 +16,7 @@ pub fn advance_departure_time(
     transport: &dyn TransportCost,
     consider_whole_tour: bool,
 ) {
-    let Some(upper) = try_advance_departure_time(route_ctx, transport, consider_whole_tour) else {
+    let Some(upper) = try_advance_departure_time(route_ctx, activity, transport, consider_whole_tour) else {
         return;
     };
 
@@ -61,8 +61,15 @@ pub fn recede_departure_time(route_ctx: &mut RouteContext, activity: &dyn Activi
     update_route_departure(route_ctx, activity, transport, current);
 }
 
+/// Waiting is measured against the service start the schedule passes actually enforce, which
+/// `ActivityCost` owns — not against the activity's own window. A shift that declares appointment
+/// bounds holds service back past that window, and a departure optimiser blind to it leaves the
+/// vehicle idling at its first appointment instead of leaving the depot later; the idle then sits
+/// inside the route's duration and eats the shift's own duration limit. For a vehicle that declares
+/// no such bounds the default service start is the window opening, so nothing moves.
 fn try_advance_departure_time(
     route_ctx: &RouteContext,
+    activity_cost: &dyn ActivityCost,
     transport: &dyn TransportCost,
     optimize_whole_tour: bool,
 ) -> Option<Timestamp> {
@@ -77,7 +84,8 @@ fn try_advance_departure_time(
     let new_departure_time = if optimize_whole_tour {
         let (total_waiting_time, max_shift) =
             route.tour.all_activities().rev().fold((0., Float::MAX), |(total_waiting_time, max_shift), activity| {
-                let waiting_time = (activity.place.time.start - activity.schedule.arrival).max(0.);
+                let service_start = activity_cost.estimate_service_start(route, activity, activity.schedule.arrival);
+                let waiting_time = (service_start - activity.schedule.arrival).max(0.);
                 let remaining_time = (activity.place.time.end - activity.schedule.arrival - waiting_time).max(0.);
 
                 (total_waiting_time + waiting_time, waiting_time + remaining_time.min(max_shift))
@@ -92,9 +100,10 @@ fn try_advance_departure_time(
             first.place.location,
             TravelTime::Departure(last_departure_time),
         );
+        let service_start = activity_cost.estimate_service_start(route, first, last_departure_time + start_to_first);
 
         #[allow(clippy::manual_clamp)]
-        last_departure_time.max(first.place.time.start - start_to_first).min(latest_allowed_departure)
+        last_departure_time.max(service_start - start_to_first).min(latest_allowed_departure)
     };
 
     if new_departure_time > last_departure_time { Some(new_departure_time) } else { None }

@@ -94,3 +94,31 @@ fn charges_what_the_inner_cost_charges() {
     assert_eq!(cost.cost(&route, &activity, 50.), 10.);
     assert_eq!(cost.cost(&route, &activity, 50.), inner.cost(&route, &activity, 50.));
 }
+
+#[test]
+fn reports_the_service_start_the_lower_bound_forces() {
+    // What the departure optimiser reads to see the idle the bound causes. The job's own window is
+    // open from 0, so only the bound holds service back, and the raw window would report no wait.
+    let cost = bounded_cost();
+    let route = route_with_bounds(Some(100.), None);
+    let activity = ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(0., 1000.), 10.).build();
+
+    assert_eq!(cost.estimate_service_start(&route, &activity, 50.), 100.);
+    assert_eq!(activity.place.time.start, 0., "the window alone would say service starts on arrival");
+}
+
+#[test]
+fn reports_an_unbounded_service_start_as_the_window_opening() {
+    // A vehicle with no bounds, and an activity the predicate rejects on one that has them: both
+    // must answer exactly what the inner cost answers, or the optimiser moves routes it should not.
+    let is_appointment: IsAppointmentFn =
+        Arc::new(|single: &Single| !matches!(single.dimens.get_job_id().map(String::as_str), Some("break")));
+    let cost = JobTimeBoundsActivityCost::new(Arc::new(SimpleActivityCost::default()), is_appointment);
+    let activity = ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(80., 1000.), 10.).build();
+    let a_break = ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(80., 1000.), 10.)
+        .job(Some(TestSingleBuilder::default().id("break").build_shared()))
+        .build();
+
+    assert_eq!(cost.estimate_service_start(&route_with_bounds(None, None), &activity, 50.), 80.);
+    assert_eq!(cost.estimate_service_start(&route_with_bounds(Some(100.), None), &a_break, 50.), 80.);
+}

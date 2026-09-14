@@ -39,16 +39,19 @@ impl JobTimeBoundsActivityCost {
         Self { inner, is_appointment }
     }
 
+    /// The vehicle lookup comes first on purpose: it is constant for the whole route and cheap,
+    /// while the injected predicate is a `dyn Fn` over a job-type dimension. Activities on a
+    /// bound-free vehicle leave through the first `?` without paying for either.
     fn bounds(&self, route: &Route, activity: &Activity) -> Option<JobTimeConstraints> {
-        let single = activity.job.as_ref()?;
+        let bounds = route.actor.vehicle.dimens.get_job_time_constraints().copied()?;
 
-        if !(self.is_appointment)(single) {
+        if bounds.earliest_first.is_none() && bounds.latest_last.is_none() {
             return None;
         }
 
-        let bounds = route.actor.vehicle.dimens.get_job_time_constraints().copied()?;
+        let single = activity.job.as_ref()?;
 
-        if bounds.earliest_first.is_none() && bounds.latest_last.is_none() { None } else { Some(bounds) }
+        if (self.is_appointment)(single) { Some(bounds) } else { None }
     }
 }
 
@@ -98,5 +101,19 @@ impl ActivityCost for JobTimeBoundsActivityCost {
         let departure = bounds.latest_last.map_or(departure, |latest| departure.min(latest));
 
         self.inner.estimate_arrival(route, activity, departure)
+    }
+
+    /// The same arithmetic `estimate_departure` performs, without the service duration on top: an
+    /// appointment held back by the lower bound starts at the bound, and the vehicle idles until
+    /// then. The departure optimiser reads this to see that idle — measuring the job's own window
+    /// alone, it would leave the vehicle waiting at the first appointment instead of leaving the
+    /// depot later, and the idle would be charged to the shift's duration limit.
+    fn estimate_service_start(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Timestamp {
+        let arrival = self
+            .bounds(route, activity)
+            .and_then(|bounds| bounds.earliest_first)
+            .map_or(arrival, |earliest| arrival.max(earliest));
+
+        self.inner.estimate_service_start(route, activity, arrival)
     }
 }

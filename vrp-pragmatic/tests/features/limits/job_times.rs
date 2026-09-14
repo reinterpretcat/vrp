@@ -119,10 +119,15 @@ fn can_assign_job_when_arrival_after_earliest_first() {
 
 #[test]
 fn can_assign_job_when_time_window_allows_waiting() {
-    // Job is at location (5, 0), so arrival at 5 time units
-    // earliest_first is 10, but job time window extends to 100
-    // The job should be assigned because the time window allows waiting until earliest_first:
-    // the vehicle arrives at 5, waits, and serves from 10 to 11.
+    // Job is at location (5, 0), a five-unit drive away; earliest_first is 10 and the job's own
+    // window runs to 100, so the job is assignable and service starts at the bound either way.
+    //
+    // AMENDED: this used to pin the vehicle leaving the depot at 0, arriving at 5 and idling five
+    // units on the spot (waiting statistic 5). That was the departure optimiser measuring waiting
+    // against the job's own window, which the bound does not appear in — it could not see the idle
+    // it had to remove. The idle counted towards the route's duration and so towards the shift's
+    // own maxDuration, which is the failure this feature was built to stop. The vehicle now leaves
+    // the depot at 5 instead and drives into the bound: same service, no idle, waiting 0.
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_times("job1", (5., 0.), vec![(0, 100)], 1.)],
@@ -147,16 +152,68 @@ fn can_assign_job_when_time_window_allows_waiting() {
         "Tour should contain job1"
     );
 
-    // Driving is untouched by the bound: the vehicle arrives when it arrives and waits there.
+    // The depot departure absorbs the bound: leaving at 5 puts the vehicle at the job at 10.
+    let depot = solution.tours[0].stops.first().expect("the tour must start at the depot");
+    assert_eq!(depot.schedule().departure, format_time(5.), "the departure moves instead of the vehicle idling");
+
     let stop = solution.tours[0].stops.get(1).expect("the job must be served on a stop of its own");
-    assert_eq!(stop.schedule().arrival, format_time(5.));
+    assert_eq!(stop.schedule().arrival, format_time(10.));
+    assert_eq!(stop.schedule().departure, format_time(11.));
+
+    assert_eq!(solution.statistic.times.waiting, 0, "there is no idle left for the bound to have caused");
+}
+
+#[test]
+fn can_keep_the_wait_a_late_departure_cannot_absorb() {
+    // The same five-unit drive under an earliest_first of 10, but the shift forbids leaving the
+    // depot after 2. The departure moves as far as it is allowed and no further, so three units of
+    // idle remain at the job — and they are still reported as a delayed service start and waiting
+    // time. The optimiser reading the effective service start must not overshoot the shift's own
+    // latest departure to chase the bound.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job_with_times("job1", (5., 0.), vec![(0, 100)], 1.)],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(2.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
+                    breaks: None,
+                    reloads: None,
+                    recharges: None,
+                    job_times: Some(JobTimeConstraints { earliest_first: Some(format_time(10.)), latest_last: None }),
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(solution.unassigned.is_none(), "the job is servable, only the departure is constrained");
+    assert_eq!(solution.tours.len(), 1);
+
+    let depot = solution.tours[0].stops.first().expect("the tour must start at the depot");
+    assert_eq!(depot.schedule().departure, format_time(2.), "the departure stops at the shift's own latest");
+
+    let stop = solution.tours[0].stops.get(1).expect("the job must be served on a stop of its own");
+    assert_eq!(stop.schedule().arrival, format_time(7.));
     assert_eq!(stop.schedule().departure, format_time(11.));
 
     let activity = stop.activities().first().expect("the stop must carry the job activity");
     let time = activity.time.as_ref().expect("a delayed service start must be reported");
     assert_eq!((time.start.as_str(), time.end.as_str()), (format_time(10.).as_str(), format_time(11.).as_str()));
 
-    assert_eq!(solution.statistic.times.waiting, 5, "the wait the bound caused belongs in the statistic");
+    assert_eq!(solution.statistic.times.waiting, 3, "the idle the departure could not absorb stays visible");
 }
 
 #[test]

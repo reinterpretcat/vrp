@@ -52,7 +52,12 @@ fn can_advance_departure_time_impl(
             )
             .build();
 
-        let departure_time = try_advance_departure_time(&route_ctx, &TestTransportCost::default(), optimize_whole_tour);
+        let departure_time = try_advance_departure_time(
+            &route_ctx,
+            &SimpleActivityCost::default(),
+            &TestTransportCost::default(),
+            optimize_whole_tour,
+        );
 
         assert_eq!(departure_time, expected);
     } else {
