@@ -79,6 +79,7 @@ fn can_reject_job_when_arrival_before_earliest_first() {
     let unassigned = solution.unassigned.expect("job1 must be reported as unassigned");
     assert_eq!(unassigned.len(), 1);
     assert_eq!(unassigned[0].job_id, "job1");
+    assert!(!unassigned[0].reasons.is_empty(), "an empty reason list would satisfy the check below vacuously");
     assert!(
         unassigned[0]
             .reasons
@@ -246,6 +247,7 @@ fn can_reject_job_when_departure_after_latest_last() {
     let unassigned = solution.unassigned.expect("job1 must be reported as unassigned");
     assert_eq!(unassigned.len(), 1);
     assert_eq!(unassigned[0].job_id, "job1");
+    assert!(!unassigned[0].reasons.is_empty(), "an empty reason list would satisfy the check below vacuously");
     assert!(
         unassigned[0]
             .reasons
@@ -445,6 +447,7 @@ fn can_work_with_depot_to_depot_span() {
     // Job should still be rejected due to job_times constraint, which the clamp surfaces as the
     // time window violation it has become. See the note on the reason list above.
     let unassigned = solution.unassigned.expect("job1 must be reported as unassigned");
+    assert!(!unassigned[0].reasons.is_empty(), "an empty reason list would satisfy the check below vacuously");
     assert!(
         unassigned[0]
             .reasons
