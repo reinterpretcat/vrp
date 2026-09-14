@@ -244,7 +244,7 @@ impl TravelLimitConstraint {
         // NOTE the bound is taken against the delta *without* `reclaimable_leading_wait`. A walk that
         // has to give the idle stretch back — the departure the route wanted turns out infeasible or
         // over the cap — lands above the reclaimed figure by exactly that stretch.
-        if delta_duration + reserved_total <= duration_limit {
+        if !self.is_delta_blind_to_span(route_ctx, activity_ctx) && delta_duration + reserved_total <= duration_limit {
             return delta_duration;
         }
 
@@ -254,6 +254,23 @@ impl TravelLimitConstraint {
     /// The reserved time this route's actor carries in total, or `None` when it carries none.
     fn reserved_time_total(&self, route_ctx: &RouteContext) -> Option<Duration> {
         self.reserved_time_totals.as_ref().and_then(|totals| totals.get(&route_ctx.route().actor).copied())
+    }
+
+    /// Whether the travel delta misses a part of what this insertion does to the tour's measured
+    /// duration, which takes the bound the dominance guard rests on away from it.
+    ///
+    /// `calculate_travel_delta` prices legs; it knows nothing of the shift's `RouteCostSpan`. A
+    /// `FirstJobTo*` span is measured from the first job's arrival, and an insertion in front of the
+    /// first job moves that anchor earlier — by the whole difference between the two depot legs,
+    /// which the delta never reports. The tour can then be hours longer than `delta + reserved_total`
+    /// while the guard reads it as having room to spare. The walk itself gets this right, so all the
+    /// guard has to do is stand aside.
+    fn is_delta_blind_to_span(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> bool {
+        activity_ctx.index == 0
+            && matches!(
+                route_ctx.route().actor.vehicle.dimens.get_route_cost_span().copied().unwrap_or_default(),
+                RouteCostSpan::FirstJobToDepot | RouteCostSpan::FirstJobToLastJob
+            )
     }
 
     /// Replays the tour behind the insertion point to get the duration the route would really have.

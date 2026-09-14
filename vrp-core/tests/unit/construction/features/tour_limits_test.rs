@@ -276,7 +276,7 @@ mod traveling {
     use crate::construction::features::tour_limits::create_travel_limit_feature;
     use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::models::common::*;
-    use crate::models::problem::{ActivityCost, Actor, TransportCost};
+    use crate::models::problem::{ActivityCost, Actor, RouteCostSpan, RouteCostSpanDimension, TransportCost};
 
     const DISTANCE_CODE: ViolationCode = ViolationCode(2);
     const DURATION_CODE: ViolationCode = ViolationCode(3);
@@ -563,6 +563,77 @@ mod traveling {
         let feature = create_limit_feature(&route_ctx, "v1", (None, Some(80.)), vec![reserved_time(480., 60.)]);
 
         let result = evaluate_first_insertion(&feature, &route_ctx, &late_first_activity());
+
+        assert_eq!(result, None);
+    }
+
+    /// A route on a `FirstJobTo*` span that already serves one far job, arriving at 102 and leaving
+    /// at 112. Under that span the tour is measured from the first job's arrival, so it runs 110.
+    fn create_route_with_one_far_job(cost_span: RouteCostSpan) -> RouteContext {
+        let mut vehicle = test_vehicle_with_id("v1");
+        vehicle.dimens.set_route_cost_span(cost_span);
+        let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle).build();
+
+        let mut state = RouteState::default();
+        state.set_total_distance(200.);
+        state.set_total_duration(110.);
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
+            .with_state(state)
+            .build();
+
+        route_ctx.route_mut().tour.insert_last(
+            ActivityBuilder::with_location_tw_and_duration(100, TimeWindow::new(0., 1000.), 10.)
+                .schedule(Schedule::new(102., 112.))
+                .build(),
+        );
+
+        route_ctx
+    }
+
+    fn evaluate_insertion_in_front(
+        feature: &Feature,
+        route_ctx: &RouteContext,
+        target: &Activity,
+    ) -> Option<ConstraintViolation> {
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let prev = route_ctx.route().tour.get(0).unwrap();
+        let next = route_ctx.route().tour.get(1).unwrap();
+
+        feature.constraint.as_ref().unwrap().evaluate(&MoveContext::activity(
+            &solution_ctx,
+            route_ctx,
+            &ActivityContext { index: 0, prev, target, next: Some(next) },
+        ))
+    }
+
+    /// A job right outside the depot, which would become the tour's first one.
+    fn near_activity() -> Activity {
+        ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(0., 1000.), 10.).build()
+    }
+
+    #[test]
+    fn can_charge_a_first_job_anchor_the_travel_delta_never_moves() {
+        // `calculate_travel_delta` prices legs and knows nothing of the span. Put a job in front of
+        // the first one on a `FirstJobToDepot` shift and the anchor the tour is measured from moves
+        // from the far job's arrival at 102 to this one's at 1 - 101 seconds the delta never reports.
+        // It prices the insertion at 110 + 10 = 120, which with the shift's 2 seconds of break still
+        // reads as fitting a cap of 130; the tour really runs 222 - 1 = 221.
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot);
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(130.)), vec![reserved_time(50., 2.)]);
+
+        let result = evaluate_insertion_in_front(&feature, &route_ctx, &near_activity());
+
+        assert_eq!(result, ConstraintViolation::skip(DURATION_CODE));
+    }
+
+    #[test]
+    fn can_still_take_a_first_job_when_the_cap_covers_the_moved_anchor() {
+        // the same insertion against a cap with room for all 221 of it
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot);
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(250.)), vec![reserved_time(50., 2.)]);
+
+        let result = evaluate_insertion_in_front(&feature, &route_ctx, &near_activity());
 
         assert_eq!(result, None);
     }
