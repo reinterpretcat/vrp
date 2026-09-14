@@ -1,7 +1,7 @@
 use super::*;
 use crate::format::problem::clustering_reader::create_cluster_config;
 use crate::format::problem::fleet_reader::*;
-use crate::format::problem::goal_reader::{create_goal_context, is_stop};
+use crate::format::problem::goal_reader::create_goal_context;
 use crate::format::problem::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::format::{FormatError, JobIndex};
 use crate::validation::ValidationContext;

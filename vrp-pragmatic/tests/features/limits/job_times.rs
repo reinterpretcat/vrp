@@ -1,6 +1,7 @@
 use crate::format::problem::*;
-use crate::format_time;
+use crate::format::solution::{Activity, Stop};
 use crate::helpers::*;
+use crate::{format_time, parse_time};
 
 fn create_vehicle_with_job_time_constraints(earliest_first: Option<f64>, latest_last: Option<f64>) -> VehicleType {
     create_named_vehicle_with_job_time_constraints("my_vehicle", earliest_first, latest_last)
@@ -646,4 +647,85 @@ fn can_reject_job_on_open_route_when_latest_last_violated() {
 
     assert!(solution.unassigned.is_some(), "Job should be rejected on open route");
     assert_eq!(solution.unassigned.as_ref().unwrap()[0].job_id, "job1");
+}
+
+#[test]
+fn can_keep_a_break_out_of_the_appointment_bounds() {
+    // A break whose window opens at 5 on a shift whose appointments cannot start before 50. The
+    // break is served when the vehicle gets there, on its own window, and the bound governs only
+    // the two deliveries. The tour order is left to the solver: what is asserted holds either way.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_times("job1", (10., 0.), vec![(0, 200)], 1.),
+                create_delivery_job_with_times("job2", (20., 0.), vec![(0, 200)], 1.),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Optional {
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(5.), format_time(70.)]),
+                        places: vec![VehicleOptionalBreakPlace {
+                            duration: 2.,
+                            location: Some((12., 0.).to_loc()),
+                            tag: None,
+                        }],
+                        policy: None,
+                    }]),
+                    reloads: None,
+                    recharges: None,
+                    job_times: Some(JobTimeConstraints { earliest_first: Some(format_time(50.)), latest_last: None }),
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(solution.unassigned.is_none(), "both jobs fit the bound by waiting for it");
+    assert_eq!(solution.statistic.times.break_time, 2, "the break must be taken");
+    let tour = solution.tours.first().expect("the vehicle must run");
+
+    // read service the way the checker does: the interval when present, the stop schedule otherwise
+    let service_of = |stop: &Stop, activity: &Activity| {
+        activity.time.as_ref().map_or_else(|| stop.schedule().arrival.clone(), |time| time.start.clone())
+    };
+
+    tour.stops.iter().flat_map(|stop| stop.activities().iter().map(move |activity| (stop, activity))).for_each(
+        |(stop, activity)| match activity.activity_type.as_str() {
+            "delivery" => assert!(
+                parse_time(&service_of(stop, activity)) >= 50.,
+                "the bound governs every appointment: {} starts at {}",
+                activity.job_id,
+                service_of(stop, activity)
+            ),
+            "break" => assert_eq!(
+                service_of(stop, activity),
+                stop.schedule().arrival,
+                "the break is served on arrival, held back neither by its own window nor by the bound"
+            ),
+            _ => {}
+        },
+    );
+
+    // the two invariants a wait nobody took would break
+    let times = &solution.statistic.times;
+    assert_eq!(
+        solution.statistic.duration,
+        times.driving + times.serving + times.waiting + times.break_time + times.commuting + times.parking,
+        "the tour's clock has to add up"
+    );
+    tour.stops.iter().for_each(|stop| {
+        let last = stop.activities().last().expect("a stop carries an activity");
+        let end = last.time.as_ref().map_or_else(|| stop.schedule().departure.clone(), |time| time.end.clone());
+        assert_eq!(end, stop.schedule().departure, "a stop departs when its last activity ends");
+    });
 }

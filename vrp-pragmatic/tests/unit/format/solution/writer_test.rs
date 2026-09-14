@@ -7,7 +7,13 @@ use vrp_core::construction::enablers::ReservedTimeSpan;
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::examples::create_example_problem;
 
+use crate::format::{JobTypeDimension, VehicleTypeDimension};
+use vrp_core::construction::enablers::create_typed_actor_groups;
+use vrp_core::models::problem::{JobIdDimension, JobTimeConstraints, JobTimeConstraintsDimension, Single};
+
 type DomainProblem = vrp_core::models::Problem;
+type DomainFleet = vrp_core::models::problem::Fleet;
+type DomainPlace = vrp_core::models::solution::Place;
 type DomainActivity = vrp_core::models::solution::Activity;
 type DomainCommute = vrp_core::models::solution::Commute;
 type DomainCommuteInfo = vrp_core::models::solution::CommuteInfo;
@@ -207,4 +213,62 @@ fn can_merge_required_break_on_stop_arrival_time_properly() {
 
     assert_eq!(tour.stops.len(), 3);
     assert_eq!(get_ids_from_tour(&tour).into_iter().flatten().filter(|id| id == "break").count(), 1);
+}
+
+fn create_break_single(id: &str) -> Arc<Single> {
+    let mut single = create_single_with_location(Some(DEFAULT_JOB_LOCATION));
+    single.dimens.set_job_id(id.to_string()).set_job_type("break".to_string());
+
+    Arc::new(single)
+}
+
+fn create_fleet_with_appointment_bound(earliest_first: Float) -> DomainFleet {
+    let mut vehicle = test_vehicle("v1");
+    vehicle
+        .dimens
+        .set_job_time_constraints(JobTimeConstraints { earliest_first: Some(earliest_first), latest_last: None });
+
+    DomainFleet::new(vec![Arc::new(test_driver())], vec![Arc::new(vehicle)], |actors| {
+        create_typed_actor_groups(actors, |a| a.vehicle.dimens.get_vehicle_type().cloned().expect("no vehicle type"))
+    })
+}
+
+#[test]
+fn does_not_hold_a_break_back_to_the_appointment_bound() {
+    let (mut problem, mut coord_index) = create_test_problem_and_coord_index();
+    problem.fleet = Arc::new(create_fleet_with_appointment_bound(50.));
+    coord_index.add(&Location::Reference { index: 1 });
+    coord_index.add(&Location::Reference { index: 2 });
+
+    let activities = vec![
+        // a break served at 5, long before the bound: the solver did not hold it back and neither
+        // may the writer, or the tour reports a wait of 45 that nobody took
+        DomainActivity {
+            place: DomainPlace { idx: 0, location: 1, duration: 2., time: TimeWindow::new(0., 1000.) },
+            schedule: DomainSchedule { arrival: 5., departure: 7. },
+            ..create_activity_with_job_at_location(create_break_single("break"), 1)
+        },
+        // an appointment arriving at 40 and held back to the bound by the clamp
+        DomainActivity {
+            place: DomainPlace { idx: 0, location: 2, duration: 1., time: TimeWindow::new(0., 1000.) },
+            schedule: DomainSchedule { arrival: 40., departure: 51. },
+            ..create_activity_with_job_at_location(create_single("job1"), 2)
+        },
+    ];
+    let route = create_route_with_activities(&problem.fleet, "v1", activities);
+
+    let tour = create_tour(&problem, &route, &coord_index, &Default::default());
+
+    let reported_service = |stop: &Stop| {
+        let activity = stop.activities().last().expect("a stop carries an activity");
+        // read it the way the checker does: the interval when present, the stop schedule otherwise
+        activity.time.as_ref().map_or_else(
+            || (stop.schedule().arrival.clone(), stop.schedule().departure.clone()),
+            |time| (time.start.clone(), time.end.clone()),
+        )
+    };
+
+    assert_eq!(reported_service(tour.stops.get(1).unwrap()), (format_time(5.), format_time(7.)));
+    assert_eq!(reported_service(tour.stops.get(2).unwrap()), (format_time(50.), format_time(51.)));
+    assert_eq!(tour.statistic.times.waiting, 10, "only the appointment waited, from 40 to the bound at 50");
 }
