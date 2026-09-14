@@ -330,9 +330,9 @@ fn get_earliest_first(route: &Route, activity: &Activity) -> Option<Timestamp> {
     let single = activity.job.as_ref()?;
 
     // A break, a reload and a recharge are jobs on the tour that the bounds do not govern, so the
-    // bound never moves their service start. A break cannot reach one in any case today, because it
-    // may not be a tour's first activity (`breaks.rs:157`) and whatever appointment precedes it has
-    // already started at the bound.
+    // bound never moves their service start. A break cannot reach one in any case today, because
+    // `OptionalBreakConstraint` refuses a break as a tour's first activity and whatever appointment
+    // precedes it has already started at the bound.
     if !is_stop(single) {
         return None;
     }

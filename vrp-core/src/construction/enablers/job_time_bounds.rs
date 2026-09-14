@@ -28,6 +28,13 @@ pub type IsAppointmentFn = Arc<dyn Fn(&Single) -> bool + Sync + Send>;
 /// ⚠️ Wraps the outside of a reserved-time cost, never the inside: the upper
 /// bound has to be tested against the departure a required break has already
 /// inflated.
+///
+/// ⚠️ Known limitation: on an open route — a shift that declares no `end` — the
+/// upper bound does not propagate backwards, so a job inserted ahead of the last
+/// appointment can push that appointment past `latest_last`. The backward pass in
+/// `schedule_update` starts from `actor.detail.time.end`, which is `Float::MAX`
+/// without a shift end, and in that case it takes each activity's own window end
+/// and never asks `estimate_arrival` — the only place this cost could cap it.
 pub struct JobTimeBoundsActivityCost {
     inner: Arc<dyn ActivityCost>,
     is_appointment: IsAppointmentFn,

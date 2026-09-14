@@ -125,11 +125,13 @@ Each shift can have the following properties:
 
 - **jobTimes** (optional) specifies time constraints for when jobs can be served during this shift. This is useful for
   scenarios where vehicles should only serve customers during specific time windows (e.g., business hours only).
-  It has two optional properties:
-  - **earliestFirst**: the earliest time the vehicle can arrive at its first job. If the vehicle would arrive earlier,
-    it must wait until this time before starting service. Jobs whose time windows end before this time cannot be assigned.
-  - **latestLast**: the latest time the vehicle can depart from its last job. Jobs that would require departing after
-    this time cannot be assigned.
+  Both bounds govern **every** job on the shift, not only the first and the last one, and neither governs a break,
+  a reload, a recharge or the tour's own departure and arrival. It has two optional properties:
+  - **earliestFirst**: the earliest time service may start at a job. Driving is untouched: the vehicle may arrive
+    earlier and wait, and that wait is reported as waiting time. Jobs whose time windows end before this time cannot
+    be assigned.
+  - **latestLast**: the latest time the vehicle may depart from a job, service and any reserved time included. Jobs
+    that would require departing after this time cannot be assigned.
 
   ```json
   "jobTimes": {

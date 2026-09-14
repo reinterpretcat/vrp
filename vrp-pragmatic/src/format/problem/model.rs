@@ -307,15 +307,18 @@ pub struct ShiftEnd {
     pub location: Location,
 }
 
-/// Time constraints for jobs within a shift.
-/// Controls when the first job can start and when the last job must finish.
+/// The window a shift's jobs must happen inside. Both bounds govern every job on the shift, not
+/// only the first and the last one, and neither governs a break, a reload, a recharge or the
+/// tour's own departure and arrival.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JobTimeConstraints {
-    /// Earliest allowed arrival at first job (RFC3339 format).
+    /// Earliest moment a job's service may start (RFC3339 format). Arriving before it and waiting
+    /// is legal: the bound holds service back, it does not hold the vehicle back.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub earliest_first: Option<String>,
-    /// Latest allowed departure from last job (RFC3339 format).
+    /// Latest moment a job may be departed from, service and any reserved time included
+    /// (RFC3339 format).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub latest_last: Option<String>,
 }

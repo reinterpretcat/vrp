@@ -6,8 +6,11 @@ This example demonstrates how to use the `jobTimes` property to restrict when jo
 
 The `jobTimes` property on a vehicle shift allows you to specify:
 
-- **earliestFirst**: The earliest time the vehicle can arrive at its first job
-- **latestLast**: The latest time the vehicle can depart from its last job
+- **earliestFirst**: the earliest time service may start at a job. The vehicle may arrive earlier and wait.
+- **latestLast**: the latest time the vehicle may depart from a job
+
+Both bounds govern every job on the shift, not only the first and the last one. Neither governs a break,
+a reload, a recharge or the tour's own departure and arrival.
 
 This is useful for scenarios such as:
 - Enforcing business hours (e.g., deliveries only between 10:00 and 16:00)

@@ -29,13 +29,15 @@ pub enum RouteCostSpan {
 
 custom_dimension!(pub RouteCostSpan typeof RouteCostSpan);
 
-/// Time constraints for jobs within a shift.
-/// Controls when the first job can start and when the last job must finish.
+/// The window a shift's appointments must happen inside. Both bounds govern every appointment on
+/// the shift, not only the first and the last one, and neither governs a break, a reload, a
+/// recharge or the tour's own departure and arrival.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct JobTimeConstraints {
-    /// Earliest allowed arrival time at the first job.
+    /// Earliest moment an appointment's service may start. Arriving before it and waiting is legal:
+    /// the bound holds service back, it does not hold the vehicle back.
     pub earliest_first: Option<Timestamp>,
-    /// Latest allowed departure time from the last job.
+    /// Latest moment an appointment may be departed from, service and any reserved time included.
     pub latest_last: Option<Timestamp>,
 }
 
