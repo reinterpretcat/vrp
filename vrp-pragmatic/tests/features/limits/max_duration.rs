@@ -147,6 +147,70 @@ fn can_account_for_break_that_only_a_second_job_reaches() {
     );
 }
 
+/// The idle stretch in front of a tour's first job is free only because the departure moves forward
+/// once the job is in. On a shift with reserved time it may not move: leaving later can put a break
+/// inside the service instead of the idle, pushing work past the end of its own window, and
+/// `advance_departure_time` then puts the departure straight back. The tour keeps the whole idle
+/// stretch, and the cap has to be read against that.
+///
+/// Two breaks: a 5s one due at 90, and a 60s one due at 105. The job's window is one second wide at
+/// 100. Departing at 0 the vehicle idles until 100, and the first break is spent idling and costs
+/// nothing; the tour ends at 181 because the second break falls on the drive home. Departing at 99
+/// instead would take the second break inside the job's service and finish the work at 160, long
+/// past the window that closes at 101 - so that departure is refused and never happens. A cap of 150
+/// must be read against the 181 the route really runs, not the 82 the later departure suggests.
+#[test]
+fn can_refuse_a_later_departure_a_break_makes_infeasible() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job_with_times("job1", (1., 0.), vec![(100, 101)], 20.)],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(500.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    breaks: Some(vec![
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::ExactTime {
+                                earliest: format_time(90.),
+                                latest: format_time(90.),
+                            },
+                            duration: 5.,
+                        },
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::ExactTime {
+                                earliest: format_time(105.),
+                                latest: format_time(105.),
+                            },
+                            duration: 60.,
+                        },
+                    ]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_vehicle_type_with_max_duration_limit(150.)
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(
+        solution.tours.iter().all(|tour| tour.statistic.duration <= 150),
+        "no tour may run past the cap: {:?}",
+        solution.tours.iter().map(|tour| tour.statistic.duration).collect::<Vec<_>>()
+    );
+    let unassigned = solution.unassigned.expect("job1 does not fit under the cap and must be reported");
+    assert_eq!(unassigned.iter().map(|job| job.job_id.clone()).collect::<Vec<_>>(), ["job1".to_string()]);
+}
+
 #[test]
 fn can_serve_job_when_it_starts_late() {
     let problem = Problem {

@@ -6,13 +6,13 @@ mod tour_limits_test;
 
 use std::cmp::Ordering;
 use std::iter::once;
+use std::ops::ControlFlow;
 
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::common::{Distance, Duration, Timestamp};
 use crate::models::problem::{Actor, Single, TransportCost};
 use crate::models::solution::Tour;
-use rosomaxa::utils::UnwrapValue;
 
 /// A function which returns activity size limit for a given actor.
 pub type ActivitySizeResolver = Arc<dyn Fn(&Actor) -> Option<usize> + Sync + Send>;
@@ -248,15 +248,42 @@ impl TravelLimitConstraint {
     /// reserved window is charged differently depending on whether it falls into idling or into
     /// work: leaving later can drop a break out of the tour altogether, or move it out of the idle
     /// and into the service where it is charged in full.
+    ///
+    /// The later departure is only taken if the schedule it produces holds together.
+    /// `advance_departure_time` puts the departure straight back when it does not, and reserved time
+    /// is a common reason for it not to: a break that lands in the service instead of the idle can
+    /// push work past the end of its own window, which `DynamicActivityCost` refuses. The tour then
+    /// keeps the whole idle stretch inside its duration, which is exactly the shape the cap has to
+    /// be read against.
     fn replay_total_duration(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Duration {
-        let route = route_ctx.route();
         let leading_wait = self.reclaimable_leading_wait(route_ctx, activity_ctx);
+
+        if leading_wait > 0. {
+            let (duration, is_feasible) = self.replay_tail(route_ctx, activity_ctx, leading_wait);
+            if is_feasible {
+                return duration;
+            }
+        }
+
+        self.replay_tail(route_ctx, activity_ctx, Duration::default()).0
+    }
+
+    /// Walks the tail once from a departure shifted by `departure_shift`, and reports the duration
+    /// the route would then have together with whether that schedule is feasible at all.
+    fn replay_tail(
+        &self,
+        route_ctx: &RouteContext,
+        activity_ctx: &ActivityContext,
+        departure_shift: Duration,
+    ) -> (Duration, bool) {
+        let route = route_ctx.route();
         let tail = once(activity_ctx.target).chain(route.tour.all_activities().skip(activity_ctx.index + 1));
 
         let mut location = activity_ctx.prev.place.location;
-        let mut departure = activity_ctx.prev.schedule.departure + leading_wait;
+        let mut departure = activity_ctx.prev.schedule.departure + departure_shift;
         let mut target_arrival = Timestamp::default();
         let mut last_job_departure = None;
+        let mut is_feasible = true;
 
         for (offset, activity) in tail.enumerate() {
             let travel =
@@ -264,7 +291,13 @@ impl TravelLimitConstraint {
             let arrival = departure + travel;
 
             location = activity.place.location;
-            departure = self.activity.estimate_departure(route, activity, arrival).unwrap_value();
+            departure = match self.activity.estimate_departure(route, activity, arrival) {
+                ControlFlow::Continue(departure) => departure,
+                ControlFlow::Break(departure) => {
+                    is_feasible = false;
+                    departure
+                }
+            };
 
             if offset == 0 {
                 target_arrival = arrival;
@@ -274,9 +307,9 @@ impl TravelLimitConstraint {
             }
         }
 
-        // `leading_wait` is zero unless the route is still empty, in which case `prev` is the start
+        // `departure_shift` is zero unless the route is still empty, in which case `prev` is the start
         let start_departure =
-            route.tour.start().map_or(Timestamp::default(), |start| start.schedule.departure) + leading_wait;
+            route.tour.start().map_or(Timestamp::default(), |start| start.schedule.departure) + departure_shift;
         // the target takes over as the first job only when it goes in right behind the start
         let first_job_arrival = if activity_ctx.index == 0 {
             target_arrival
@@ -286,12 +319,14 @@ impl TravelLimitConstraint {
 
         // mirrors `calculate_route_duration`: the span says which part of the tour the route is
         // charged for, and the limit must be read against the same stretch
-        match route.actor.vehicle.dimens.get_route_cost_span().copied().unwrap_or_default() {
+        let duration = match route.actor.vehicle.dimens.get_route_cost_span().copied().unwrap_or_default() {
             RouteCostSpan::DepotToDepot => departure - start_departure,
             RouteCostSpan::DepotToLastJob => last_job_departure.unwrap_or(start_departure) - start_departure,
             RouteCostSpan::FirstJobToDepot => departure - first_job_arrival,
             RouteCostSpan::FirstJobToLastJob => last_job_departure.unwrap_or(first_job_arrival) - first_job_arrival,
-        }
+        };
+
+        (duration, is_feasible)
     }
 
     /// Returns the idle stretch in front of the first job of an otherwise empty route, which the
