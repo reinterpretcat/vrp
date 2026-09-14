@@ -134,3 +134,64 @@ fn can_handle_reload_resources_impl(resources: Option<Vec<&str>>, expected: Opti
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
+
+#[test]
+fn can_detect_inverted_job_times() {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    job_times: Some(JobTimeConstraints {
+                        earliest_first: Some(format_time(200.)),
+                        latest_last: Some(format_time(100.)),
+                    }),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1309_vehicle_job_times(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), Some("E1309".to_string()));
+}
+
+parameterized_test! {can_validate_job_times, (job_times, expected), {
+    can_validate_job_times_impl(job_times, expected);
+}}
+
+can_validate_job_times! {
+    case01_no_job_times: (None, None),
+    case02_earliest_only: (Some((Some(100.), None)), None),
+    case03_latest_only: (Some((None, Some(900.))), None),
+    case04_both_at_shift_bounds: (Some((Some(0.), Some(1000.))), None),
+    case05_equal_pair: (Some((Some(200.), Some(200.))), Some("E1309".to_string())),
+    case06_earliest_before_shift_start: (Some((Some(-50.), None)), Some("E1309".to_string())),
+    case07_latest_after_shift_end: (Some((None, Some(1050.))), Some("E1309".to_string())),
+}
+
+fn can_validate_job_times_impl(job_times: Option<(Option<Float>, Option<Float>)>, expected: Option<String>) {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    job_times: job_times.map(|(earliest, latest)| JobTimeConstraints {
+                        earliest_first: earliest.map(format_time),
+                        latest_last: latest.map(format_time),
+                    }),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1309_vehicle_job_times(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), expected);
+}

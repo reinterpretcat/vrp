@@ -3,6 +3,7 @@
 mod vehicles_test;
 
 use super::*;
+use crate::parse_time;
 use crate::parse_time_safe;
 use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
@@ -228,6 +229,46 @@ fn check_e1308_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), F
     }
 }
 
+/// Checks that a shift's job times are a usable pair: `latest_last` after
+/// `earliest_first`, and both inside the shift's own time window. A pair that
+/// cannot be met makes every job on the shift unassignable, which is a refused
+/// problem rather than a plan of nothing.
+fn check_e1309_vehicle_job_times(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(|_, shift, shift_time| {
+            let Some(job_times) = shift.job_times.as_ref() else { return true };
+
+            let earliest = job_times.earliest_first.as_ref().map(|time| parse_time(time));
+            let latest = job_times.latest_last.as_ref().map(|time| parse_time(time));
+
+            if let (Some(earliest), Some(latest)) = (earliest, latest) {
+                if earliest >= latest {
+                    return false;
+                }
+            }
+
+            shift_time.is_none_or(|shift_time| {
+                earliest.is_none_or(|earliest| shift_time.contains(earliest))
+                    && latest.is_none_or(|latest| shift_time.contains(latest))
+            })
+        }),
+    );
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1309".to_string(),
+            "invalid job times in vehicle shift".to_string(),
+            format!(
+                "ensure that earliest first job is before latest last job and both are inside the shift, vehicle type ids: {}",
+                type_ids.join(", ")
+            ),
+        ))
+    }
+}
+
 type CheckShiftFn = Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>;
 
 fn get_invalid_type_ids(ctx: &ValidationContext, check_shift_fn: CheckShiftFn) -> Vec<String> {
@@ -270,6 +311,7 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1304_vehicle_reload_time_is_correct(ctx),
         check_e1306_vehicle_has_no_zero_costs(ctx),
         check_e1308_vehicle_reload_resources(ctx),
+        check_e1309_vehicle_job_times(ctx),
     ])
     .map_err(From::from)
 }

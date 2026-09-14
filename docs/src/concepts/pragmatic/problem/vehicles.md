@@ -154,3 +154,4 @@ Each shift can have the following properties:
 - [E1304 invalid reload time windows in vehicle shift](../errors/index.md#e1304)
 - [E1306 time and duration costs are zeros](../errors/index.md#e1306)
 - [E1308 invalid vehicle reload resource](../errors/index.md#e1308)
+- [E1309 invalid job times in vehicle shift](../errors/index.md#e1309)

@@ -452,6 +452,11 @@ You can fix the error by defining a small value (e.g. 0.0000001) for duration or
 - `fleet.resources` has vehicle reloads with the same `id`
 - required vehicle reload is used with resource id, which is not specified in `fleet.resources`
 
+#### E1309
+
+`invalid job times in vehicle shift` error is returned when a vehicle shift's `jobTimes` cannot be satisfied by any
+plan: `earliestFirst` is not before `latestLast`, or either bound falls outside the shift's own start and end times.
+
 ### E15xx: Routing profiles
 
 These errors are related to routing locations and `fleet.profiles` property definitions.
