@@ -70,9 +70,6 @@ pub use self::tour_compactness::*;
 mod tour_limits;
 pub use self::tour_limits::*;
 
-mod job_time_limits;
-pub use self::job_time_limits::*;
-
 mod tour_order;
 pub use self::tour_order::*;
 

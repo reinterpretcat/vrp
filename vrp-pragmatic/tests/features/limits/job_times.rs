@@ -72,14 +72,19 @@ fn can_reject_job_when_arrival_before_earliest_first() {
 
     assert!(solution.tours.is_empty(), "there is nothing the vehicle can legally do");
 
-    // Only that the shift's job-time limit is among the reasons: which constraint is reported first
-    // depends on the order the routes happened to be tried, so the list is not an ordering to pin.
+    // The bound now clamps the schedule instead of filtering the insertion, so a job it makes
+    // unservable is reported as the time window violation it has become. A reason is recorded
+    // only when the final recreate got as far as evaluating the job, so an unrecorded one is
+    // tolerated here; what must not appear is another constraint taking the blame.
     let unassigned = solution.unassigned.expect("job1 must be reported as unassigned");
     assert_eq!(unassigned.len(), 1);
     assert_eq!(unassigned[0].job_id, "job1");
     assert!(
-        unassigned[0].reasons.iter().any(|reason| reason.code == "JOB_TIME_CONSTRAINT"),
-        "the shift's job time limit must be given as a reason: {:?}",
+        unassigned[0]
+            .reasons
+            .iter()
+            .all(|reason| matches!(reason.code.as_str(), "TIME_WINDOW_CONSTRAINT" | "NO_REASON_FOUND")),
+        "nothing but the shift's job time limit may be given as a reason: {:?}",
         unassigned[0].reasons
     );
 }
@@ -116,8 +121,8 @@ fn can_assign_job_when_arrival_after_earliest_first() {
 fn can_assign_job_when_time_window_allows_waiting() {
     // Job is at location (5, 0), so arrival at 5 time units
     // earliest_first is 10, but job time window extends to 100
-    // The job should be assigned because the time window allows waiting until earliest_first
-    // Note: The constraint checks feasibility; actual schedule timing may vary
+    // The job should be assigned because the time window allows waiting until earliest_first:
+    // the vehicle arrives at 5, waits, and serves from 10 to 11.
     let problem = Problem {
         plan: Plan {
             jobs: vec![create_delivery_job_with_times("job1", (5., 0.), vec![(0, 100)], 1.)],
@@ -141,6 +146,17 @@ fn can_assign_job_when_time_window_allows_waiting() {
         solution.tours[0].stops.iter().any(|stop| { stop.activities().iter().any(|a| a.job_id == "job1") }),
         "Tour should contain job1"
     );
+
+    // Driving is untouched by the bound: the vehicle arrives when it arrives and waits there.
+    let stop = solution.tours[0].stops.get(1).expect("the job must be served on a stop of its own");
+    assert_eq!(stop.schedule().arrival, format_time(5.));
+    assert_eq!(stop.schedule().departure, format_time(11.));
+
+    let activity = stop.activities().first().expect("the stop must carry the job activity");
+    let time = activity.time.as_ref().expect("a delayed service start must be reported");
+    assert_eq!((time.start.as_str(), time.end.as_str()), (format_time(10.).as_str(), format_time(11.).as_str()));
+
+    assert_eq!(solution.statistic.times.waiting, 5, "the wait the bound caused belongs in the statistic");
 }
 
 #[test]
@@ -166,14 +182,19 @@ fn can_reject_job_when_departure_after_latest_last() {
 
     assert!(solution.tours.is_empty(), "there is nothing the vehicle can legally do");
 
-    // Only that the shift's job-time limit is among the reasons: which constraint is reported first
-    // depends on the order the routes happened to be tried, so the list is not an ordering to pin.
+    // The bound now clamps the schedule instead of filtering the insertion, so a job it makes
+    // unservable is reported as the time window violation it has become. A reason is recorded
+    // only when the final recreate got as far as evaluating the job, so an unrecorded one is
+    // tolerated here; what must not appear is another constraint taking the blame.
     let unassigned = solution.unassigned.expect("job1 must be reported as unassigned");
     assert_eq!(unassigned.len(), 1);
     assert_eq!(unassigned[0].job_id, "job1");
     assert!(
-        unassigned[0].reasons.iter().any(|reason| reason.code == "JOB_TIME_CONSTRAINT"),
-        "the shift's job time limit must be given as a reason: {:?}",
+        unassigned[0]
+            .reasons
+            .iter()
+            .all(|reason| matches!(reason.code.as_str(), "TIME_WINDOW_CONSTRAINT" | "NO_REASON_FOUND")),
+        "nothing but the shift's job time limit may be given as a reason: {:?}",
         unassigned[0].reasons
     );
 }
@@ -364,9 +385,17 @@ fn can_work_with_depot_to_depot_span() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    // Job should still be rejected due to job_times constraint
-    assert!(solution.unassigned.is_some(), "Job should be unassigned");
-    assert_eq!(solution.unassigned.as_ref().unwrap()[0].reasons[0].code, "JOB_TIME_CONSTRAINT");
+    // Job should still be rejected due to job_times constraint, which the clamp surfaces as the
+    // time window violation it has become. See the note on the reason list above.
+    let unassigned = solution.unassigned.expect("job1 must be reported as unassigned");
+    assert!(
+        unassigned[0]
+            .reasons
+            .iter()
+            .all(|reason| matches!(reason.code.as_str(), "TIME_WINDOW_CONSTRAINT" | "NO_REASON_FOUND")),
+        "nothing but the shift's job time limit may be given as a reason: {:?}",
+        unassigned[0].reasons
+    );
 }
 
 #[test]

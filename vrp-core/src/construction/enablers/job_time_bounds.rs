@@ -54,6 +54,9 @@ impl ActivityCost for JobTimeBoundsActivityCost {
         let departure = self.inner.estimate_departure(route, activity, arrival);
 
         match (departure, bounds.latest_last) {
+            // waiting for the lower bound is legal, serving past the job's own window is not: a job
+            // whose window closes before the bound cannot be served on this shift at all.
+            (ControlFlow::Continue(departure), _) if arrival > activity.place.time.end => ControlFlow::Break(departure),
             (ControlFlow::Continue(departure), Some(latest_last)) if departure > latest_last => {
                 ControlFlow::Break(departure)
             }

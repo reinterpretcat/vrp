@@ -110,7 +110,6 @@ fn map_code_reason(code: ViolationCode) -> (&'static str, &'static str) {
         MIN_TOUR_SIZE_CONSTRAINT_CODE => {
             ("MIN_TOUR_SIZE_CONSTRAINT", "cannot be assigned due to min tour size constraint of vehicle")
         }
-        JOB_TIME_CONSTRAINT_CODE => ("JOB_TIME_CONSTRAINT", "cannot be assigned due to shift job time constraints"),
         _ => ("NO_REASON_FOUND", "unknown"),
     }
 }
@@ -135,7 +134,6 @@ fn map_reason_code(reason: &str) -> ViolationCode {
         "RECHARGE_CONSTRAINT_CODE" => RECHARGE_CONSTRAINT_CODE,
         "MIN_SHIFT_CONSTRAINT" => MIN_VEHICLE_SHIFTS_CONSTRAINT_CODE,
         "MIN_TOUR_SIZE_CONSTRAINT" => MIN_TOUR_SIZE_CONSTRAINT_CODE,
-        "JOB_TIME_CONSTRAINT" => JOB_TIME_CONSTRAINT_CODE,
         _ => ViolationCode::unknown(),
     }
 }

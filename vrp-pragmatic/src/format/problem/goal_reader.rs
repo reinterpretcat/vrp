@@ -43,15 +43,6 @@ pub(super) fn create_goal_context(
         )?)
     }
 
-    if props.has_job_time_constraints {
-        features.push(create_job_time_limits_feature(
-            "job_time_limits",
-            blocks.transport.clone(),
-            blocks.activity.clone(),
-            JOB_TIME_CONSTRAINT_CODE,
-        )?)
-    }
-
     if props.has_breaks {
         features.push(create_optional_break_feature("break")?)
     }

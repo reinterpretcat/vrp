@@ -229,6 +229,14 @@ fn get_problem_blocks(
             })?
     };
 
+    // the appointment bounds wrap the outside of the reserved times: the upper bound has to be
+    // tested against the departure a required break has already inflated.
+    let activity: Arc<dyn ActivityCost> = if problem_props.has_job_time_constraints {
+        Arc::new(JobTimeBoundsActivityCost::new(activity))
+    } else {
+        activity
+    };
+
     let (jobs, locks) = read_jobs_with_extra_locks(
         api_problem,
         problem_props,
