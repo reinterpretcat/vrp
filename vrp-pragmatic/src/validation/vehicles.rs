@@ -3,7 +3,6 @@
 mod vehicles_test;
 
 use super::*;
-use crate::parse_time;
 use crate::parse_time_safe;
 use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
@@ -229,18 +228,26 @@ fn check_e1308_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), F
     }
 }
 
-/// Checks that a shift's job times are a usable pair: `latest_last` after
-/// `earliest_first`, and both inside the shift's own time window. A pair that
-/// cannot be met makes every job on the shift unassignable, which is a refused
-/// problem rather than a plan of nothing.
+/// Checks that a shift's job times are a usable pair: both readable timestamps,
+/// `latest_last` after `earliest_first`, and both inside the shift's own time
+/// window. A pair that cannot be met makes every job on the shift unassignable,
+/// which is a refused problem rather than a plan of nothing.
 fn check_e1309_vehicle_job_times(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|_, shift, shift_time| {
             let Some(job_times) = shift.job_times.as_ref() else { return true };
 
-            let earliest = job_times.earliest_first.as_ref().map(|time| parse_time(time));
-            let latest = job_times.latest_last.as_ref().map(|time| parse_time(time));
+            // Validation runs before anything has checked the format, and `parse_time` unwraps:
+            // a bound that is not a timestamp has to be reported as E1309, not kill the process.
+            let earliest = job_times.earliest_first.as_ref().map(|time| parse_time_safe(time));
+            let latest = job_times.latest_last.as_ref().map(|time| parse_time_safe(time));
+
+            if earliest.as_ref().is_some_and(Result::is_err) || latest.as_ref().is_some_and(Result::is_err) {
+                return false;
+            }
+
+            let (earliest, latest) = (earliest.and_then(Result::ok), latest.and_then(Result::ok));
 
             if let (Some(earliest), Some(latest)) = (earliest, latest) {
                 if earliest >= latest {
