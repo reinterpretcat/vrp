@@ -53,6 +53,14 @@ impl JobTimeBoundsActivityCost {
 }
 
 impl ActivityCost for JobTimeBoundsActivityCost {
+    /// Forwarded unchanged. The bounds decide when an activity may happen, never what it costs, and
+    /// the trait's default implementation is not the inner cost: it charges the driver's share,
+    /// which `OnlyVehicleActivityCost` — the cost this decorator wraps in the pragmatic format —
+    /// deliberately drops.
+    fn cost(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Cost {
+        self.inner.cost(route, activity, arrival)
+    }
+
     fn estimate_departure(
         &self,
         route: &Route,

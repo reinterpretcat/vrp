@@ -1,4 +1,5 @@
 use super::*;
+use crate::construction::enablers::OnlyVehicleActivityCost;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::problem::{JobIdDimension, SimpleActivityCost};
@@ -79,4 +80,17 @@ fn leaves_an_activity_the_predicate_rejects_alone() {
     // the break is neither, so it is served on arrival: 50 + 10
     assert!(matches!(departure, ControlFlow::Continue(_)), "a break must not be refused by the bounds");
     assert_eq!(departure.unwrap_value(), 60.);
+}
+
+#[test]
+fn charges_what_the_inner_cost_charges() {
+    let inner = Arc::new(OnlyVehicleActivityCost::default());
+    let cost = JobTimeBoundsActivityCost::new(inner.clone(), Arc::new(|_| true));
+    let route = route_with_bounds(Some(100.), Some(100.));
+    let activity = ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(0., 1000.), 10.).build();
+
+    // no waiting at arrival 50, so this is ten units of service at the vehicle's rate. The trait's
+    // default would answer 20: it adds the driver's share, which the inner cost drops on purpose.
+    assert_eq!(cost.cost(&route, &activity, 50.), 10.);
+    assert_eq!(cost.cost(&route, &activity, 50.), inner.cost(&route, &activity, 50.));
 }
