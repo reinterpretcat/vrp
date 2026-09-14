@@ -24,7 +24,7 @@ pub fn advance_departure_time(
 
     // Fast path: try the upper bound directly
     update_route_departure(route_ctx, activity, transport, upper);
-    if is_schedule_feasible(route_ctx.route(), activity, transport) {
+    if is_departure_acceptable(route_ctx, activity, transport) {
         return;
     }
 
@@ -35,13 +35,41 @@ pub fn advance_departure_time(
             continue;
         }
         update_route_departure(route_ctx, activity, transport, candidate);
-        if is_schedule_feasible(route_ctx.route(), activity, transport) {
+        if is_departure_acceptable(route_ctx, activity, transport) {
             return;
         }
     }
 
     // Fallback: restore current departure
     update_route_departure(route_ctx, activity, transport, current);
+}
+
+/// Whether a departure that has just been written can be kept: the schedule it produces has to hold
+/// together, and the tour it produces has to still fit the shift's duration limit.
+///
+/// Moving a departure forward normally shortens a tour, which is why only the receding side used to
+/// weigh the limit (`try_recede_departure_time`). With reserved time it can lengthen one: a break
+/// that fell into idling is charged only for the part the idling covered, and once the idling is
+/// gone it is charged in full — a charge that can outgrow the stretch the departure moved by. Both
+/// callers of `advance_departure_time` run after the duration constraint has had its last word (the
+/// `AdvanceDeparture` post-processing and the reschedule local operator), so a tour pushed past its
+/// cap here would never be seen again.
+///
+/// `update_route_departure` has already rewritten the schedule and the statistics behind it, so the
+/// tour's duration is the one this departure really produces.
+fn is_departure_acceptable(
+    route_ctx: &RouteContext,
+    activity: &dyn ActivityCost,
+    transport: &dyn TransportCost,
+) -> bool {
+    if !is_schedule_feasible(route_ctx.route(), activity, transport) {
+        return false;
+    }
+
+    match (route_ctx.state().get_total_duration(), route_ctx.state().get_limit_duration()) {
+        (Some(&total_duration), Some(&limit_duration)) => total_duration <= limit_duration,
+        _ => true,
+    }
 }
 
 /// Tries to move backward route's departure time.
@@ -53,11 +81,14 @@ pub fn recede_departure_time(route_ctx: &mut RouteContext, activity: &dyn Activi
     let current = route_ctx.route().tour.start().unwrap().schedule.departure;
 
     update_route_departure(route_ctx, activity, transport, new_departure_time);
-    if is_schedule_feasible(route_ctx.route(), activity, transport) {
+    // `try_recede_departure_time` clamps the move arithmetically, which assumes the tour grows by
+    // exactly the stretch the departure moved back. Reserved time can break that assumption in
+    // either direction, so the result is weighed once more here.
+    if is_departure_acceptable(route_ctx, activity, transport) {
         return;
     }
 
-    // Infeasible: restore current departure
+    // Infeasible or past the limit: restore current departure
     update_route_departure(route_ctx, activity, transport, current);
 }
 

@@ -211,6 +211,72 @@ fn can_refuse_a_later_departure_a_break_makes_infeasible() {
     assert_eq!(unassigned.iter().map(|job| job.job_id.clone()).collect::<Vec<_>>(), ["job1".to_string()]);
 }
 
+/// Moving a departure forward normally shortens a tour, so only the receding side ever weighed the
+/// duration limit. With reserved time it can lengthen one, and the two callers that move a departure
+/// - the `AdvanceDeparture` post-processing and the reschedule local operator - both run after the
+/// duration constraint has had its last word. A tour pushed past its cap there would never be seen
+/// again.
+///
+/// Both breaks are needed. Departing at 0 the vehicle idles at job1 until 60, so the 20s break due
+/// at 50 is half spent idling and costs 10; job1 leaves at 75, job2 is served 76..81, and the tour
+/// ends at 83 - inside the 100s cap. The whole-tour advance wants to depart at 59 instead, which
+/// takes the idle away: the first break is then charged in full, job1 leaves at 85, and the drive to
+/// job2 runs into the 100s break due at 84. That tour ends at 193, running 134 from its later
+/// departure.
+#[test]
+fn can_refuse_a_later_departure_that_a_break_makes_longer() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_times("job1", (1., 0.), vec![(60, 1000)], 5.),
+                create_delivery_job_with_times("job2", (2., 0.), vec![(76, 1000)], 5.),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(500.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    breaks: Some(vec![
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::ExactTime {
+                                earliest: format_time(50.),
+                                latest: format_time(50.),
+                            },
+                            duration: 20.,
+                        },
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::ExactTime {
+                                earliest: format_time(84.),
+                                latest: format_time(84.),
+                            },
+                            duration: 100.,
+                        },
+                    ]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_vehicle_type_with_max_duration_limit(100.)
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(
+        solution.tours.iter().all(|tour| tour.statistic.duration <= 100),
+        "no tour may be pushed past the cap by a later departure: {:?}",
+        solution.tours.iter().map(|tour| tour.statistic.duration).collect::<Vec<_>>()
+    );
+    assert!(solution.unassigned.is_none(), "both jobs fit at the departure the route keeps");
+}
+
 #[test]
 fn can_serve_job_when_it_starts_late() {
     let problem = Problem {
