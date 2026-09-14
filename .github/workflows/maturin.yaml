@@ -6,106 +6,109 @@ on:
 permissions:
   contents: read
 
+# vrp-cli enables pyo3's abi3-py310 feature, so each platform produces a single stable-ABI wheel
+# (cp310-abi3) that works on CPython 3.10 and every later version. No per-interpreter builds needed.
 jobs:
   linux:
+    name: Build linux wheel (${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [x86_64, armv7]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: Build wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist -i python3.10
+          args: --release --out dist
           sccache: 'true'
           manylinux: auto
+      # artifact names must be unique per job: upload-artifact v4+ rejects duplicates
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: wheels
+          name: wheels-linux-${{ matrix.target }}
           path: ./vrp-cli/dist
 
   windows:
+    name: Build windows wheel (${{ matrix.target }})
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [x64, x86]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
+          # the interpreter architecture must match the wheel architecture for linking
           architecture: ${{ matrix.target }}
       - name: Build wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist
           sccache: 'true'
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: wheels
+          name: wheels-windows-${{ matrix.target }}
           path: ./vrp-cli/dist
 
   macos:
+    name: Build macos wheel (${{ matrix.target }})
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [x86_64, aarch64]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: Build wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           working-directory: ./vrp-cli
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist
           sccache: 'true'
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: wheels
+          name: wheels-macos-${{ matrix.target }}
           path: ./vrp-cli/dist
-
-#  sdist:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#      - name: Build sdist
-#        uses: PyO3/maturin-action@v1
-#        with:
-#          working-directory: ./vrp-cli
-#          command: sdist
-#          args: --out dist
-#      - name: Upload sdist
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: wheels
-#          path: ./vrp-cli/dist
 
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [linux, windows, macos] #, sdist]
+    needs: [linux, windows, macos]
     steps:
-      - uses: actions/download-artifact@v4
+      # collect every per-platform artifact back into a single directory
+      - name: Download wheels
+        uses: actions/download-artifact@v8
         with:
-          name: wheels
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - name: List wheels
+        run: ls -l dist
+      # NOTE: PyPI trusted publishing (OIDC) would remove the need for a long-lived token here.
+      # It requires configuring a trusted publisher on the PyPI project side, then replacing
+      # MATURIN_PYPI_TOKEN with `permissions: id-token: write` on this job.
       - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --skip-existing *
+          args: --skip-existing dist/*

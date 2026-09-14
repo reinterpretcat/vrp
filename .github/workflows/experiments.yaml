@@ -4,54 +4,87 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: 'An experiment job name (collect-metrics or bench-scientific)'
+        description: 'An experiment job name'
         required: true
-
+        type: choice
+        options:
+          - collect-metrics
+          - bench-scientific
       config_url:
         description: 'An experiment config url'
         required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
 
 jobs:
   collect-metrics:
+    name: Collect metrics
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'collect-metrics' }}
+    if: ${{ inputs.job == 'collect-metrics' }}
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
-          python-version: 3.8
-
-      - uses: actions-rs/toolchain@v1
+          python-version: '3.12'
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
         with:
-          toolchain: stable
-      -  run: python ./experiments/etc/collect-metrics.py ${{ github.event.inputs.config_url }}
-
-      - name: Upload Results artifact
-        uses: actions/upload-artifact@v4
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-experiments-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-experiments-
+      # the url is passed through the environment, never interpolated into the shell command,
+      # so a crafted dispatch input cannot inject script
+      - name: Run experiment
+        env:
+          CONFIG_URL: ${{ inputs.config_url }}
+        run: python ./experiments/etc/collect-metrics.py "$CONFIG_URL"
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v7
         with:
-          name: experiments-results.csv
+          name: experiments-results
           path: experiments/etc/collect-metrics-results.csv
 
-
   bench-scientific:
+    name: Benchmark scientific instances
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.job == 'bench-scientific' }}
+    if: ${{ inputs.job == 'bench-scientific' }}
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
-          python-version: 3.8
-
-      - uses: actions-rs/toolchain@v1
+          python-version: '3.12'
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
         with:
-          toolchain: stable
-      - run: python ./experiments/etc/bench-scientific.py ${{ github.event.inputs.config_url }}
-
-      - name: Upload Results artifact
-        uses: actions/upload-artifact@v4
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-experiments-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-experiments-
+      - name: Run benchmark
+        env:
+          CONFIG_URL: ${{ inputs.config_url }}
+        run: python ./experiments/etc/bench-scientific.py "$CONFIG_URL"
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v7
         with:
           name: bench-results
           path: experiments/etc/results
-

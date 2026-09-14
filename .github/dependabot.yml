@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  # action versions silently rotted for years because nothing watched them; this is the systemic fix
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ['*']
+    commit-message:
+      prefix: 'ci'
+
+  - package-ecosystem: cargo
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # patch and minor bumps arrive as one reviewable pull request
+      cargo-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'deps'

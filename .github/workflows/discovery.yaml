@@ -8,16 +8,33 @@ on:
         required: false
         default: 'master'
 
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
 jobs:
   discovery-tests:
+    name: Property and discovery tests
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.branch }}
-
+          ref: ${{ inputs.branch }}
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-discovery-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-discovery-
       - name: Build and run discovery tests
-        run: RUST_BACKTRACE=1 cargo test --release -- --ignored discovery
-
+        run: cargo test --locked --release -- --ignored discovery

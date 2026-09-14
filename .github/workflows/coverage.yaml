@@ -2,39 +2,61 @@ name: Measure code coverage
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
-# we set `opt-level = 1` in profile.test globally, but this affects code coverage, so we reset it here
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  # profile.test sets opt-level = 1 globally, which distorts coverage line mapping, so reset it here
   CARGO_PROFILE_TEST_OPT_LEVEL: 0
 
 jobs:
   measure-test-coverage:
+    name: Tarpaulin
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: actions/checkout@v7
+      # ~/.cargo/bin is cached so cargo-tarpaulin is compiled once rather than on every run
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
         with:
-          toolchain: stable
-          override: true
-
-      - name: Generate code coverage
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-coverage-
+      - name: Install cargo-tarpaulin
         run: |
-          cargo install --features vendored-openssl cargo-tarpaulin
-          cargo tarpaulin --exclude-files *_test.rs *tests* *benches* *heuristic-research* --out xml
-
+          if ! command -v cargo-tarpaulin >/dev/null; then
+            cargo install cargo-tarpaulin --locked
+          fi
+          cargo tarpaulin --version
+      - name: Generate code coverage
+        run: >-
+          cargo tarpaulin --locked
+          --exclude-files '*_test.rs' '*tests*' '*benches*' '*heuristic-research*'
+          --out xml
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1.0.2
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          token: ${{secrets.CODECOV_TOKEN}}
-
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./cobertura.xml
+          fail_ci_if_error: false
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: code-coverage-report
           path: cobertura.xml

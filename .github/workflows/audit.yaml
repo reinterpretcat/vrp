@@ -5,11 +5,38 @@ on:
     paths:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
+      - '.github/workflows/audit.yaml'
+  pull_request:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '.github/workflows/audit.yaml'
+  # advisories are published against versions we already depend on, so a manifest-only trigger can
+  # never see them: the tree must be re-checked against the advisory database on a schedule
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   security-audit:
+    name: cargo audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # the action reports findings as a check run, and opens an issue for scheduled runs
+      checks: write
+      issues: write
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/audit-check@v1
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Audit dependencies
+        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

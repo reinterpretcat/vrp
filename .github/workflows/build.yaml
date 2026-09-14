@@ -2,58 +2,151 @@ name: Build
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
+
+# least privilege: none of these jobs write to the repository
+permissions:
+  contents: read
+
+# a superseded push should stop burning runner minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # incremental artifacts are useless across runners and bloat the cache
+  CARGO_INCREMENTAL: 0
 
 jobs:
-  test-build:
+  lint:
+    name: Format and lint
     runs-on: ubuntu-latest
     steps:
-    - name: Check out the repo
-      uses: actions/checkout@v2
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-lint-
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      # --all-targets also covers benches, which the previous --tests --examples missed
+      - name: Run clippy
+        run: cargo clippy --locked --workspace --all-features --all-targets -- -D warnings
 
-    - name: Build and run tests
-      run: cargo test --verbose --benches
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-test-
+      - name: Build and run tests
+        run: cargo test --locked --workspace --benches
+      - name: Build and run examples
+        run: |
+          cargo run --locked --example cvrp
+          cargo run --locked --example pdptw
+          cargo run --locked --example custom_constraint
+          cargo run --locked --example custom_objective
 
-    - name: Build and run examples
-      run: |
-        cargo run --example cvrp
-        cargo run --example pdptw
-        cargo run --example custom_constraint
-        cargo run --example custom_objective
-
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-    - name: Run clippy
-      uses: actions-rs/cargo@v1
-      with:
-        command: clippy
-        args: --all-features --tests --examples -- -D warnings
+  msrv:
+    name: Minimum supported Rust version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      # read the MSRV from the workspace manifest so there is a single source of truth
+      - name: Resolve MSRV
+        id: msrv
+        run: |
+          version="$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          if [ -z "${version}" ]; then echo "no rust-version in Cargo.toml" >&2; exit 1; fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "resolved MSRV: ${version}"
+      - name: Install MSRV toolchain
+        run: rustup toolchain install "${{ steps.msrv.outputs.version }}" --profile minimal --no-self-update
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-msrv-${{ steps.msrv.outputs.version }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-msrv-${{ steps.msrv.outputs.version }}-
+      - name: Check against MSRV
+        run: cargo "+${{ steps.msrv.outputs.version }}" check --locked --workspace --all-features --all-targets
 
   release-build:
+    name: Release build
     runs-on: ubuntu-latest
     steps:
-    - name: Check out the repo
-      uses: actions/checkout@v2
-
-    - name: Release build
-      run: cargo build --release --verbose
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-release-
+      - name: Release build
+        run: cargo build --locked --release --verbose
 
   wasm-build:
+    name: WebAssembly build
     runs-on: ubuntu-latest
     steps:
-    - name: Check out the repo
-      uses: actions/checkout@v2
-
-    - name: Build WebAssembly
-      run: |
-        curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-        cd vrp-cli
-        wasm-pack build --target web
-
-    - name: Upload WebAssembly artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: vrp_cli_wasm
-        path: vrp-cli/pkg/
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      # ~/.cargo/bin is cached so wasm-pack is compiled once rather than on every run
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-wasm-
+      # installed from crates.io, whose checksums cargo verifies, instead of piping a remote
+      # installer script into a shell on every run
+      - name: Install wasm-pack
+        run: |
+          if ! command -v wasm-pack >/dev/null; then
+            cargo install wasm-pack --locked
+          fi
+          wasm-pack --version
+      - name: Build WebAssembly
+        working-directory: ./vrp-cli
+        run: wasm-pack build --target web
+      - name: Upload WebAssembly artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: vrp_cli_wasm
+          path: vrp-cli/pkg/
