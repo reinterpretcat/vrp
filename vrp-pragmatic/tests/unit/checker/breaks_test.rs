@@ -151,3 +151,62 @@ fn can_check_breaks_impl(
 
     assert_eq!(result, expected_result);
 }
+
+#[test]
+fn can_match_a_break_between_two_activities_at_one_stop() {
+    // A stop holding [job1, break, job2]: the break is neither the first nor the last
+    // activity at that stop. The old windows(2) matcher counted it twice - once as `to`
+    // in the window [job1, break], once as `from` in the window [break, job2] - even
+    // though there is only one break activity to match.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (1., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
+                    breaks: Some(vec![VehicleBreak::Optional {
+                        time: get_time_break(2., 4.),
+                        places: vec![VehicleOptionalBreakPlace { duration: 2.0, location: None, tag: None }],
+                        policy: None,
+                    }]),
+                    ..create_default_open_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().coordinate((0., 0.)).schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .coordinate((1., 0.))
+                        .schedule_stamp(1., 5.)
+                        .load(vec![0])
+                        .distance(1)
+                        .activity(ActivityBuilder::delivery().job_id("job1").time_stamp(1., 2.).build())
+                        .activity(ActivityBuilder::break_type().time_stamp(2., 4.).build())
+                        .activity(ActivityBuilder::delivery().job_id("job2").time_stamp(4., 5.).build())
+                        .build(),
+                    StopBuilder::default()
+                        .coordinate((0., 0.))
+                        .schedule_stamp(6., 6.)
+                        .load(vec![0])
+                        .distance(2)
+                        .build_arrival(),
+                ])
+                .build(),
+        )
+        .build();
+
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
+
+    assert_eq!(check_breaks(&ctx), Ok(()));
+}
