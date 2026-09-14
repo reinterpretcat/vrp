@@ -219,8 +219,10 @@ impl TravelLimitConstraint {
     /// own service — or reached by a later activity once the insertion pushes it into the window —
     /// lands in the tour's duration without ever being weighed against the limit.
     ///
-    /// For those actors the duration is therefore replayed rather than estimated. Everyone else
-    /// keeps the delta, and pays nothing for this.
+    /// For those actors the duration is therefore replayed rather than estimated. So is the one case
+    /// where the delta is blind to the measurement itself rather than to what fills the tour — an
+    /// insertion that moves a `FirstJobTo*` span's anchor, which needs no break to go wrong. Everyone
+    /// else keeps the delta, and pays a single index comparison for this.
     fn calculate_total_duration(
         &self,
         route_ctx: &RouteContext,
@@ -229,9 +231,14 @@ impl TravelLimitConstraint {
         duration_limit: Duration,
     ) -> Duration {
         let delta_duration = route_ctx.state().get_total_duration().copied().unwrap_or(0.) + change_duration;
+        let is_delta_blind_to_span = self.is_delta_blind_to_span(route_ctx, activity_ctx);
 
         let Some(reserved_total) = self.reserved_time_total(route_ctx) else {
-            return delta_duration - self.reclaimable_leading_wait(route_ctx, activity_ctx);
+            return if is_delta_blind_to_span {
+                self.replay_total_duration(route_ctx, activity_ctx, duration_limit)
+            } else {
+                delta_duration - self.reclaimable_leading_wait(route_ctx, activity_ctx)
+            };
         };
 
         // The walk cannot come out above this: the delta already over-states how far the insertion
@@ -244,7 +251,7 @@ impl TravelLimitConstraint {
         // NOTE the bound is taken against the delta *without* `reclaimable_leading_wait`. A walk that
         // has to give the idle stretch back — the departure the route wanted turns out infeasible or
         // over the cap — lands above the reclaimed figure by exactly that stretch.
-        if !self.is_delta_blind_to_span(route_ctx, activity_ctx) && delta_duration + reserved_total <= duration_limit {
+        if !is_delta_blind_to_span && delta_duration + reserved_total <= duration_limit {
             return delta_duration;
         }
 
@@ -256,15 +263,19 @@ impl TravelLimitConstraint {
         self.reserved_time_totals.as_ref().and_then(|totals| totals.get(&route_ctx.route().actor).copied())
     }
 
-    /// Whether the travel delta misses a part of what this insertion does to the tour's measured
-    /// duration, which takes the bound the dominance guard rests on away from it.
+    /// Whether the travel delta misses a part of what this insertion does to the tour's *measured*
+    /// duration — not to what fills the tour, but to where the measurement starts.
     ///
     /// `calculate_travel_delta` prices legs; it knows nothing of the shift's `RouteCostSpan`. A
-    /// `FirstJobTo*` span is measured from the first job's arrival, and an insertion in front of the
-    /// first job moves that anchor earlier — by the whole difference between the two depot legs,
-    /// which the delta never reports. The tour can then be hours longer than `delta + reserved_total`
-    /// while the guard reads it as having room to spare. The walk itself gets this right, so all the
-    /// guard has to do is stand aside.
+    /// `FirstJobTo*` span is measured from the first job's arrival (`calculate_route_duration`), and
+    /// an insertion in front of the first job moves that anchor earlier — by the whole difference
+    /// between the two depot legs, which the delta never reports. The tour can then run hours longer
+    /// than the delta says while the limit reads it as having room to spare.
+    ///
+    /// This needs no reserved time to go wrong, so both paths consult it: the walk handles the moved
+    /// anchor (`replay_tail`), the delta cannot, and the dominance guard has no bound to stand on
+    /// while it holds. It is asked index-first so that a shift which is not in this case pays one
+    /// integer comparison per position and reads the span on the single leg at index 0.
     fn is_delta_blind_to_span(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> bool {
         activity_ctx.index == 0
             && matches!(

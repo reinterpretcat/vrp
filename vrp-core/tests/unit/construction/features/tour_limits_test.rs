@@ -567,9 +567,11 @@ mod traveling {
         assert_eq!(result, None);
     }
 
-    /// A route on a `FirstJobTo*` span that already serves one far job, arriving at 102 and leaving
-    /// at 112. Under that span the tour is measured from the first job's arrival, so it runs 110.
-    fn create_route_with_one_far_job(cost_span: RouteCostSpan) -> RouteContext {
+    /// A route on a `FirstJobTo*` span that already serves one job 100 seconds out, on the schedule
+    /// the caller's world gives it. Under that span the tour is measured from the first job's arrival
+    /// and runs 110 either way: on a shift with the 2s break below the job is reached at 102 and the
+    /// depot at 212, on a shift without it at 100 and 210.
+    fn create_route_with_one_far_job(cost_span: RouteCostSpan, far_job_schedule: Schedule) -> RouteContext {
         let mut vehicle = test_vehicle_with_id("v1");
         vehicle.dimens.set_route_cost_span(cost_span);
         let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle).build();
@@ -584,7 +586,7 @@ mod traveling {
 
         route_ctx.route_mut().tour.insert_last(
             ActivityBuilder::with_location_tw_and_duration(100, TimeWindow::new(0., 1000.), 10.)
-                .schedule(Schedule::new(102., 112.))
+                .schedule(far_job_schedule)
                 .build(),
         );
 
@@ -619,7 +621,7 @@ mod traveling {
         // from the far job's arrival at 102 to this one's at 1 - 101 seconds the delta never reports.
         // It prices the insertion at 110 + 10 = 120, which with the shift's 2 seconds of break still
         // reads as fitting a cap of 130; the tour really runs 222 - 1 = 221.
-        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot);
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot, Schedule::new(102., 112.));
         let feature = create_limit_feature(&route_ctx, "v1", (None, Some(130.)), vec![reserved_time(50., 2.)]);
 
         let result = evaluate_insertion_in_front(&feature, &route_ctx, &near_activity());
@@ -630,8 +632,48 @@ mod traveling {
     #[test]
     fn can_still_take_a_first_job_when_the_cap_covers_the_moved_anchor() {
         // the same insertion against a cap with room for all 221 of it
-        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot);
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot, Schedule::new(102., 112.));
         let feature = create_limit_feature(&route_ctx, "v1", (None, Some(250.)), vec![reserved_time(50., 2.)]);
+
+        let result = evaluate_insertion_in_front(&feature, &route_ctx, &near_activity());
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn can_charge_a_moved_first_job_anchor_on_a_shift_without_any_break() {
+        // The moved anchor needs no reserved time to go wrong: the delta is blind to the span, not to
+        // the break. Same shift and same insertion, with no break at all - the far job is reached at
+        // 100 and the depot at 210, a tour of 110 under this span. Putting a job one second outside
+        // the depot in front of it moves the anchor from 100 to 1, which the delta does not report:
+        // it prices the insertion at 110 + 10 = 120 against a cap of 130, while the tour runs
+        // 220 - 1 = 219.
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot, Schedule::new(100., 110.));
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(130.)), Vec::new());
+
+        let result = evaluate_insertion_in_front(&feature, &route_ctx, &near_activity());
+
+        assert_eq!(result, ConstraintViolation::skip(DURATION_CODE));
+    }
+
+    #[test]
+    fn can_still_take_a_first_job_without_a_break_when_the_cap_covers_it() {
+        // the same insertion against a cap with room for all 219 of it
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToDepot, Schedule::new(100., 110.));
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(250.)), Vec::new());
+
+        let result = evaluate_insertion_in_front(&feature, &route_ctx, &near_activity());
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn can_leave_a_depot_span_without_a_break_on_the_delta() {
+        // The carve-out is the span's, not the index's. The same insertion on the default
+        // `DepotToDepot` shift keeps the delta: the tour is measured from the start depot, which the
+        // insertion does not move, so 120 is what it costs and a cap of 130 takes it.
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::DepotToDepot, Schedule::new(100., 110.));
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(130.)), Vec::new());
 
         let result = evaluate_insertion_in_front(&feature, &route_ctx, &near_activity());
 
