@@ -718,7 +718,7 @@ checksum = "fc0fef456e4baa96da950455cd02c081ca953b141298e41db3fc7e36b1da849c"
 
 [[package]]
 name = "heuristic-research"
-version = "0.1.18"
+version = "1.25.0"
 dependencies = [
  "itertools 0.14.0",
  "lazy_static",
@@ -849,7 +849,7 @@ dependencies = [
 
 [[package]]
 name = "json-pragmatic"
-version = "0.1.18"
+version = "1.25.0"
 dependencies = [
  "vrp-pragmatic",
 ]
@@ -1706,7 +1706,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-cli"
-version = "0.1.18"
+version = "1.25.0"
 dependencies = [
  "clap",
  "csv",
@@ -1726,7 +1726,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-core"
-version = "0.1.18"
+version = "1.25.0"
 dependencies = [
  "lazy_static",
  "nohash-hasher",
@@ -1740,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-pragmatic"
-version = "0.1.18"
+version = "1.25.0"
 dependencies = [
  "criterion",
  "paste",
@@ -1755,7 +1755,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-scientific"
-version = "0.1.18"
+version = "1.25.0"
 dependencies = [
  "criterion",
  "paste",

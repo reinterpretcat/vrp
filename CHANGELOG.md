@@ -32,36 +32,6 @@ are already published. So, I stick to it for now.
   tours are actually consolidated
 
 
-## [0.1.18] 2026-09-14
-
-### Changed
-
-* a vehicle shift's job times (`earliestFirst`/`latestLast`) are now enforced as a clamp on the schedule instead of a
-  positional constraint: `JobTimeBoundsActivityCost` wraps the activity cost outside the reserved times, holding a
-  service start at the lower bound — which makes the vehicle wait rather than serve early — and capping the latest
-  departure against the upper bound
-
-### Added
-
-* the solution checker reports a tour whose first job starts before its shift's `earliestFirst`, or whose last job
-  departs after `latestLast`
-* validation refuses a shift whose job times pair cannot be met — `latestLast` not after `earliestFirst`, or either
-  one outside the shift's own time window — since no plan could satisfy it (`E1309`)
-
-### Fixed
-
-* the checker's break rule counted a break twice when it sat between two other activities at one stop, matching it
-  once as the leading half of one sliding pair and once as the trailing half of the next, and reported "cannot match
-  all breaks" against a tour that was correct
-
-### Removed
-
-* the positional `job_time_limits` feature and its violation code 18 (`JOB_TIME_CONSTRAINT`): it reasoned about the
-  moment of insertion and held no state, so a job inserted ahead of the last one could push it past the bound
-  unnoticed, and the lower bound filtered where it should have made the vehicle wait; `VEHICLE_GROUP_CONSTRAINT`
-  takes its slot to keep the codes dense
-
-
 ## [1.25.0] 2024-11-10
 
 This release focuses on improving heuristic and some performance optimizations.
