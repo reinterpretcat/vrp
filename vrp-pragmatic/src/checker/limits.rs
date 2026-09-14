@@ -49,9 +49,7 @@ fn check_shift_limits(context: &CheckerContext) -> GenericResult<()> {
                     .stops
                     .iter()
                     .flat_map(|stop| stop.activities())
-                    .filter(|activity| {
-                        !matches!(activity.activity_type.as_str(), "departure" | "arrival" | "break" | "reload" | "recharge")
-                    })
+                    .filter(|activity| is_stop_activity(activity))
                     .count();
 
                 if tour_activities > tour_size_limit {

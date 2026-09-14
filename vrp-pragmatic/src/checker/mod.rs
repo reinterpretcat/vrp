@@ -381,6 +381,17 @@ fn job_task_size(tasks: &Option<Vec<JobTask>>) -> usize {
     tasks.as_ref().map_or(0, |p| p.len())
 }
 
+/// Whether a reported activity is a customer visit. A departure, an arrival, a break, a reload and
+/// a recharge ride on the tour as activities, but none of them is a visit the plan asked for, and
+/// two rules ask: `tourSize` leaves them out of the count, and the shift's appointment bounds do
+/// not govern when they may happen.
+///
+/// This is the solution-side twin of `format::dimensions::is_stop`, which answers the same question
+/// about a problem-side `Single`. The two must agree.
+fn is_stop_activity(activity: &Activity) -> bool {
+    !matches!(activity.activity_type.as_str(), "departure" | "arrival" | "break" | "reload" | "recharge")
+}
+
 fn match_job_task<'a>(
     activity_type: &str,
     job: &'a Job,

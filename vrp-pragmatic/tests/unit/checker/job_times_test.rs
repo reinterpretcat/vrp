@@ -123,6 +123,46 @@ fn can_detect_job_departed_after_latest_last() {
 }
 
 #[test]
+fn can_accept_break_that_shares_the_last_job_stop_and_outlives_the_bound() {
+    // The last appointment is served 5..6 and the bound closes at 7, so the tour is legal. A break
+    // then runs 6..10 on the very same stop, which carries the STOP's departure to 10. Reading the
+    // stop's departure instead of the appointment's own end reports a violation against a tour the
+    // clamp built correctly — and the bound never governed the break.
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![shift_with_job_times(None, Some("1970-01-01T00:00:07Z"))],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let solution = SolutionBuilder::default()
+        .tour(
+            TourBuilder::default()
+                .stops(vec![
+                    StopBuilder::default().schedule_stamp(0., 0.).load(vec![1]).build_departure(),
+                    StopBuilder::default()
+                        .schedule_stamp(5., 10.)
+                        .load(vec![0])
+                        .distance(5)
+                        .activities(vec![
+                            ActivityBuilder::delivery().job_id("job1").time_stamp(5., 6.).build(),
+                            ActivityBuilder::break_type().time_stamp(6., 10.).build(),
+                        ])
+                        .build(),
+                    StopBuilder::default().schedule_stamp(15., 15.).load(vec![0]).build_arrival(),
+                ])
+                .build(),
+        )
+        .build();
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
+
+    assert_eq!(check_job_times(&ctx), Ok(()));
+}
+
+#[test]
 fn can_ignore_break_only_stops_when_picking_first_and_last_job() {
     // A break-only stop precedes and follows the sole real job. The bounds sit tight around
     // that job's own timing: if a break stop were mistaken for a job stop on either end, its

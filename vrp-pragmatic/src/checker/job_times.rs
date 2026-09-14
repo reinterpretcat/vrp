@@ -23,12 +23,10 @@ fn check_job_time_bounds(context: &CheckerContext) -> GenericResult<()> {
             .stops
             .iter()
             .flat_map(|stop| stop.activities().iter().map(move |activity| (stop, activity)))
-            .filter(|(_, activity)| {
-                !matches!(activity.activity_type.as_str(), "departure" | "arrival" | "break" | "reload" | "recharge")
-            })
+            .filter(|(_, activity)| is_stop_activity(activity))
             .collect::<Vec<_>>();
 
-        let (Some(&(first_stop, first_activity)), Some(&(last_stop, _))) =
+        let (Some(&(first_stop, first_activity)), Some(&(last_stop, last_activity))) =
             (job_activities.first(), job_activities.last())
         else {
             return Ok(());
@@ -55,12 +53,16 @@ fn check_job_time_bounds(context: &CheckerContext) -> GenericResult<()> {
 
         if let Some(latest_last) = job_times.latest_last.as_ref() {
             let latest = parse_time(latest_last);
-            let departure = parse_time(&last_stop.schedule().departure);
+            // The appointment's own departure, not the stop's: a break, a reload or a recharge
+            // sharing the last appointment's stop carries the stop past the bound, and the bound
+            // never governed it. Reading the stop here reports a violation against a tour the
+            // clamp built correctly.
+            let departure = context.get_activity_time(last_stop, last_activity).end;
 
             if departure > latest {
                 return Err(format!(
                     "job time bound violation: last job departs at {}, latest allowed is {}, vehicle id '{}', shift index: {}",
-                    last_stop.schedule().departure,
+                    format_time(departure),
                     latest_last,
                     tour.vehicle_id,
                     tour.shift_index
