@@ -219,13 +219,14 @@ impl TravelLimitConstraint {
         activity_ctx: &ActivityContext,
         change_duration: Duration,
     ) -> Duration {
-        let total_duration = if self.has_reserved_time(route_ctx) {
+        if self.has_reserved_time(route_ctx) {
+            // the replay already departs where the route will depart, so there is nothing left to
+            // reclaim from it
             self.replay_total_duration(route_ctx, activity_ctx)
         } else {
             route_ctx.state().get_total_duration().copied().unwrap_or(0.) + change_duration
-        };
-
-        total_duration - self.reclaimable_leading_wait(route_ctx, activity_ctx)
+                - self.reclaimable_leading_wait(route_ctx, activity_ctx)
+        }
     }
 
     /// Whether this route's actor carries reserved time at all.
@@ -239,12 +240,21 @@ impl TravelLimitConstraint {
     /// to the stretch the insertion can move: the activities in front of the target keep the
     /// schedules they already have. It goes through the same activity and transport costs, so it
     /// charges reserved time exactly where the accepted route will be charged for it.
+    ///
+    /// A route that is still empty is replayed from the departure it will move to rather than the
+    /// shift's `earliest` it currently sits at — `apply_insertion` advances a new route's departure
+    /// the moment the first job goes in. That is the same stretch `reclaimable_leading_wait`
+    /// reclaims, taken at the front instead of subtracted at the end, which matters here because a
+    /// reserved window is charged differently depending on whether it falls into idling or into
+    /// work: leaving later can drop a break out of the tour altogether, or move it out of the idle
+    /// and into the service where it is charged in full.
     fn replay_total_duration(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Duration {
         let route = route_ctx.route();
+        let leading_wait = self.reclaimable_leading_wait(route_ctx, activity_ctx);
         let tail = once(activity_ctx.target).chain(route.tour.all_activities().skip(activity_ctx.index + 1));
 
         let mut location = activity_ctx.prev.place.location;
-        let mut departure = activity_ctx.prev.schedule.departure;
+        let mut departure = activity_ctx.prev.schedule.departure + leading_wait;
         let mut target_arrival = Timestamp::default();
         let mut last_job_departure = None;
 
@@ -264,7 +274,9 @@ impl TravelLimitConstraint {
             }
         }
 
-        let start_departure = route.tour.start().map_or(Timestamp::default(), |start| start.schedule.departure);
+        // `leading_wait` is zero unless the route is still empty, in which case `prev` is the start
+        let start_departure =
+            route.tour.start().map_or(Timestamp::default(), |start| start.schedule.departure) + leading_wait;
         // the target takes over as the first job only when it goes in right behind the start
         let first_job_arrival = if activity_ctx.index == 0 {
             target_arrival
@@ -297,8 +309,9 @@ impl TravelLimitConstraint {
     /// a break (`TimeSpan::Offset`) cannot be present either. Routes that already carry a job are
     /// left alone — there the shift is bounded by the existing activities.
     ///
-    /// It is subtracted from the replayed duration too, so that a shift with reserved time keeps
-    /// the same right to open a tour with a late time window as any other.
+    /// A shift with reserved time keeps the same right to open a tour with a late time window: the
+    /// replay departs this much later instead of subtracting the stretch afterwards, which is the
+    /// same relief and gets the break charge right on top of it.
     fn reclaimable_leading_wait(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Duration {
         if route_ctx.route().tour.job_count() != 0 {
             return Duration::default();

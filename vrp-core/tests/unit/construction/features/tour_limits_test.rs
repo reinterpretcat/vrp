@@ -509,6 +509,64 @@ mod traveling {
         assert_eq!(result, None);
     }
 
+    fn create_empty_route() -> RouteContext {
+        let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
+
+        RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
+            .with_state(RouteState::default())
+            .build()
+    }
+
+    fn evaluate_first_insertion(
+        feature: &Feature,
+        route_ctx: &RouteContext,
+        target: &Activity,
+    ) -> Option<ConstraintViolation> {
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let prev = route_ctx.route().tour.get(0).unwrap();
+        let next = route_ctx.route().tour.get(1).unwrap();
+
+        feature.constraint.as_ref().unwrap().evaluate(&MoveContext::activity(
+            &solution_ctx,
+            route_ctx,
+            &ActivityContext { index: 0, prev, target, next: Some(next) },
+        ))
+    }
+
+    /// The first job of a tour, at location 1, working from 500 for 10 seconds.
+    fn late_first_activity() -> Activity {
+        ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(500., 1000.), 10.).build()
+    }
+
+    #[test]
+    fn can_charge_reserved_time_a_new_route_meets_once_it_departs_later() {
+        // A break due at 480 and lasting 60 seconds, on a route that has nothing on it yet. The
+        // job's window opens at 500, so the route will not idle at the depot until then: it departs
+        // at 499 and drives into the break, which now costs the full 60 seconds and puts the tour at
+        // 72. Charging the break against the idling it will not do would have priced the tour at 52.
+        let route_ctx = create_empty_route();
+        assert_eq!(route_ctx.route().tour.job_count(), 0);
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(60.)), vec![reserved_time(480., 60.)]);
+
+        let result = evaluate_first_insertion(&feature, &route_ctx, &late_first_activity());
+
+        assert_eq!(result, ConstraintViolation::skip(DURATION_CODE));
+    }
+
+    #[test]
+    fn can_open_a_tour_with_a_late_window_on_a_shift_that_has_a_break() {
+        // The same route under a cap of 80: the tour is 72 seconds long and fits. Were the idle
+        // stretch in front of the job charged against the cap, the tour would price at 551 and no
+        // late window could ever open a tour on a shift that declares a break.
+        let route_ctx = create_empty_route();
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(80.)), vec![reserved_time(480., 60.)]);
+
+        let result = evaluate_first_insertion(&feature, &route_ctx, &late_first_activity());
+
+        assert_eq!(result, None);
+    }
+
     #[test]
     fn can_leave_a_shift_without_reserved_time_alone() {
         // the same insertion under the same cap, on a shift that declares no break: 156 fits under
