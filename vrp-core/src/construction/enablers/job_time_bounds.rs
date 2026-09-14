@@ -3,35 +3,48 @@
 mod job_time_bounds_test;
 
 use crate::models::common::*;
-use crate::models::problem::{ActivityCost, JobTimeConstraints, JobTimeConstraintsDimension};
+use crate::models::problem::{ActivityCost, JobTimeConstraints, JobTimeConstraintsDimension, Single};
 use crate::models::solution::{Activity, Route};
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
-/// Applies a shift's appointment bounds to every job activity on it.
+/// A function which tells whether a job's activity is an appointment the shift's bounds apply to.
+/// A break, a reload or a recharge is a job sitting on the tour too, but it is not an appointment,
+/// and what makes one is a property of the format, not of the core — so the caller injects it.
+pub type IsAppointmentFn = Arc<dyn Fn(&Single) -> bool + Sync + Send>;
+
+/// Applies a shift's appointment bounds to the appointment activities on it.
 ///
 /// The bounds are a property of the technician's day, not of the job, so they
 /// cannot live in a job's time window. They are applied where the schedule is
-/// actually produced: forward, by raising a job's service start to the lower
-/// bound — which is what makes the vehicle wait rather than serve early — and
-/// backward, by capping the latest departure, which tightens `latest_arrival`
+/// actually produced: forward, by raising an appointment's service start to the
+/// lower bound — which is what makes the vehicle wait rather than serve early —
+/// and backward, by capping the latest departure, which tightens `latest_arrival`
 /// for every activity before it.
+///
+/// Driving is untouched, and so is anything `is_appointment` rejects: a day
+/// bounded to 08:00 does not push a 07:00 break into the appointment window.
 ///
 /// ⚠️ Wraps the outside of a reserved-time cost, never the inside: the upper
 /// bound has to be tested against the departure a required break has already
 /// inflated.
 pub struct JobTimeBoundsActivityCost {
     inner: Arc<dyn ActivityCost>,
+    is_appointment: IsAppointmentFn,
 }
 
 impl JobTimeBoundsActivityCost {
     /// Creates a new instance of `JobTimeBoundsActivityCost`.
-    pub fn new(inner: Arc<dyn ActivityCost>) -> Self {
-        Self { inner }
+    pub fn new(inner: Arc<dyn ActivityCost>, is_appointment: IsAppointmentFn) -> Self {
+        Self { inner, is_appointment }
     }
 
-    fn bounds(route: &Route, activity: &Activity) -> Option<JobTimeConstraints> {
-        activity.job.as_ref()?;
+    fn bounds(&self, route: &Route, activity: &Activity) -> Option<JobTimeConstraints> {
+        let single = activity.job.as_ref()?;
+
+        if !(self.is_appointment)(single) {
+            return None;
+        }
 
         let bounds = route.actor.vehicle.dimens.get_job_time_constraints().copied()?;
 
@@ -46,7 +59,7 @@ impl ActivityCost for JobTimeBoundsActivityCost {
         activity: &Activity,
         arrival: Timestamp,
     ) -> ControlFlow<Timestamp, Timestamp> {
-        let Some(bounds) = Self::bounds(route, activity) else {
+        let Some(bounds) = self.bounds(route, activity) else {
             return self.inner.estimate_departure(route, activity, arrival);
         };
 
@@ -70,7 +83,7 @@ impl ActivityCost for JobTimeBoundsActivityCost {
         activity: &Activity,
         departure: Timestamp,
     ) -> ControlFlow<Timestamp, Timestamp> {
-        let Some(bounds) = Self::bounds(route, activity) else {
+        let Some(bounds) = self.bounds(route, activity) else {
             return self.inner.estimate_arrival(route, activity, departure);
         };
 

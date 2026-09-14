@@ -1,7 +1,7 @@
 use super::*;
 use crate::format::problem::clustering_reader::create_cluster_config;
 use crate::format::problem::fleet_reader::*;
-use crate::format::problem::goal_reader::create_goal_context;
+use crate::format::problem::goal_reader::{create_goal_context, is_stop};
 use crate::format::problem::job_reader::{read_jobs_with_extra_locks, read_locks};
 use crate::format::{FormatError, JobIndex};
 use crate::validation::ValidationContext;
@@ -230,9 +230,11 @@ fn get_problem_blocks(
     };
 
     // the appointment bounds wrap the outside of the reserved times: the upper bound has to be
-    // tested against the departure a required break has already inflated.
+    // tested against the departure a required break has already inflated. `is_stop` keeps them off
+    // the break, reload and recharge activities themselves — core sees those as jobs, but the
+    // bounds say when appointments may happen, not when a break may.
     let activity: Arc<dyn ActivityCost> = if problem_props.has_job_time_constraints {
-        Arc::new(JobTimeBoundsActivityCost::new(activity))
+        Arc::new(JobTimeBoundsActivityCost::new(activity, Arc::new(is_stop)))
     } else {
         activity
     };

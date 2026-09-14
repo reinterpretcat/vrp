@@ -893,10 +893,11 @@ where
         .collect()
 }
 
-/// Whether a job's activity is a stop for the purposes of `tourSize` / `minTourSize`. A break, a
-/// reload or a recharge is on the tour as an activity, but it is not a customer visit, so the two
-/// limits leave it out — a cap of ten stops means ten stops whether or not a break is taken.
-fn is_stop(single: &Single) -> bool {
+/// Whether a job's activity is a customer visit. A break, a reload or a recharge is on the tour as
+/// an activity, but it is not one, so `tourSize` / `minTourSize` leave it out — a cap of ten stops
+/// means ten stops whether or not a break is taken — and so do the shift's appointment bounds,
+/// which govern when appointments may happen and say nothing about when a break may.
+pub(super) fn is_stop(single: &Single) -> bool {
     !matches!(single.dimens.get_job_type().map(String::as_str), Some("break" | "reload" | "recharge"))
 }
 
