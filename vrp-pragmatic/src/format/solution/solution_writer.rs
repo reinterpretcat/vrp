@@ -324,11 +324,15 @@ fn format_schedule(schedule: &DomainSchedule) -> ApiSchedule {
 /// Returns the lower appointment bound the activity is held back by, if its shift declares one.
 ///
 /// Gated on `is_stop`, exactly as the wiring in `problem_reader` gates `JobTimeBoundsActivityCost`:
-/// a break, a reload and a recharge are jobs on the tour that the bounds do not govern, and the two
-/// sides have to answer that the same way or the tour reports a wait the solver never took.
+/// the two sides have to answer "is this an appointment?" the same way, or the tour reports a wait
+/// the solver never took.
 fn get_earliest_first(route: &Route, activity: &Activity) -> Option<Timestamp> {
     let single = activity.job.as_ref()?;
 
+    // A break, a reload and a recharge are jobs on the tour that the bounds do not govern, so the
+    // bound never moves their service start. A break cannot reach one in any case today, because it
+    // may not be a tour's first activity (`breaks.rs:157`) and whatever appointment precedes it has
+    // already started at the bound.
     if !is_stop(single) {
         return None;
     }
