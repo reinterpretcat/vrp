@@ -3,7 +3,6 @@
 mod random_test;
 
 use crate::utils::Float;
-use rand::Error;
 use rand::prelude::*;
 use rand_distr::{Gamma, Normal};
 use std::cell::RefCell;
@@ -97,7 +96,7 @@ impl Random for DefaultRandom {
         }
 
         assert!(min < max);
-        self.get_rng().gen_range(min..max + 1)
+        self.get_rng().random_range(min..max + 1)
     }
 
     fn uniform_real(&self, min: Float, max: Float) -> Float {
@@ -106,16 +105,16 @@ impl Random for DefaultRandom {
         }
 
         assert!(min < max);
-        self.get_rng().gen_range(min..max)
+        self.get_rng().random_range(min..max)
     }
 
     fn is_head_not_tails(&self) -> bool {
-        self.get_rng().gen_bool(0.5)
+        self.get_rng().random_bool(0.5)
     }
 
     fn is_hit(&self, probability: Float) -> bool {
         #![allow(clippy::unnecessary_cast)]
-        self.get_rng().gen_bool(probability.clamp(0., 1.) as f64)
+        self.get_rng().random_bool(probability.clamp(0., 1.) as f64)
     }
 
     fn weighted(&self, weights: &[usize]) -> usize {
@@ -135,7 +134,7 @@ impl Random for DefaultRandom {
 
 thread_local! {
     /// Random generator seeded from thread_rng to make runs non-repeatable.
-    static RANDOMIZED_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(thread_rng()).expect("cannot get RNG from thread rng"));
+    static RANDOMIZED_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::from_rng(&mut rand::rng()));
 
     /// Random generator seeded with 0 SmallRng to make runs repeatable.
     static REPEATABLE_RNG: RefCell<SmallRng> = RefCell::new(SmallRng::seed_from_u64(0));
@@ -184,17 +183,7 @@ impl RngCore for RandomGen {
             RANDOMIZED_RNG.with(|t| t.borrow_mut().fill_bytes(dest))
         }
     }
-
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
-        if self.use_repeatable {
-            REPEATABLE_RNG.with(|t| t.borrow_mut().try_fill_bytes(dest))
-        } else {
-            RANDOMIZED_RNG.with(|t| t.borrow_mut().try_fill_bytes(dest))
-        }
-    }
 }
-
-impl CryptoRng for RandomGen {}
 
 /// Returns an index of max element in values. In case of many same max elements,
 /// returns the one from them at random.
@@ -209,7 +198,7 @@ where
         .max_by(move |(_, r), (_, s)| match r.total_cmp(s) {
             Ordering::Equal => {
                 count += 1;
-                if rng.gen_range(0..=count) == 0 { Ordering::Less } else { Ordering::Greater }
+                if rng.random_range(0..=count) == 0 { Ordering::Less } else { Ordering::Greater }
             }
             Ordering::Less => {
                 count = 0;

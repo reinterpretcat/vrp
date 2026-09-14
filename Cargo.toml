@@ -14,6 +14,8 @@ members = [
 
 [workspace.package]
 version = "1.25.0"
+# let-chains are used across the workspace and stabilised in 1.88; 1.85 (edition 2024) is not sufficient
+rust-version = "1.88"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["vrp", "optimization"]
@@ -34,7 +36,7 @@ vrp-cli = { path = "vrp-cli", version = "1.25.0" }
 # external dependencies
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-rand = { version = "0.8.5", features = ["small_rng"] }
+rand = { version = "0.9.2", features = ["small_rng"] }
 rayon = "1.10.0"
 rustc-hash = "2.1.1"
 paste = "1.0.15"

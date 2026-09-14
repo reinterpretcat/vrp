@@ -208,12 +208,12 @@ fn eliminate_route(original: &InsertionContext, source_idx: usize, max_attempts:
         // Removing or inserting a job can activate conditional jobs such as breaks or reloads.
         // They are part of the partial solution and have to be reinserted before it can be returned.
         pool.retain(|job| !candidate.solution.ignored.contains(job));
-        pool.extend(candidate.solution.required.drain(..));
+        pool.append(&mut candidate.solution.required);
         add_unassigned(&candidate.solution, &mut pool);
         if pool.is_empty() {
             candidate.restore();
             pool.retain(|job| !candidate.solution.ignored.contains(job));
-            pool.extend(candidate.solution.required.drain(..));
+            pool.append(&mut candidate.solution.required);
             add_unassigned(&candidate.solution, &mut pool);
             if pool.is_empty() {
                 return Some(candidate);
@@ -403,8 +403,8 @@ fn find_ejection(
     for (route_pos, (_, jobs)) in route_jobs.iter().enumerate() {
         for first in 0..jobs.len().saturating_sub(1) {
             let second = first + 1;
-            let penalty = attempts.get(&jobs[first]).copied().unwrap_or_default()
-                + attempts.get(&jobs[second]).copied().unwrap_or_default();
+            let penalty = attempts.get(jobs[first]).copied().unwrap_or_default()
+                + attempts.get(jobs[second]).copied().unwrap_or_default();
             pairs.push(Reverse((penalty, route_pos, first, second)));
         }
     }
@@ -419,8 +419,8 @@ fn find_ejection(
         let ejection = Ejection::pair(*route_idx, jobs[first].clone(), jobs[second].clone());
         let next = second + 1;
         if next < jobs.len() {
-            let next_penalty = attempts.get(&jobs[first]).copied().unwrap_or_default()
-                + attempts.get(&jobs[next]).copied().unwrap_or_default();
+            let next_penalty = attempts.get(jobs[first]).copied().unwrap_or_default()
+                + attempts.get(jobs[next]).copied().unwrap_or_default();
             pairs.push(Reverse((next_penalty, route_pos, first, next)));
         }
 

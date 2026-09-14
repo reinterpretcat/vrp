@@ -317,7 +317,7 @@ fn can_use_first_feasible_ejection_penalty_tier() {
         .iter()
         .flat_map(|route| route.route().tour.jobs().cloned())
         .map(|job| {
-            let penalty = usize::from(!job.dimens().get_job_id().is_some_and(|id| id == "c5"));
+            let penalty = usize::from(job.dimens().get_job_id().is_none_or(|id| id != "c5"));
             (job, penalty)
         })
         .collect::<HashMap<_, _>>();

@@ -10,17 +10,18 @@ readme.workspace = true
 homepage.workspace = true
 repository.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 
 [dependencies]
 rand.workspace = true
 rayon.workspace = true
 rustc-hash.workspace = true
-rand_distr = "0.4.3"
+rand_distr = "0.5.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 num_cpus = "1.17.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2.16", features = ["js"] }
+getrandom = { version = "0.3.4", features = ["wasm_js"] }
 js-sys = "0.3.77"

@@ -937,7 +937,6 @@ mod tests {
             heuristic_states: [(10, vec![HeuristicResult(0, 0, 1., 1., 0.5, 0.1, 7, None, None, None, None, None)])]
                 .into_iter()
                 .collect(),
-            ..Default::default()
         };
 
         let config = create_search_config(&state, 10, "best", 0).unwrap();
@@ -958,7 +957,6 @@ mod tests {
             )]
             .into_iter()
             .collect(),
-            ..Default::default()
         };
 
         let config = create_search_config(&state, 10, "diverse", 0).unwrap();

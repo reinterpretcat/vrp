@@ -76,7 +76,7 @@ fn draw_ratios<B: DrawingBackend + 'static>(area: &DrawingArea<B, Shift>, points
     for (label, color, value) in series {
         chart
             .draw_series(LineSeries::new(
-                points.iter().map(|point| (point.generation, value(point).clamp(0., 1.) as f64)),
+                points.iter().map(|point| (point.generation, value(point).clamp(0., 1.))),
                 color,
             ))?
             .label(label)

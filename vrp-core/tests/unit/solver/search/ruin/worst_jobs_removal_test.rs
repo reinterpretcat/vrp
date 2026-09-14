@@ -11,9 +11,12 @@ parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, expect
     can_ruin_solution_with_matrix_routes_impl(matrix, ints, expected_ids);
 }}
 
+// NOTE: the removal order depends on `routes_savings.shuffle`, which draws from the repeatable RNG rather
+// than from the scripted `ints`. These ids are therefore pinned to the generator's stream and were refreshed
+// for rand 0.9; the invariant under test is the removed job count implied by `ints[0]`.
 can_ruin_solution_with_matrix_routes! {
-    case_01: ((5, 3), vec![4, 2, 0, 0, 0], vec!["c3", "c4", "c8", "c9"]),
-    case_02: ((5, 3), vec![6, 2, 0, 0, 0], vec!["c14", "c2", "c3", "c4", "c8", "c9"]),
+    case_01: ((5, 3), vec![4, 2, 0, 0, 0], vec!["c13", "c14", "c8", "c9"]),
+    case_02: ((5, 3), vec![6, 2, 0, 0, 0], vec!["c12", "c13", "c14", "c4", "c8", "c9"]),
 }
 
 fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i32>, expected_ids: Vec<&str>) {

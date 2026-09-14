@@ -65,6 +65,9 @@ pub struct PopulationDrawConfig {
 }
 
 /// A population series.
+// NOTE: this is a per-snapshot drawing descriptor built once per plot in the research crate. Boxing the
+// populated variant would add indirection to every field access in the drawing code for no practical gain.
+#[allow(clippy::large_enum_variant)]
 pub enum PopulationSeries {
     /// Unknown (or unimplemented) population type.
     Unknown,

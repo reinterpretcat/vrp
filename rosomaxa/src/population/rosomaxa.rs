@@ -401,9 +401,9 @@ where
         {
             return Err("Rosomaxa population and network sizes must be above their minimums".into());
         }
-        if !(config.spread_factor > 0. && config.spread_factor < 1.)
-            || !(config.distribution_factor > 0. && config.distribution_factor < 1.)
-        {
+        // NOTE: a NaN factor fails both comparisons, so this also rejects non-finite input
+        let is_valid_factor = |factor: Float| factor > 0. && factor < 1.;
+        if !is_valid_factor(config.spread_factor) || !is_valid_factor(config.distribution_factor) {
             return Err("Rosomaxa spread and distribution factors must be finite and within (0, 1)".into());
         }
         if !(config.exploration_ratio >= 0. && config.exploration_ratio <= 1.) {
@@ -493,8 +493,7 @@ where
                         basin_candidates,
                         self.environment.random.as_ref(),
                         self.objective.as_ref(),
-                        statistics.generation,
-                        statistics.improvement_1000_ratio,
+                        statistics,
                         selection_size,
                     );
                 } else {
@@ -563,10 +562,12 @@ where
         basin_candidates: &mut Vec<BasinCandidate>,
         random: &dyn Random,
         objective: &O,
-        generation: usize,
-        improvement_ratio: Float,
+        statistics: &HeuristicStatistics,
         selection_size: usize,
     ) {
+        let generation = statistics.generation;
+        let improvement_ratio = statistics.improvement_1000_ratio;
+
         selection_coordinates.clear();
         selection_coordinates.extend(network.iter().filter_map(|(coordinate, node)| {
             if node.storage.population.size() > 0 { Some(*coordinate) } else { None }

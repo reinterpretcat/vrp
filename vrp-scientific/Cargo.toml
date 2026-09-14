@@ -10,6 +10,7 @@ readme.workspace = true
 homepage.workspace = true
 repository.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 vrp-core.workspace = true

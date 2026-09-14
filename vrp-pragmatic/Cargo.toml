@@ -10,6 +10,7 @@ readme.workspace = true
 homepage.workspace = true
 repository.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 vrp-core.workspace = true
@@ -18,13 +19,13 @@ serde.workspace = true
 serde_json.workspace = true
 rand.workspace = true
 
-time = { version = "0.3.41", features = ["parsing", "formatting"] }
+time = { version = "0.3.55", features = ["parsing", "formatting"] }
 paste = "1.0.15"
 
 [dev-dependencies]
 criterion.workspace = true
 
-proptest = "1.6.0"
+proptest = "1.9.0"
 uuid = { version = "1.17.0", features = ["v4"] }
 
 [[bench]]

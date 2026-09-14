@@ -180,10 +180,10 @@ where
     fn update(&mut self, feedback: &SearchFeedback<S>) {
         self.progress.update(feedback);
 
-        if feedback.sample.is_parent_improvement {
-            if let Some(promotion) = self.promotion.as_mut() {
-                promotion.update(feedback.sample.is_new_best);
-            }
+        if feedback.sample.is_parent_improvement
+            && let Some(promotion) = self.promotion.as_mut()
+        {
+            promotion.update(feedback.sample.is_new_best);
         }
     }
 }

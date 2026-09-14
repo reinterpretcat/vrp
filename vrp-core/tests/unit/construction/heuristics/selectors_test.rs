@@ -121,7 +121,7 @@ mod selections {
         let expected = route_ctx.route().tour.legs().count();
         let mut counter = 0;
 
-        let _ = selection_mode.sample_best(
+        selection_mode.sample_best(
             &route_ctx,
             &TestSingleBuilder::default().build_as_job_ref(),
             0,

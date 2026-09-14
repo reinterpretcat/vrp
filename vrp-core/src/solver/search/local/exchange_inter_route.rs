@@ -248,6 +248,9 @@ fn find_best_insertion_pair(
     None
 }
 
+// NOTE: every parameter is a distinct input of the exchange evaluation; bundling them would add an
+// indirection type purely to satisfy an arbitrary argument-count threshold.
+#[allow(clippy::too_many_arguments)]
 fn evaluate_exchange_candidate(
     insertion_ctx: &InsertionContext,
     seed_route: &RouteContext,
@@ -272,6 +275,7 @@ fn evaluate_exchange_candidate(
     Some(ExchangeCandidate { seed_success, test_success, test_route_idx, test_route: Some(test_route) })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn evaluate_exchange_candidate_reusing_route(
     insertion_ctx: &InsertionContext,
     seed_route: &RouteContext,
