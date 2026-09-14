@@ -6,7 +6,9 @@ use super::*;
 use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
-use vrp_core::construction::enablers::{FeatureCombinator, TotalDistanceTourState, TotalDurationTourState};
+use vrp_core::construction::enablers::{
+    FeatureCombinator, ReservedTimesIndex, TotalDistanceTourState, TotalDurationTourState,
+};
 use vrp_core::construction::features::*;
 // `TerritoryProximity` is ambiguous between this glob import and the pragmatic-format model's own
 // `TerritoryProximity` (brought in via `use super::*;`), so the core type needs an explicit,
@@ -40,6 +42,7 @@ pub(super) fn create_goal_context(
             api_problem,
             blocks.transport.clone(),
             blocks.activity.clone(),
+            blocks.reserved_times_index.clone(),
         )?)
     }
 
@@ -727,6 +730,7 @@ fn get_tour_limit_feature(
     api_problem: &ApiProblem,
     transport: Arc<dyn TransportCost>,
     activity: Arc<dyn ActivityCost>,
+    reserved_times_index: ReservedTimesIndex,
 ) -> GenericResult<Feature> {
     let (distances, durations) = api_problem
         .fleet
@@ -759,6 +763,7 @@ fn get_tour_limit_feature(
         DURATION_LIMIT_CONSTRAINT_CODE,
         get_limit(distances),
         get_limit(durations),
+        reserved_times_index,
     )
 }
 

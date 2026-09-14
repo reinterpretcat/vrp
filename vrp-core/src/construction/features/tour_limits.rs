@@ -5,12 +5,14 @@
 mod tour_limits_test;
 
 use std::cmp::Ordering;
+use std::iter::once;
 
 use super::*;
 use crate::construction::enablers::*;
-use crate::models::common::{Distance, Duration};
+use crate::models::common::{Distance, Duration, Timestamp};
 use crate::models::problem::{Actor, Single, TransportCost};
 use crate::models::solution::Tour;
+use rosomaxa::utils::UnwrapValue;
 
 /// A function which returns activity size limit for a given actor.
 pub type ActivitySizeResolver = Arc<dyn Fn(&Actor) -> Option<usize> + Sync + Send>;
@@ -65,6 +67,10 @@ fn counted_job_activities(job: &Job, is_counted: &ActivityCountFn) -> usize {
 
 /// Creates a travel limits such as distance and/or duration.
 /// This is a hard constraint.
+///
+/// `reserved_times_index` names the actors whose shift carries reserved time (a required break).
+/// Pass an empty index when the problem has none: the duration limit then keeps its cheap estimate
+/// and no route pays for the lookup.
 pub fn create_travel_limit_feature(
     name: &str,
     transport: Arc<dyn TransportCost>,
@@ -73,15 +79,18 @@ pub fn create_travel_limit_feature(
     duration_code: ViolationCode,
     tour_distance_limit_fn: TravelLimitFn<Distance>,
     tour_duration_limit_fn: TravelLimitFn<Duration>,
+    reserved_times_index: ReservedTimesIndex,
 ) -> Result<Feature, GenericError> {
     FeatureBuilder::default()
         .with_name(name)
         .with_constraint(TravelLimitConstraint {
             transport: transport.clone(),
+            activity: activity.clone(),
             tour_distance_limit_fn,
             tour_duration_limit_fn: tour_duration_limit_fn.clone(),
             distance_code,
             duration_code,
+            reserved_times: (!reserved_times_index.is_empty()).then_some(reserved_times_index),
         })
         .with_state(TravelLimitState { tour_duration_limit_fn, transport, activity })
         .build()
@@ -176,15 +185,101 @@ impl FeatureObjective for MinActivityLimitObjective {
 
 struct TravelLimitConstraint {
     transport: Arc<dyn TransportCost>,
+    activity: Arc<dyn ActivityCost>,
     tour_distance_limit_fn: TravelLimitFn<Distance>,
     tour_duration_limit_fn: TravelLimitFn<Duration>,
     distance_code: ViolationCode,
     duration_code: ViolationCode,
+    /// The actors whose shift carries reserved time, or `None` when the problem declares none.
+    reserved_times: Option<ReservedTimesIndex>,
 }
 
 impl TravelLimitConstraint {
     fn calculate_travel(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> (Distance, Duration) {
         calculate_travel_delta(route_ctx, activity_ctx, self.transport.as_ref())
+    }
+
+    /// Returns the duration the tour would have with the target activity in it.
+    ///
+    /// The travel delta prices the legs the insertion touches and assumes the rest of the tour is
+    /// merely pushed along by it. That holds while every second of the tour is either travel,
+    /// waiting or service — but not when the shift carries reserved time. A required break is not a
+    /// job: it is a charge `DynamicActivityCost` and `DynamicTransportCost` apply wherever an
+    /// activity's schedule or a travel leg happens to run into its window, so what it costs depends
+    /// on the schedule the insertion produces. The delta prices the target with its bare service
+    /// duration and never revisits the activities behind it, so a break swallowed by the target's
+    /// own service — or reached by a later activity once the insertion pushes it into the window —
+    /// lands in the tour's duration without ever being weighed against the limit.
+    ///
+    /// For those actors the duration is therefore replayed rather than estimated. Everyone else
+    /// keeps the delta, and pays nothing for this.
+    fn calculate_total_duration(
+        &self,
+        route_ctx: &RouteContext,
+        activity_ctx: &ActivityContext,
+        change_duration: Duration,
+    ) -> Duration {
+        let total_duration = if self.has_reserved_time(route_ctx) {
+            self.replay_total_duration(route_ctx, activity_ctx)
+        } else {
+            route_ctx.state().get_total_duration().copied().unwrap_or(0.) + change_duration
+        };
+
+        total_duration - self.reclaimable_leading_wait(route_ctx, activity_ctx)
+    }
+
+    /// Whether this route's actor carries reserved time at all.
+    fn has_reserved_time(&self, route_ctx: &RouteContext) -> bool {
+        self.reserved_times.as_ref().is_some_and(|index| index.contains_key(&route_ctx.route().actor))
+    }
+
+    /// Replays the tour behind the insertion point to get the duration the route would really have.
+    ///
+    /// This is the forward pass `update_schedules` runs when the route state is accepted, restricted
+    /// to the stretch the insertion can move: the activities in front of the target keep the
+    /// schedules they already have. It goes through the same activity and transport costs, so it
+    /// charges reserved time exactly where the accepted route will be charged for it.
+    fn replay_total_duration(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Duration {
+        let route = route_ctx.route();
+        let tail = once(activity_ctx.target).chain(route.tour.all_activities().skip(activity_ctx.index + 1));
+
+        let mut location = activity_ctx.prev.place.location;
+        let mut departure = activity_ctx.prev.schedule.departure;
+        let mut target_arrival = Timestamp::default();
+        let mut last_job_departure = None;
+
+        for (offset, activity) in tail.enumerate() {
+            let travel =
+                self.transport.duration(route, location, activity.place.location, TravelTime::Departure(departure));
+            let arrival = departure + travel;
+
+            location = activity.place.location;
+            departure = self.activity.estimate_departure(route, activity, arrival).unwrap_value();
+
+            if offset == 0 {
+                target_arrival = arrival;
+            }
+            if activity.job.is_some() {
+                last_job_departure = Some(departure);
+            }
+        }
+
+        let start_departure = route.tour.start().map_or(Timestamp::default(), |start| start.schedule.departure);
+        // the target takes over as the first job only when it goes in right behind the start
+        let first_job_arrival = if activity_ctx.index == 0 {
+            target_arrival
+        } else {
+            route.tour.get(1).map_or(start_departure, |first_job| first_job.schedule.arrival)
+        };
+
+        // mirrors `calculate_route_duration`: the span says which part of the tour the route is
+        // charged for, and the limit must be read against the same stretch
+        match route.actor.vehicle.dimens.get_route_cost_span().copied().unwrap_or_default() {
+            RouteCostSpan::DepotToDepot => departure - start_departure,
+            RouteCostSpan::DepotToLastJob => last_job_departure.unwrap_or(start_departure) - start_departure,
+            RouteCostSpan::FirstJobToDepot => departure - first_job_arrival,
+            RouteCostSpan::FirstJobToLastJob => last_job_departure.unwrap_or(first_job_arrival) - first_job_arrival,
+        }
     }
 
     /// Returns the idle stretch in front of the first job of an otherwise empty route, which the
@@ -201,6 +296,9 @@ impl TravelLimitConstraint {
     /// legal on a virgin route, because there is no other activity whose schedule could break, and
     /// a break (`TimeSpan::Offset`) cannot be present either. Routes that already carry a job are
     /// left alone — there the shift is bounded by the existing activities.
+    ///
+    /// It is subtracted from the replayed duration too, so that a shift with reserved time keeps
+    /// the same right to open a tour with a late time window as any other.
     fn reclaimable_leading_wait(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Duration {
         if route_ctx.route().tour.job_count() != 0 {
             return Duration::default();
@@ -244,9 +342,7 @@ impl FeatureConstraint for TravelLimitConstraint {
                     }
 
                     if let Some(duration_limit) = tour_duration_limit {
-                        let curr_dur = route_ctx.state().get_total_duration().copied().unwrap_or(0.);
-                        let total_duration =
-                            curr_dur + change_duration - self.reclaimable_leading_wait(route_ctx, activity_ctx);
+                        let total_duration = self.calculate_total_duration(route_ctx, activity_ctx, change_duration);
                         if duration_limit < total_duration {
                             return ConstraintViolation::skip(self.duration_code);
                         }

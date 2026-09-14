@@ -1,4 +1,5 @@
 use crate::format::problem::*;
+use crate::format_time;
 use crate::helpers::*;
 use vrp_core::prelude::Float;
 
@@ -80,6 +81,69 @@ fn can_skip_job_from_multiple_because_of_max_duration() {
             })
         }),
         "the cap must be the stated reason, against the vehicle that could not take them: {unassigned:?}"
+    );
+}
+
+/// A required break is not a job but reserved time: it is charged only when an activity's schedule
+/// or a travel leg runs into its window, which makes the charge depend on the schedule. Here the
+/// break at 50 (60s long) is out of reach while the tour holds job1 alone, and is swallowed whole by
+/// job2's service once job2 joins the tour. The claim is that the cap weighs that break.
+///
+/// Without job2 the tour runs 0 -> job1 (1..11) -> depot, 12s long. With job2 the vehicle waits at
+/// job2's location from 12 until its window opens at 55, serves it for 100s and, because that
+/// stretch covers the reserved window, pays 55 more seconds of break on top - departing at 210 and
+/// reaching the depot at 212, nearly twice the 160s cap.
+#[test]
+fn can_account_for_break_that_only_a_second_job_reaches() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job_with_times("job1", (1., 0.), vec![(0, 1000)], 10.),
+                create_delivery_job_with_times("job2", (2., 0.), vec![(55, 1000)], 100.),
+            ],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    // pin the departure so that the tour cannot buy itself room by leaving later
+                    start: ShiftStart {
+                        earliest: format_time(0.),
+                        latest: Some(format_time(0.)),
+                        location: (0., 0.).to_loc(),
+                    },
+                    breaks: Some(vec![VehicleBreak::Required {
+                        time: VehicleRequiredBreakTime::ExactTime {
+                            earliest: format_time(50.),
+                            latest: format_time(50.),
+                        },
+                        duration: 60.,
+                    }]),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_vehicle_type_with_max_duration_limit(160.)
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert_eq!(solution.tours.len(), 1);
+    assert!(
+        solution.statistic.duration <= 160,
+        "the cap must hold once the break is inside the tour: {}",
+        solution.statistic.duration
+    );
+    assert_eq!(served_job_ids(&solution.tours[0]), ["job1"].map(String::from));
+
+    let unassigned = solution.unassigned.expect("job2 does not fit under the cap and must be reported");
+    assert_eq!(unassigned.iter().map(|job| job.job_id.clone()).collect::<Vec<_>>(), ["job2".to_string()]);
+    assert!(
+        unassigned[0].reasons.iter().any(|reason| reason.code == "MAX_DURATION_CONSTRAINT"),
+        "the cap must be the stated reason: {unassigned:?}"
     );
 }
 

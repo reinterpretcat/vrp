@@ -269,11 +269,14 @@ mod min_activity {
 
 mod traveling {
     use super::*;
-    use crate::construction::enablers::{TotalDistanceTourState, TotalDurationTourState};
+    use crate::construction::enablers::{
+        DynamicActivityCost, DynamicTransportCost, ReservedTimeSpan, ReservedTimesIndex, TotalDistanceTourState,
+        TotalDurationTourState,
+    };
     use crate::construction::features::tour_limits::create_travel_limit_feature;
     use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
     use crate::models::common::*;
-    use crate::models::problem::Actor;
+    use crate::models::problem::{ActivityCost, Actor, TransportCost};
 
     const DISTANCE_CODE: ViolationCode = ViolationCode(2);
     const DURATION_CODE: ViolationCode = ViolationCode(3);
@@ -287,11 +290,25 @@ mod traveling {
         let mut state = RouteState::default();
         state.set_total_distance(50.);
         state.set_total_duration(50.);
-        let target = target.to_owned();
         let route_ctx = RouteContextBuilder::default()
             .with_route(RouteBuilder::default().with_vehicle(&fleet, vehicle_id).build())
             .with_state(state)
             .build();
+
+        let feature = create_limit_feature(&route_ctx, target, limit, Vec::new());
+
+        (feature, route_ctx)
+    }
+
+    /// Builds the travel limit feature for a route, optionally against reserved time of its actor.
+    /// With reserved time the costs have to be the dynamic ones, as they are in a real problem.
+    fn create_limit_feature(
+        route_ctx: &RouteContext,
+        target: &str,
+        limit: (Option<Distance>, Option<Duration>),
+        reserved_times: Vec<ReservedTimeSpan>,
+    ) -> Feature {
+        let target = target.to_owned();
         let tour_distance_limit = Arc::new({
             let target = target.clone();
             move |actor: &Actor| {
@@ -304,18 +321,36 @@ mod traveling {
                     if get_vehicle_id(actor.vehicle.as_ref()) == target.as_str() { limit.1 } else { None }
                 },
             );
-        let feature = create_travel_limit_feature(
+
+        let reserved_times_index: ReservedTimesIndex = if reserved_times.is_empty() {
+            Default::default()
+        } else {
+            std::iter::once((route_ctx.route().actor.clone(), reserved_times)).collect()
+        };
+
+        let (transport, activity): (Arc<dyn TransportCost>, Arc<dyn ActivityCost>) = if reserved_times_index.is_empty()
+        {
+            (TestTransportCost::new_shared(), TestActivityCost::new_shared())
+        } else {
+            (
+                Arc::new(
+                    DynamicTransportCost::new(reserved_times_index.clone(), TestTransportCost::new_shared()).unwrap(),
+                ),
+                Arc::new(DynamicActivityCost::new(reserved_times_index.clone()).unwrap()),
+            )
+        };
+
+        create_travel_limit_feature(
             "travel_limit",
-            TestTransportCost::new_shared(),
-            TestActivityCost::new_shared(),
+            transport,
+            activity,
             DISTANCE_CODE,
             DURATION_CODE,
             tour_distance_limit,
             tour_duration_limit,
+            reserved_times_index,
         )
-        .unwrap();
-
-        (feature, route_ctx)
+        .unwrap()
     }
 
     parameterized_test! {can_check_traveling_limits, (vehicle, target, location, limit, expected), {
@@ -399,6 +434,89 @@ mod traveling {
                 next: Some(&ActivityBuilder::with_location(50).build()),
             },
         ));
+
+        assert_eq!(result, None);
+    }
+
+    /// A route that already serves one job at location 10, from 10 until 20.
+    fn create_route_with_one_job() -> RouteContext {
+        let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(test_vehicle_with_id("v1")).build();
+        let mut state = RouteState::default();
+        state.set_total_distance(20.);
+        state.set_total_duration(20.);
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build())
+            .with_state(state)
+            .build();
+
+        route_ctx.route_mut().tour.insert_last(
+            ActivityBuilder::with_location_tw_and_duration(10, TimeWindow::new(0., 1000.), 10.)
+                .schedule(Schedule::new(10., 20.))
+                .build(),
+        );
+
+        route_ctx
+    }
+
+    fn reserved_time(due: Timestamp, duration: Duration) -> ReservedTimeSpan {
+        ReservedTimeSpan { time: TimeSpan::Window(TimeWindow::new(due, due)), duration }
+    }
+
+    /// An activity that waits for its window to open at 55 and then works for 100 seconds.
+    fn late_and_long_activity() -> Activity {
+        ActivityBuilder::with_location_tw_and_duration(11, TimeWindow::new(55., 1000.), 100.).build()
+    }
+
+    fn evaluate_insertion_at_end(
+        feature: &Feature,
+        route_ctx: &RouteContext,
+        target: &Activity,
+    ) -> Option<ConstraintViolation> {
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let prev = route_ctx.route().tour.get(1).unwrap();
+        let next = route_ctx.route().tour.get(2).unwrap();
+
+        feature.constraint.as_ref().unwrap().evaluate(&MoveContext::activity(
+            &solution_ctx,
+            route_ctx,
+            &ActivityContext { index: 1, prev, target, next: Some(next) },
+        ))
+    }
+
+    #[test]
+    fn can_charge_reserved_time_the_inserted_activity_runs_into() {
+        // A break due at 50 and lasting 60 seconds. The tour as it stands - depot, one job from 10
+        // to 20, depot - never reaches it. The activity under evaluation arrives at 21, waits for
+        // its window to open at 55 and then works for 100 seconds, a stretch that swallows the
+        // break whole: the route would run 0..221, not the 156 the travel delta predicts. A cap of
+        // 200 must refuse it.
+        let route_ctx = create_route_with_one_job();
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(200.)), vec![reserved_time(50., 60.)]);
+
+        let result = evaluate_insertion_at_end(&feature, &route_ctx, &late_and_long_activity());
+
+        assert_eq!(result, ConstraintViolation::skip(DURATION_CODE));
+    }
+
+    #[test]
+    fn can_still_take_the_activity_when_the_cap_covers_the_break_too() {
+        // the same insertion against a cap that has room for the break: 221 fits under 250
+        let route_ctx = create_route_with_one_job();
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(250.)), vec![reserved_time(50., 60.)]);
+
+        let result = evaluate_insertion_at_end(&feature, &route_ctx, &late_and_long_activity());
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn can_leave_a_shift_without_reserved_time_alone() {
+        // the same insertion under the same cap, on a shift that declares no break: 156 fits under
+        // 200, so the refusal above is the break's doing and not the geometry's
+        let route_ctx = create_route_with_one_job();
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(200.)), Vec::new());
+
+        let result = evaluate_insertion_at_end(&feature, &route_ctx, &late_and_long_activity());
 
         assert_eq!(result, None);
     }
