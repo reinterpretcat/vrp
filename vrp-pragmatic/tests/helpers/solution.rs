@@ -473,3 +473,36 @@ pub fn to_core_solution(
 
     read_init_solution(BufReader::new(bytes.as_slice()), core_problem, random)
 }
+
+/// The `(job id, activity type)` pairs a tour performs, in visit order, with the terminal
+/// departure and arrival dropped.
+///
+/// For asserting what a solution *does* rather than how it happened to order equally good work:
+/// comparing whole solutions pins one arbitrary tie-break, and a solver free to return any optimum
+/// then fails for reasons the test never meant to be about.
+pub fn tour_activities(tour: &Tour) -> Vec<(String, String)> {
+    tour.stops
+        .iter()
+        .flat_map(|stop| stop.activities().iter())
+        .filter(|activity| !matches!(activity.activity_type.as_str(), "departure" | "arrival"))
+        .map(|activity| (activity.job_id.clone(), activity.activity_type.clone()))
+        .collect()
+}
+
+/// The job ids a tour serves, in visit order, with breaks and other vehicle activities dropped.
+pub fn served_job_ids(tour: &Tour) -> Vec<String> {
+    tour_activities(tour)
+        .into_iter()
+        .filter(|(_, activity_type)| !matches!(activity_type.as_str(), "break" | "reload" | "recharge"))
+        .map(|(job_id, _)| job_id)
+        .collect()
+}
+
+/// The tour of the given vehicle, panicking when it did not run.
+pub fn tour_of<'a>(solution: &'a Solution, vehicle_id: &str) -> &'a Tour {
+    solution
+        .tours
+        .iter()
+        .find(|tour| tour.vehicle_id == vehicle_id)
+        .unwrap_or_else(|| panic!("no tour for vehicle '{vehicle_id}'"))
+}

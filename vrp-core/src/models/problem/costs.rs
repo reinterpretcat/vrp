@@ -51,6 +51,14 @@ pub trait ActivityCost: Send + Sync {
         activity: &Activity,
         departure: Timestamp,
     ) -> ControlFlow<Timestamp, Timestamp>;
+
+    /// Returns the moment service actually begins for the activity at the given arrival time.
+    /// The gap between the two is waiting: the vehicle is there and idle. By default only the
+    /// activity's own time window holds service back, but an implementation that delays service
+    /// for a reason of its own has to say so here, or every reader of waiting time is blind to it.
+    fn estimate_service_start(&self, _route: &Route, activity: &Activity, arrival: Timestamp) -> Timestamp {
+        arrival.max(activity.place.time.start)
+    }
 }
 
 /// An actor independent activity costs.

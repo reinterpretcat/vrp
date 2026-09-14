@@ -69,7 +69,13 @@ impl FeatureState for GroupState {
         }
     }
 
-    fn accept_route_state(&self, _: &mut RouteContext) {}
+    /// Rebuilds the route's groups from its tour — see the note on the vehicle-group feature: left
+    /// empty, a route whose state is rebuilt loses the group set it still carries, and the
+    /// constraint then admits the same group onto a second actor.
+    fn accept_route_state(&self, route_ctx: &mut RouteContext) {
+        let groups = get_groups(route_ctx);
+        route_ctx.state_mut().set_current_groups(groups);
+    }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
         solution_ctx.routes.iter_mut().for_each(|route_ctx| {

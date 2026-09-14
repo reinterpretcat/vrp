@@ -79,6 +79,8 @@ impl CheckerContext {
             .chain(check_assignment(self).err())
             .chain(check_routing(self).err())
             .chain(check_limits(self).err())
+            .chain(check_skills(self).err())
+            .chain(check_job_times(self).err())
             .flatten()
             .fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
                 if !used.contains(&error) {
@@ -179,17 +181,19 @@ impl CheckerContext {
                 )
             }
 
-            "break" => shift
-                .breaks
-                .as_ref()
-                .and_then(|breaks| {
-                    breaks
-                        .iter()
-                        // TODO: would be nice to propagate the error
-                        .find(|b| get_break_time_window(tour, b).map(|tw| tw.intersects(&time)).unwrap_or(false))
-                })
-                .map(|b| ActivityType::Break(b.clone()))
-                .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id).into()),
+            "break" => {
+                let cost_span = self.get_vehicle(&tour.vehicle_id).ok().and_then(|v| v.costs.span.as_ref());
+                shift
+                    .breaks
+                    .as_ref()
+                    .and_then(|breaks| {
+                        breaks.iter().find(|b| {
+                            get_break_time_window(tour, b, cost_span).map(|tw| tw.intersects(&time)).unwrap_or(false)
+                        })
+                    })
+                    .map(|b| ActivityType::Break(b.clone()))
+                    .ok_or_else(|| format!("cannot find break for tour '{}'", tour.vehicle_id).into())
+            }
 
             "reload" => shift
                 .reloads
@@ -377,6 +381,17 @@ fn job_task_size(tasks: &Option<Vec<JobTask>>) -> usize {
     tasks.as_ref().map_or(0, |p| p.len())
 }
 
+/// Whether a reported activity is a customer visit. A departure, an arrival, a break, a reload and
+/// a recharge ride on the tour as activities, but none of them is a visit the plan asked for, and
+/// two rules ask: `tourSize` leaves them out of the count, and the shift's appointment bounds do
+/// not govern when they may happen.
+///
+/// This is the solution-side twin of `format::dimensions::is_stop`, which answers the same question
+/// about a problem-side `Single`. The two must agree.
+fn is_stop_activity(activity: &Activity) -> bool {
+    !matches!(activity.activity_type.as_str(), "departure" | "arrival" | "break" | "reload" | "recharge")
+}
+
 fn match_job_task<'a>(
     activity_type: &str,
     job: &'a Job,
@@ -465,3 +480,9 @@ use crate::checker::relations::check_relations;
 
 mod routing;
 use crate::checker::routing::check_routing;
+
+mod skills;
+use crate::checker::skills::check_skills;
+
+mod job_times;
+use crate::checker::job_times::check_job_times;

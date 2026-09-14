@@ -80,6 +80,7 @@ fn can_read_complex_problem() {
                         }],
                         demand: Some(vec![0, 1]),
                         order: None,
+                        due_date: None,
                     }]),
                     skills: Some(all_of_skills(vec!["unique".to_string()])),
                     ..create_job("delivery_job")
@@ -97,6 +98,7 @@ fn can_read_complex_problem() {
                         }],
                         demand: Some(vec![2]),
                         order: None,
+                        due_date: None,
                     }]),
                     deliveries: Some(vec![JobTask {
                         places: vec![JobPlace {
@@ -110,6 +112,7 @@ fn can_read_complex_problem() {
                         }],
                         demand: Some(vec![2]),
                         order: None,
+                        due_date: None,
                     }]),
                     ..create_job("pickup_delivery_job")
                 },
@@ -126,6 +129,7 @@ fn can_read_complex_problem() {
                         }],
                         demand: Some(vec![3]),
                         order: None,
+                        due_date: None,
                     }]),
                     skills: Some(all_of_skills(vec!["unique2".to_string()])),
                     ..create_job("pickup_job")
@@ -138,7 +142,7 @@ fn can_read_complex_problem() {
                 type_id: "my_vehicle".to_string(),
                 vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 profile: create_default_vehicle_profile(),
-                costs: VehicleCosts { fixed: Some(100.), distance: 1., time: 2. },
+                costs: VehicleCosts { fixed: Some(100.), distance: 1., time: 2., span: None },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
                         earliest: "1970-01-01T00:00:00Z".to_string(),
@@ -164,10 +168,18 @@ fn can_read_complex_problem() {
                     }]),
                     reloads: None,
                     recharges: None,
+                    job_times: None,
                 }],
                 capacity: vec![10, 1],
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),
-                limits: Some(VehicleLimits { max_distance: Some(123.1), max_duration: Some(100.), tour_size: Some(3) }),
+                limits: Some(VehicleLimits {
+                    max_distance: Some(123.1),
+                    max_duration: Some(100.),
+                    tour_size: Some(3),
+                    min_tour_size: None,
+                }),
+                min_shifts: None,
+                driver_id: None,
             }],
             ..create_default_fleet()
         },

@@ -11,6 +11,37 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 custom_dimension!(pub VehicleId typeof String);
+custom_dimension!(pub DriverId typeof String);
+
+/// Specifies which portion of a route to consider when calculating costs.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RouteCostSpan {
+    /// Full round trip: depot to depot (default for backward compatibility).
+    #[default]
+    DepotToDepot,
+    /// Outbound only: depot to last job (no return leg).
+    DepotToLastJob,
+    /// Return only: first job to depot (no outbound leg).
+    FirstJobToDepot,
+    /// Jobs only: first job to last job (no depot legs).
+    FirstJobToLastJob,
+}
+
+custom_dimension!(pub RouteCostSpan typeof RouteCostSpan);
+
+/// The window a shift's appointments must happen inside. Both bounds govern every appointment on
+/// the shift, not only the first and the last one, and neither governs a break, a reload, a
+/// recharge or the tour's own departure and arrival.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct JobTimeConstraints {
+    /// Earliest moment an appointment's service may start. Arriving before it and waiting is legal:
+    /// the bound holds service back, it does not hold the vehicle back.
+    pub earliest_first: Option<Timestamp>,
+    /// Latest moment an appointment may be departed from, service and any reserved time included.
+    pub latest_last: Option<Timestamp>,
+}
+
+custom_dimension!(pub JobTimeConstraints typeof JobTimeConstraints);
 
 /// Represents operating costs for driver and vehicle.
 #[derive(Clone, Debug)]
@@ -128,6 +159,24 @@ impl Debug for Actor {
             .field("vehicle", &self.vehicle.dimens.get_vehicle_id().map(|id| id.as_str()).unwrap_or("undef"))
             .finish_non_exhaustive()
     }
+}
+
+/// Identifies the person behind an actor: the driver id, falling back to the vehicle id when none
+/// is set.
+///
+/// One person is routinely several vehicles. A caller whose per-vehicle attributes vary — pragmatic
+/// hangs `limits` and `skills` off the vehicle type rather than the shift — must emit one vehicle
+/// per combination, each with an id of its own, and ties them back together by giving them the same
+/// `driverId`. Any feature meaning "the same person" has to group on this rather than on the
+/// vehicle id, or it counts one technician as several.
+pub fn driver_key(actor: &Actor) -> String {
+    actor
+        .vehicle
+        .dimens
+        .get_driver_id()
+        .cloned()
+        .or_else(|| actor.vehicle.dimens.get_vehicle_id().cloned())
+        .unwrap_or_default()
 }
 
 /// Represents available resources to serve jobs.

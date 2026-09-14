@@ -48,6 +48,13 @@ pub fn get_stdev(values: &[Float]) -> Float {
     get_variance_mean(values).0.sqrt()
 }
 
+/// Returns standard deviation without NaN (0 is returned instead).
+pub fn get_stdev_safe(values: &[Float]) -> Float {
+    let value = get_stdev(values);
+
+    if value.is_nan() { 0. } else { value }
+}
+
 /// Returns variance and mean.
 fn get_variance_mean(values: &[Float]) -> (Float, Float) {
     let mean = get_mean_slice(values);

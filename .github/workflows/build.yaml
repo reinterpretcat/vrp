@@ -9,6 +9,8 @@ on:
 jobs:
   test-build:
     runs-on: ubuntu-latest
+    # Compiles and runs the suite: three to six minutes in practice.
+    timeout-minutes: 30
     steps:
     - name: Check out the repo
       uses: actions/checkout@v2
@@ -31,6 +33,8 @@ jobs:
 
   release-build:
     runs-on: ubuntu-latest
+    # A release compile, in the same range as the test build.
+    timeout-minutes: 30
     steps:
     - name: Check out the repo
       uses: actions/checkout@v2
@@ -40,6 +44,8 @@ jobs:
 
   wasm-build:
     runs-on: ubuntu-latest
+    # The quickest of the three, capped alongside them.
+    timeout-minutes: 30
     steps:
     - name: Check out the repo
       uses: actions/checkout@v2

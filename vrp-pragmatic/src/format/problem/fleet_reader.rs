@@ -11,7 +11,8 @@ use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::construction::features::{VehicleCapacityDimension, VehicleSkillsDimension};
 use vrp_core::models::common::*;
-use vrp_core::models::problem::*;
+use vrp_core::models::problem::RouteCostSpanDimension;
+use vrp_core::models::problem::{DriverIdDimension, *};
 
 pub(super) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
@@ -112,6 +113,7 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         let profile = Profile::new(index, vehicle.profile.scale);
 
         let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
+        let min_tour_size = vehicle.limits.as_ref().and_then(|l| l.min_tour_size);
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
@@ -146,8 +148,16 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     .set_shift_index(shift_index)
                     .set_vehicle_id(vehicle_id.to_string());
 
+                if let Some(driver_id) = vehicle.driver_id.as_ref() {
+                    dimens.set_driver_id(driver_id.clone());
+                }
+
                 if let Some(tour_size) = tour_size {
                     dimens.set_tour_size(tour_size);
+                }
+
+                if let Some(min_tour_size) = min_tour_size {
+                    dimens.set_min_tour_size(min_tour_size);
                 }
 
                 if props.has_multi_dimen_capacity {
@@ -158,6 +168,32 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
 
                 if let Some(skills) = vehicle.skills.as_ref() {
                     dimens.set_vehicle_skills(skills.iter().cloned().collect::<HashSet<_>>());
+                }
+
+                if let Some(span) = vehicle.costs.span.as_ref() {
+                    let core_span = match span {
+                        crate::format::problem::model::RouteCostSpan::DepotToDepot => {
+                            vrp_core::models::problem::RouteCostSpan::DepotToDepot
+                        }
+                        crate::format::problem::model::RouteCostSpan::DepotToLastJob => {
+                            vrp_core::models::problem::RouteCostSpan::DepotToLastJob
+                        }
+                        crate::format::problem::model::RouteCostSpan::FirstJobToDepot => {
+                            vrp_core::models::problem::RouteCostSpan::FirstJobToDepot
+                        }
+                        crate::format::problem::model::RouteCostSpan::FirstJobToLastJob => {
+                            vrp_core::models::problem::RouteCostSpan::FirstJobToLastJob
+                        }
+                    };
+                    dimens.set_route_cost_span(core_span);
+                }
+
+                if let Some(job_times) = shift.job_times.as_ref() {
+                    let core_job_times = vrp_core::models::problem::JobTimeConstraints {
+                        earliest_first: job_times.earliest_first.as_ref().map(|t| parse_time(t)),
+                        latest_last: job_times.latest_last.as_ref().map(|t| parse_time(t)),
+                    };
+                    dimens.set_job_time_constraints(core_job_times);
                 }
 
                 vehicles.push(Arc::new(Vehicle {

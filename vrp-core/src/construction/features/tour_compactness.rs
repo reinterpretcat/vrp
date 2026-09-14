@@ -19,9 +19,17 @@ pub fn create_tour_compactness_feature(
         return Err("Tour compactness: job radius should be at least 1".into());
     }
 
+    // Reference scale for self-normalization: the theoretical maximum fitness, reached when every
+    // job has all `job_radius` of its nearest neighbours served by foreign routes. The per-job
+    // counts sum to at most `N * job_radius`, halved like the fitness itself (each shared edge is
+    // counted from both endpoints). Dividing fitness by this maps it to a dimensionless [0, 1]
+    // "fraction of neighbourhoods split across routes", so weights in a scalarizing multi-objective
+    // become comparable across problems of different size. Guarded to stay positive for tiny inputs.
+    let fitness_scale = (jobs.size() as Cost * job_radius as Cost / 2.).max(1.);
+
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(TourCompactnessObjective { jobs: jobs.clone(), job_radius })
+        .with_objective(TourCompactnessObjective { jobs: jobs.clone(), job_radius, fitness_scale })
         .with_state(TourCompactnessState { jobs, job_radius })
         .build()
 }
@@ -29,6 +37,7 @@ pub fn create_tour_compactness_feature(
 struct TourCompactnessObjective {
     jobs: Arc<Jobs>,
     job_radius: usize,
+    fitness_scale: Cost,
 }
 
 impl FeatureObjective for TourCompactnessObjective {
@@ -43,6 +52,10 @@ impl FeatureObjective for TourCompactnessObjective {
             }
             MoveContext::Activity { .. } => Cost::default(),
         }
+    }
+
+    fn fitness_scale(&self) -> Cost {
+        self.fitness_scale
     }
 }
 

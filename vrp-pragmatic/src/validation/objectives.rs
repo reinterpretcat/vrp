@@ -3,6 +3,7 @@
 mod objectives_test;
 
 use super::*;
+use crate::format::problem::BalancePeriodMetric;
 use crate::format::problem::Objective::*;
 use crate::utils::combine_error_results;
 use std::collections::HashSet;
@@ -166,6 +167,89 @@ fn check_e1607_jobs_with_value_but_no_objective(
     }
 }
 
+/// Checks that min tour size objective is specified when some vehicles have min_tour_size property set.
+fn check_e1608_vehicles_with_min_tour_size_but_no_objective(
+    ctx: &ValidationContext,
+    objectives: &[&Objective],
+) -> Result<(), FormatError> {
+    if objectives.is_empty() {
+        return Ok(());
+    }
+
+    let has_no_min_tour_size_objective =
+        !get_objectives_flattened(objectives).any(|objective| matches!(objective, MinimizeTourSizeViolation));
+    let has_vehicles_with_min_tour_size = ctx
+        .problem
+        .fleet
+        .vehicles
+        .iter()
+        .filter_map(|v| v.limits.as_ref())
+        .filter_map(|l| l.min_tour_size)
+        .any(|size| size > 0);
+
+    if has_no_min_tour_size_objective && has_vehicles_with_min_tour_size {
+        Err(FormatError::new(
+            "E1608".to_string(),
+            "missing min tour size objective".to_string(),
+            "specify 'minimize-tour-size-violation' objective, remove objectives property or remove min_tour_size from vehicles"
+                .to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+/// Checks that the balance-production-value or balance-period (production-value metric)
+/// objective is not used when no job carries a production value.
+fn check_e1609_no_jobs_with_production_value_objective(
+    ctx: &ValidationContext,
+    objectives: &[&Objective],
+) -> Result<(), FormatError> {
+    let has_objective = objectives.iter().any(|objective| {
+        matches!(objective, BalanceProductionValue | BalancePeriod { metric: BalancePeriodMetric::ProductionValue })
+    });
+    let has_no_valued_jobs =
+        !ctx.problem.plan.jobs.iter().filter_map(|job| job.production_value).any(|value| value > 0.);
+
+    if has_objective && has_no_valued_jobs {
+        Err(FormatError::new(
+            "E1609".to_string(),
+            "redundant balance-production-value objective".to_string(),
+            "specify at least one job with a positive productionValue or delete 'balance-production-value' or 'balance-period' (production-value metric) objective"
+                .to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+/// Checks that a `territory` objective carries the anchors that define the territory.
+///
+/// The solver derives nothing: whatever arrives in `anchors` IS the territory. An absent key and an
+/// empty map are the same value here (the field defaults), and both leave every driver unanchored,
+/// which makes the objective inert -- PULL and PUSH are zero and the run silently comes back as if
+/// the objective had never been asked for. That is the failure this check exists to turn into a
+/// refusal.
+///
+/// A *partial* map stays legal: the caller draws one anchor per distinct job location, so a chunk
+/// with fewer distinct locations than drivers leaves the surplus drivers without an entry. So does
+/// an entry whose list is empty, which says that driver takes no part in the territory.
+fn check_e1610_territory_objective_without_anchors(objectives: &[&Objective]) -> Result<(), FormatError> {
+    let has_territory_without_anchors = get_objectives_flattened(objectives)
+        .any(|objective| matches!(objective, Territory { anchors, .. } if anchors.is_empty()));
+
+    if has_territory_without_anchors {
+        Err(FormatError::new(
+            "E1610".to_string(),
+            "missing anchors in territory objective".to_string(),
+            "supply a non-empty 'anchors' map in the 'territory' objective: the solver does not derive anchors, so an empty map holds no ground for any driver and the objective does nothing"
+                .to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().collect())
 }
@@ -188,6 +272,9 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), MultiFormatErr
             check_e1605_check_positive_value_and_order(ctx),
             check_e1606_check_multiple_cost_objectives(&objectives),
             check_e1607_jobs_with_value_but_no_objective(ctx, &objectives),
+            check_e1608_vehicles_with_min_tour_size_but_no_objective(ctx, &objectives),
+            check_e1609_no_jobs_with_production_value_objective(ctx, &objectives),
+            check_e1610_territory_objective_without_anchors(&objectives),
         ])
         .map_err(From::from)
     } else {

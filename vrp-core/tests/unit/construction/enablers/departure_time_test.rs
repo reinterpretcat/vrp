@@ -2,8 +2,11 @@ use super::*;
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::*;
+use crate::models::problem::Place as JobPlace;
 use crate::models::problem::*;
+use crate::models::solution::{Activity, Place as ActivityPlace};
 use rosomaxa::prelude::Float;
+use std::sync::Arc;
 
 parameterized_test! {can_advance_departure_time, (latest, optimize_whole_tour, tws, expected), {
     let tws = tws.into_iter().map(|(start, end)| TimeWindow::new(start, end)).collect::<Vec<_>>();
@@ -49,7 +52,12 @@ fn can_advance_departure_time_impl(
             )
             .build();
 
-        let departure_time = try_advance_departure_time(&route_ctx, &TestTransportCost::default(), optimize_whole_tour);
+        let departure_time = try_advance_departure_time(
+            &route_ctx,
+            &SimpleActivityCost::default(),
+            &TestTransportCost::default(),
+            optimize_whole_tour,
+        );
 
         assert_eq!(departure_time, expected);
     } else {
@@ -112,4 +120,103 @@ fn can_recede_departure_time_impl(
     let departure_time = try_recede_departure_time(&route_ctx);
 
     assert_eq!(departure_time, expected);
+}
+
+#[test]
+fn recomputes_offset_time_windows_on_departure_shift() {
+    let offset = TimeOffset::new(10., 12.);
+    let old_departure = 0.;
+    let new_departure = 5.;
+
+    let job = {
+        let mut dimens = Dimensions::default();
+        dimens.set_job_id("break".to_string());
+
+        Arc::new(Single {
+            places: vec![JobPlace { location: Some(1), duration: 0., times: vec![TimeSpan::Offset(offset.clone())] }],
+            dimens,
+        })
+    };
+
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&test_fleet(), "v1")
+                .add_activity({
+                    let mut activity = Activity::new_with_job(job.clone());
+                    activity.place = ActivityPlace {
+                        idx: 0,
+                        location: job.places[0].location.unwrap(),
+                        duration: job.places[0].duration,
+                        time: TimeSpan::Offset(offset.clone()).to_time_window(old_departure),
+                    };
+                    activity
+                })
+                .build(),
+        )
+        .build();
+
+    update_route_departure(&mut route_ctx, &TestActivityCost::default(), &TestTransportCost::default(), new_departure);
+
+    let activity = route_ctx.route().tour.get(1).unwrap();
+    assert_eq!(activity.place.time, TimeSpan::Offset(offset).to_time_window(new_departure));
+}
+
+/// A route can already sit above its duration limit - a supplied initial solution, or the one
+/// `TravelLimitState::notify_failure` forces open - and a departure move that brings it back toward
+/// the limit has to be kept even when it does not reach it. Weighing the limit absolutely would
+/// refuse the move and leave the route on the longer tour.
+///
+/// Here the vehicle idles from 1 until the job's window opens at 100, works 200 seconds and is home
+/// at 301. Departing at 99 instead takes that idle out: the tour is 202, still four times the 50s
+/// limit, but 99 seconds shorter than the one the route has.
+#[test]
+fn can_keep_a_departure_that_shortens_a_route_already_past_its_limit() {
+    let activity_cost = TestActivityCost::default();
+    let transport_cost = TestTransportCost::default();
+
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&test_fleet(), "v1")
+                .add_activity(
+                    ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(100., 1000.), 200.).build(),
+                )
+                .build(),
+        )
+        .build();
+    update_route_schedule(&mut route_ctx, &activity_cost, &transport_cost);
+    route_ctx.state_mut().set_limit_duration(50.);
+
+    assert_eq!(route_ctx.state().get_total_duration().copied(), Some(301.));
+
+    advance_departure_time(&mut route_ctx, &activity_cost, &transport_cost, true);
+
+    assert_eq!(route_ctx.route().tour.start().unwrap().schedule.departure, 99.);
+    assert_eq!(route_ctx.state().get_total_duration().copied(), Some(202.));
+}
+
+/// The same route under a limit the move does reach: nothing special, it is kept because it fits.
+#[test]
+fn can_keep_a_departure_that_brings_a_route_back_under_its_limit() {
+    let activity_cost = TestActivityCost::default();
+    let transport_cost = TestTransportCost::default();
+
+    let mut route_ctx = RouteContextBuilder::default()
+        .with_route(
+            RouteBuilder::default()
+                .with_vehicle(&test_fleet(), "v1")
+                .add_activity(
+                    ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(100., 1000.), 200.).build(),
+                )
+                .build(),
+        )
+        .build();
+    update_route_schedule(&mut route_ctx, &activity_cost, &transport_cost);
+    route_ctx.state_mut().set_limit_duration(250.);
+
+    advance_departure_time(&mut route_ctx, &activity_cost, &transport_cost, true);
+
+    assert_eq!(route_ctx.route().tour.start().unwrap().schedule.departure, 99.);
+    assert_eq!(route_ctx.state().get_total_duration().copied(), Some(202.));
 }

@@ -1,6 +1,6 @@
 use super::*;
 use std::cmp::Ordering;
-use vrp_core::construction::enablers::ReservedTimesIndex;
+use vrp_core::construction::enablers::{ReservedTimesIndex, get_offset_anchor};
 use vrp_core::models::common::{Cost, TimeWindow};
 use vrp_core::models::solution::Route;
 use vrp_core::prelude::Float;
@@ -18,11 +18,13 @@ pub(super) fn insert_reserved_times_as_breaks(
         .map(|(start, end)| TimeWindow::new(start.schedule.departure, end.schedule.arrival))
         .expect("empty tour");
 
+    let offset_anchor = get_offset_anchor(route);
+
     reserved_times_index
         .get(&route.actor)
         .iter()
         .flat_map(|times| times.iter())
-        .map(|reserved_time| reserved_time.to_reserved_time_window(shift_time.start))
+        .map(|reserved_time| reserved_time.to_reserved_time_window(offset_anchor))
         .map(|rt| (TimeWindow::new(rt.time.end, rt.time.end + rt.duration), rt))
         .filter(|(reserved_tw, _)| shift_time.intersects(reserved_tw))
         .for_each(|(reserved_tw, reserved_time)| {
@@ -34,7 +36,7 @@ pub(super) fn insert_reserved_times_as_breaks(
 
                     if travel_tw.intersects_exclusive(&reserved_tw) {
                         // NOTE: should be moved to the last activity on previous stop by post-processing
-                        return if reserved_time.time.start < travel_tw.start {
+                        return if reserved_tw.start < travel_tw.start {
                             let break_tw = TimeWindow::new(travel_tw.start - reserved_tw.duration(), travel_tw.start);
                             Some(BreakInsertion::TransitBreakMoved { leg_idx, break_tw })
                         } else {
@@ -63,17 +65,32 @@ pub(super) fn insert_reserved_times_as_breaks(
             let break_time = reserved_time.duration as i64;
             let break_cost = break_time as Float * route.actor.vehicle.costs.per_service_time;
 
-            for (stop_idx, stop) in tour.stops.iter_mut().enumerate() {
+            if let Some(BreakInsertion::TransitBreakMoved { leg_idx, .. }) = &break_info {
+                // NOTE: when break was moved to the previous stop, its time window may not
+                // intersect the original reserved_tw (especially with wide offset ranges).
+                // Directly use the stop at leg_idx instead of searching by reserved_tw.
+                let stop = &mut tour.stops[*leg_idx];
                 let stop_tw =
                     TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure));
+                insert_break(
+                    (stop, stop_tw, *leg_idx),
+                    (break_time, break_cost, break_info.clone()),
+                    &reserved_tw,
+                    &mut tour.statistic,
+                );
+            } else {
+                for (stop_idx, stop) in tour.stops.iter_mut().enumerate() {
+                    let stop_tw =
+                        TimeWindow::new(parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure));
 
-                if stop_tw.intersects_exclusive(&reserved_tw) {
-                    insert_break(
-                        (stop, stop_tw, stop_idx),
-                        (break_time, break_cost, break_info.clone()),
-                        &reserved_tw,
-                        &mut tour.statistic,
-                    )
+                    if stop_tw.intersects_exclusive(&reserved_tw) {
+                        insert_break(
+                            (stop, stop_tw, stop_idx),
+                            (break_time, break_cost, break_info.clone()),
+                            &reserved_tw,
+                            &mut tour.statistic,
+                        )
+                    }
                 }
             }
 
@@ -95,6 +112,10 @@ fn insert_break(
         .iter()
         .enumerate()
         .filter_map(|(activity_idx, activity)| {
+            if activity.activity_type == "break" {
+                return None;
+            }
+
             let activity_tw = activity.time.as_ref().map_or(stop_tw.clone(), |interval| {
                 TimeWindow::new(parse_time(&interval.start), parse_time(&interval.end))
             });
@@ -103,6 +124,15 @@ fn insert_break(
         })
         .next()
         .unwrap_or(stop.activities().len());
+
+    let activity_time = match &break_insertion {
+        Some(BreakInsertion::TransitBreakMoved { break_tw, leg_idx }) if *leg_idx == stop_idx => {
+            statistic.cost -= break_cost;
+            statistic.times.driving -= break_time;
+            break_tw
+        }
+        _ => reserved_tw,
+    };
 
     let activities = match stop {
         Stop::Point(point) => {
@@ -113,15 +143,6 @@ fn insert_break(
             statistic.times.driving -= break_time;
             &mut transit.activities
         }
-    };
-
-    let activity_time = match &break_insertion {
-        Some(BreakInsertion::TransitBreakMoved { break_tw, leg_idx }) if *leg_idx == stop_idx => {
-            statistic.cost -= break_cost;
-            statistic.times.driving -= break_time;
-            break_tw
-        }
-        _ => reserved_tw,
     };
 
     activities.insert(
