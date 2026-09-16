@@ -1,3 +1,6 @@
 experiments/etc/** linguist-vendored
 experiments/gpt/** linguist-vendored
 experiments/heuristic-research/www/** linguist-vendored
+
+# bash fails on CRLF line endings, so keep shell scripts LF regardless of the checkout setting
+*.sh text eol=lf

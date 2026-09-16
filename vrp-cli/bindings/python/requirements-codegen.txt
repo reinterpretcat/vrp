@@ -1,0 +1,3 @@
+# These tools determine committed output, so upgrades must be explicit and reviewed with that diff.
+datamodel-code-generator[ruff]==0.81.0
+ruff==0.16.7

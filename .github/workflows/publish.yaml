@@ -40,6 +40,14 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
+      - name: Set up node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      - name: Set up python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
       - name: Cache cargo artifacts
         uses: actions/cache@v6
         with:
@@ -50,6 +58,22 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-publish-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-publish-
+      - name: Generate bindings from the rust types
+        run: |
+          npm ci --prefix vrp-cli/bindings/typescript --no-audit --no-fund
+          python -m pip install --quiet -r vrp-cli/bindings/python/requirements-codegen.txt
+          ./vrp-cli/bindings/generate.sh
+      - name: Upload generated bindings
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-generated-bindings
+          if-no-files-found: error
+          path: |
+            vrp-cli/bindings/schemas/*.schema.json
+            vrp-cli/bindings/python/vrp_cli/models/*.py
+            !vrp-cli/bindings/python/vrp_cli/models/__init__.py
+            !vrp-cli/bindings/python/vrp_cli/models/_base.py
+            vrp-cli/bindings/typescript/format_types.d.ts
       # catches the classic mistake of tagging v1.26.0 while the manifests still say 1.25.0
       - name: Check release tag matches workspace version
         id: version
@@ -81,8 +105,14 @@ jobs:
         run: cargo test --locked --workspace --benches
       # proves every crate can be packaged and built from its packaged form, resolving
       # intra-workspace dependencies locally, so packaging errors surface before any upload
+      # Excludes the `publish = false` members, which `--workspace` would otherwise package for no
+      # reason. Uses its own target directory because verifying a packaged crate resolves sibling
+      # path dependencies to their registry versions, so its artifacts conflict with those of a
+      # normal workspace build and would break any cargo command run after it.
       - name: Pre-flight package all crates
-        run: cargo package --locked --workspace
+        env:
+          CARGO_TARGET_DIR: target/package-verify
+        run: cargo package --locked --workspace --exclude heuristic-research --exclude json-pragmatic
       - name: Summarise the release plan
         env:
           DRY_RUN: ${{ inputs.dry_run }}
@@ -114,6 +144,11 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
+      - name: Download generated bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: release-generated-bindings
+          path: vrp-cli/bindings
       # Idempotent and resumable. crates.io publishes are irreversible, so a failure partway
       # through previously bricked the workflow: a re-run died on the first already-published
       # crate. Each crate is now skipped if that exact version already exists, transient upload
@@ -238,6 +273,11 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
+      - name: Download generated bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: release-generated-bindings
+          path: vrp-cli/bindings
       - name: Cache cargo artifacts
         uses: actions/cache@v6
         with:

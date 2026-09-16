@@ -2,12 +2,13 @@
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
 description = "This book describes a Vehicle Routing Problem solver."
 language = "en"
-multilingual = false
 src = "src"
 title = "A Vehicle Routing Problem Solver Documentation"
 
-# cargo install mdbook-puml
+# renders the plantuml diagrams; install with `cargo install mdbook-puml`.
+# optional so that the book still builds without it, just with the diagrams left as source
 [preprocessor.puml]
+optional = true
 
 [output.html]
 default-theme = "navy"

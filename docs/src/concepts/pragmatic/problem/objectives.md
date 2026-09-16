@@ -42,29 +42,23 @@ constraints such as time windows. The objective has the following optional param
 * `minimize-tours`: minimizes total amount of tours present in solution
 * `maximize-tours`: maximizes total amount of tours present in solution
 * `minimize-arrival-time`: prefers solutions where work is finished earlier
-* `fast-service`: prefers solutions when jobs are served early in tours. Optional parameter:
-  *  `tolerance`: an objective tolerance specifies how different objective values have to be to consider them different.
-      Relative distance metric is used.
+* `fast-service`: prefers solutions when jobs are served early in tours
 * `hierarchical-areas`: an experimental objective to play with clusters of jobs. Internally uses distance minimization as
-  a base penalty.
-  * `levels` - number of hierarchy levels
+  a base penalty. It has the following mandatory parameter:
+    * `levels`: number of hierarchy levels
 
 ### Job distribution objectives
 
 These objectives provide some extra control on job assignment:
 
-* `maximize-value`: maximizes total value of served jobs. It has optional parameters:
-    * `reductionFactor`: a factor to reduce value cost compared to max routing costs
+* `maximize-value`: maximizes total value of served jobs. It has the following optional parameter:
     * `breaks`: a value penalty for skipping a break. Default value is 100.
 * `tour-order`: controls desired activity order in tours
-    * `isConstrained`: violating order is not allowed, even if it leads to less assigned jobs (default is true).
 * `compact-tour`: controls how tour is shaped by limiting amount of shared jobs, assigned in different routes,
-    for a given job' neighbourhood. It has the following mandatory parameters:
-   *  `options`: options to relax objective:
-       - `jobRadius`: a radius of neighbourhood, minimum is 1
-       - `threshold`: a minimum shared jobs to count
-       - `distance`:  a minimum relative distance between counts when comparing different solutions.
-   This objective is supposed to be on the same level within cost ones.
+    for a given job' neighbourhood. It has the following mandatory parameter:
+    * `jobRadius`: a radius of neighbourhood, minimum is 1
+
+  This objective is supposed to be on the same level within cost ones.
 
 
 ### Work balance objectives

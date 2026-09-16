@@ -137,3 +137,62 @@ fn can_handle_reload_resources_impl(resources: Option<Vec<&str>>, expected: Opti
 
     assert_eq!(result.err().map(|err| err.code), expected);
 }
+
+parameterized_test! {can_detect_missing_vehicle_ids, (vehicle_ids, expected), {
+    can_detect_missing_vehicle_ids_impl(vehicle_ids, expected);
+}}
+
+can_detect_missing_vehicle_ids! {
+    case01: (vec![vec!["v1"]], None),
+    case02: (vec![vec!["v1", "v2"]], None),
+    case03: (vec![vec![]], Some("E1305".to_string())),
+    // a type contributing nothing is reported even when another type provides vehicles
+    case04: (vec![vec!["v1"], vec![]], Some("E1305".to_string())),
+}
+
+fn can_detect_missing_vehicle_ids_impl(vehicle_ids: Vec<Vec<&str>>, expected: Option<String>) {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vehicle_ids
+                .iter()
+                .enumerate()
+                .map(|(idx, ids)| VehicleType {
+                    type_id: format!("type{idx}"),
+                    vehicle_ids: ids.iter().map(|id| id.to_string()).collect(),
+                    ..create_default_vehicle_type()
+                })
+                .collect(),
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let result =
+        check_e1305_vehicle_types_have_vehicle_ids(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), expected);
+}
+
+parameterized_test! {can_detect_fleet_without_vehicle_types, (has_vehicle_type, expected), {
+    can_detect_fleet_without_vehicle_types_impl(has_vehicle_type, expected);
+}}
+
+can_detect_fleet_without_vehicle_types! {
+    case01: (true, None),
+    case02: (false, Some("E1309".to_string())),
+}
+
+fn can_detect_fleet_without_vehicle_types_impl(has_vehicle_type: bool, expected: Option<String>) {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: if has_vehicle_type { vec![create_default_vehicle_type()] } else { vec![] },
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let result =
+        check_e1309_fleet_has_vehicle_types(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), expected);
+}

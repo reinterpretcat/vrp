@@ -91,6 +91,36 @@ The testing module is considered as child module, that's why it has full access 
 ### documentation tests
 - very few at the moment as the main focus is on standalone usage, not on as a crate lib.
 
+### language binding tests
+
+The bindings are covered outside the rust test suite, because the interesting part is what other
+languages actually observe:
+
+```shell
+# python: the generated models, then the example and the tutorial against an installed wheel
+python -m unittest discover -s vrp-cli/bindings/python/tests
+python examples/python-interop/example.py
+jupyter execute examples/python-interop/tutorial.ipynb
+
+# javascript: needs `wasm-pack build --target nodejs --out-dir pkg-node` in vrp-cli first
+node --test examples/js-interop/interop.test.mjs
+node examples/js-interop/example.mjs
+```
+
+Both examples solve the same problem, so their reported cost should match.
+
+The schemas, typescript declarations and pydantic models are generated from the rust types and are not
+committed. CI generates them once and passes the resulting artifact to the Python and WebAssembly
+jobs. Generate them locally before running a binding build or test:
+
+```shell
+pip install -r vrp-cli/bindings/python/requirements-codegen.txt
+npm ci --prefix vrp-cli/bindings/typescript
+./vrp-cli/bindings/generate.sh
+```
+
+The code generators are pinned so output is reproducible across local and CI runs.
+
 
 ## metrics
 

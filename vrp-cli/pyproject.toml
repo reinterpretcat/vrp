@@ -7,6 +7,8 @@ build-backend = "maturin"
 name = "vrp-cli"
 # the abi3-py310 feature produces a cp310-abi3 wheel, so 3.10 is the supported floor
 requires-python = ">=3.10"
+# the wheel ships generated pydantic models next to the native extension
+dependencies = ["pydantic>=2,<3"]
 # everything else stays derived from Cargo.toml so there is a single source of truth
 dynamic = ["version", "description", "readme", "license", "keywords", "authors", "urls", "classifiers"]
 
@@ -14,3 +16,10 @@ dynamic = ["version", "description", "readme", "license", "keywords", "authors",
 bindings = "pyo3"
 features = ["py_bindings"]
 strip = true
+# a mixed rust/python project: the extension is built as `vrp_cli._native` and the package in
+# bindings/python re-exports it, which is what lets the generated models ship inside the wheel
+python-source = "bindings/python"
+module-name = "vrp_cli._native"
+# maturin walks python-source rather than asking git, so locally compiled bytecode would otherwise
+# end up in the wheel and make its contents depend on whether the tests had been run
+exclude = ["**/__pycache__/**"]

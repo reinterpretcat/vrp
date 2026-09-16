@@ -10,6 +10,7 @@ use vrp_core::prelude::Float;
 
 /// Timing statistic.
 #[derive(Clone, Default, Deserialize, Serialize, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Timing {
     /// Driving time.
     pub driving: i64,
@@ -30,6 +31,7 @@ pub struct Timing {
 
 /// Represents statistic.
 #[derive(Clone, Deserialize, Default, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Statistic {
     /// Total cost.
     pub cost: Float,
@@ -43,6 +45,7 @@ pub struct Statistic {
 
 /// Represents a schedule.
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Schedule {
     /// Arrival time specified in RFC3339 format.
     pub arrival: String,
@@ -52,6 +55,7 @@ pub struct Schedule {
 
 /// Represents time interval.
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Interval {
     /// Start time specified in RFC3339 format.
     pub start: String,
@@ -61,6 +65,7 @@ pub struct Interval {
 
 /// Stores information about commuting to perform activity.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Commute {
     /// Commuting to the activity place.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,6 +77,7 @@ pub struct Commute {
 
 /// Stores information about commuting information in one direction.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CommuteInfo {
     /// Commute location.
     pub location: Location,
@@ -83,6 +89,7 @@ pub struct CommuteInfo {
 
 /// An activity is unit of work performed at some place.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Activity {
     /// Job id.
@@ -106,6 +113,7 @@ pub struct Activity {
 
 /// A stop is a place where vehicle is supposed to do some work.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
 pub enum Stop {
     /// A point stop is a stop where vehicle is supposed to be parked and do some work.
@@ -190,6 +198,7 @@ impl Stop {
 
 /// A transit stop specifies some transit place to stay without concrete location.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TransitStop {
     /// Stop schedule.
     pub time: Schedule,
@@ -201,6 +210,7 @@ pub struct TransitStop {
 
 /// A point stop is a stop where vehicle is supposed to be parked and do some work.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PointStop {
     /// Stop location. When omitted vehicle can stop anywhere.
     pub location: Location,
@@ -219,6 +229,7 @@ pub struct PointStop {
 
 /// A tour is list of stops with their activities performed by specific vehicle.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Tour {
     /// Vehicle id.
@@ -236,6 +247,7 @@ pub struct Tour {
 
 /// Unassigned job reason.
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct UnassignedJobReason {
     /// A reason code.
     pub code: String,
@@ -248,6 +260,7 @@ pub struct UnassignedJobReason {
 
 /// Unassigned job details.
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct UnassignedJobDetail {
     /// Vehicle id.
@@ -258,6 +271,7 @@ pub struct UnassignedJobDetail {
 
 /// Unassigned job.
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct UnassignedJob {
     /// Job id.
@@ -268,21 +282,29 @@ pub struct UnassignedJob {
 
 /// Specifies a type of violation.
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum Violation {
     /// A break assignment violation.
     #[serde(rename(deserialize = "break", serialize = "break"))]
+    #[cfg_attr(feature = "schema", schemars(title = "ViolationBreak"))]
+    // NOTE: `rename_all` on the enum applies to variant names, not to fields of a struct variant,
+    // so it has to be repeated here to keep the fields camelCase like the rest of the format
+    #[serde(rename_all = "camelCase")]
     Break {
         /// An id of a vehicle break belong to.
+        #[serde(alias = "vehicle_id")]
         vehicle_id: String,
         /// Index of the shift.
+        #[serde(alias = "shift_index")]
         shift_index: usize,
     },
 }
 
 /// Encapsulates different measurements regarding algorithm evaluation.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Metrics {
     /// Total algorithm duration.
     pub duration: usize,
@@ -296,6 +318,7 @@ pub struct Metrics {
 
 /// Represents information about generation.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Generation {
     /// Generation sequence number.
@@ -314,6 +337,7 @@ pub struct Generation {
 
 /// Keeps essential information about particular individual in population.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Individual {
     /// Solution cost difference from best individual.
@@ -324,6 +348,7 @@ pub struct Individual {
 
 /// Holds population state.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Population {
     /// Population individuals.
@@ -332,6 +357,7 @@ pub struct Population {
 
 /// Contains extra information.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Extras {
     /// A telemetry metrics.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -344,6 +370,7 @@ pub struct Extras {
 
 /// A VRP solution.
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Solution {
     /// Total statistic.

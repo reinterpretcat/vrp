@@ -16,11 +16,36 @@ are already published. So, I stick to it for now.
 * change GSOM distance function
 * improve SISR implementation
 * improve dynamic selective heuristic
+* generate the typed models used by language bindings from the rust types, see `vrp-cli/bindings`
+* implement all language bindings as thin adapters over one shared contract, so they expose the same
+  operations with the same semantics
+* **breaking**: report errors as a json array from all language bindings, instead of a mix of json and
+  plain text. Each entry has a `code`, `cause` and `action`
+* **breaking**: accept and return javascript objects in the WebAssembly binding, instead of json
+  strings. Json strings are still accepted as input
+* **breaking**: rename `violations` fields in solution to `vehicleId` and `shiftIndex`, matching the
+  documented format and the rest of the solution
+* commit `Cargo.lock` to make builds reproducible
 
 ### Added
 
 * add an experimental objective
 * add naive implementation of LKH local search
+* add json schemas for the problem, matrix, config, solution and error documents
+* ship generated `pydantic` models within the python wheel as `vrp_cli.models`
+* publish a linux `aarch64` wheel, so `pip install` works on 64-bit arm
+* emit typescript declarations for the WebAssembly binding, so problems and solutions are typed
+* add `validate_pragmatic` to the python binding
+* add a javascript/node example
+* add `E0005`, `E1305` and `E1309` errors
+
+### Fixed
+
+* panic instead of a validation error when a fleet ends up with no vehicles
+* `compact-tour` objective expected `job_radius` while documentation described `jobRadius`; both are
+  accepted now
+* swapped descriptions of `travelTimes` and `distances` in the routing matrix
+* objectives documentation listed several parameters which do not exist
 
 
 ## [1.25.0] 2024-11-10

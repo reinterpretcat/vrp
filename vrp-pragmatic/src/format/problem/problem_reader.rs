@@ -182,7 +182,7 @@ fn get_problem_blocks(
     // TODO pass environment from outside to allow parametrization
     let environment = Environment::default();
 
-    let fleet = read_fleet(api_problem, problem_props, &coord_index);
+    let fleet = read_fleet(api_problem, problem_props, &coord_index)?;
     let reserved_times_index = read_reserved_times_index(api_problem, &fleet);
 
     let transport = Timer::measure_duration_with_callback(

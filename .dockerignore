@@ -1,1 +1,13 @@
+# The whole context is sent to the docker daemon before any COPY runs, so local build output and
+# scratch must be kept out of it: the Dockerfile needs the crate sources and nothing else.
 target
+.temp
+.git
+.idea
+docs/book
+# these live inside directories the Dockerfile copies, so they need to match at any depth
+**/node_modules
+**/__pycache__
+vrp-cli/pkg
+vrp-cli/pkg-node
+vrp-cli/dist

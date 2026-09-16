@@ -43,6 +43,95 @@ jobs:
       - name: Run clippy
         run: cargo clippy --locked --workspace --all-features --all-targets -- -D warnings
 
+  bindings:
+    name: Generated bindings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-schema-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-schema-
+      - name: Set up node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      - name: Set up python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install codegen tooling
+        run: |
+          npm ci --prefix vrp-cli/bindings/typescript --no-audit --no-fund
+          python -m pip install --quiet -r vrp-cli/bindings/python/requirements-codegen.txt
+      - name: Regenerate the bindings
+        run: ./vrp-cli/bindings/generate.sh
+      - name: Upload generated bindings
+        uses: actions/upload-artifact@v7
+        with:
+          name: generated-bindings
+          if-no-files-found: error
+          path: |
+            vrp-cli/bindings/schemas/*.schema.json
+            vrp-cli/bindings/python/vrp_cli/models/*.py
+            !vrp-cli/bindings/python/vrp_cli/models/__init__.py
+            !vrp-cli/bindings/python/vrp_cli/models/_base.py
+            vrp-cli/bindings/typescript/format_types.d.ts
+
+  python:
+    name: Python bindings
+    needs: bindings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Download generated bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: generated-bindings
+          path: vrp-cli/bindings
+      # 3.10 is the floor declared by requires-python and pyo3's abi3-py310 feature
+      - name: Set up python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.10'
+      - name: Cache cargo artifacts
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-python-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-python-
+      # the `bindings` job supplies models generated from this checkout
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'maturin[patchelf]>=1.5,<2.0' nbclient ipykernel
+      # the py_bindings feature comes from [tool.maturin] in pyproject.toml
+      - name: Build and install the wheel
+        working-directory: ./vrp-cli
+        run: |
+          maturin build --release --out dist
+          python -m pip install dist/*.whl
+      # example.py and the tutorial are the entry points the README points newcomers at, so they
+      # must keep working against the bindings they document
+      - name: Run the python example
+        run: python examples/python-interop/example.py
+      - name: Test the generated python models
+        run: python -m unittest discover -s vrp-cli/bindings/python/tests
+      - name: Execute the tutorial notebook
+        run: jupyter execute examples/python-interop/tutorial.ipynb
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -118,10 +207,16 @@ jobs:
 
   wasm-build:
     name: WebAssembly build
+    needs: bindings
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
+      - name: Download generated bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: generated-bindings
+          path: vrp-cli/bindings
       # ~/.cargo/bin is cached so wasm-pack is compiled once rather than on every run
       - name: Cache cargo artifacts
         uses: actions/cache@v6
@@ -142,9 +237,26 @@ jobs:
             cargo install wasm-pack --locked
           fi
           wasm-pack --version
-      - name: Build WebAssembly
+      # node 19+ exposes the Web Crypto API as a global, which the solver's rng needs on wasm
+      - name: Set up node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      - name: Build WebAssembly for browsers
         working-directory: ./vrp-cli
         run: wasm-pack build --target web
+      - name: Build WebAssembly for node
+        working-directory: ./vrp-cli
+        run: wasm-pack build --target nodejs --out-dir pkg-node
+      # the emitted .d.ts embeds the generated format types, so this also proves they type-check
+      - name: Check the emitted typescript declarations
+        run: |
+          npm ci --prefix vrp-cli/bindings/typescript --no-audit --no-fund
+          vrp-cli/bindings/typescript/node_modules/.bin/tsc --noEmit --strict vrp-cli/pkg-node/vrp_cli.d.ts
+      - name: Run the node example
+        run: node examples/js-interop/example.mjs
+      - name: Test WebAssembly error handling
+        run: node --test examples/js-interop/interop.test.mjs
       - name: Upload WebAssembly artifact
         uses: actions/upload-artifact@v7
         with:

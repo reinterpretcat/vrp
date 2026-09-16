@@ -68,6 +68,7 @@
     * [Solver extension](internals/development/extension.md)
     * [Development practices](internals/development/best-practices.md)
     * [Testing](internals/development/testing.md)
+    * [Releasing](internals/development/release.md)
   * [Algorithms](internals/algorithms/index.md)
     * [Heuristics](internals/algorithms/heuristics.md)
     * [Rosomaxa](internals/algorithms/rosomaxa.md)

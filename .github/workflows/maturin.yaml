@@ -9,15 +9,52 @@ permissions:
 # vrp-cli enables pyo3's abi3-py310 feature, so each platform produces a single stable-ABI wheel
 # (cp310-abi3) that works on CPython 3.10 and every later version. No per-interpreter builds needed.
 jobs:
+  bindings:
+    name: Generate bindings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install code generators
+        run: |
+          npm ci --prefix vrp-cli/bindings/typescript --no-audit --no-fund
+          python -m pip install --quiet -r vrp-cli/bindings/python/requirements-codegen.txt
+      - name: Generate bindings from the rust types
+        run: ./vrp-cli/bindings/generate.sh
+      - name: Upload generated bindings
+        uses: actions/upload-artifact@v7
+        with:
+          name: generated-bindings
+          if-no-files-found: error
+          path: |
+            vrp-cli/bindings/schemas/*.schema.json
+            vrp-cli/bindings/python/vrp_cli/models/*.py
+            !vrp-cli/bindings/python/vrp_cli/models/__init__.py
+            !vrp-cli/bindings/python/vrp_cli/models/_base.py
+            vrp-cli/bindings/typescript/format_types.d.ts
+
   linux:
     name: Build linux wheel (${{ matrix.target }})
+    needs: bindings
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64, armv7]
+        # aarch64 covers arm servers and 64-bit arm linux generally; without a wheel for it,
+        # `pip install vrp-cli` there fails outright, since no sdist is published to fall back on
+        target: [x86_64, aarch64, armv7]
     steps:
       - uses: actions/checkout@v7
+      - name: Download generated bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: generated-bindings
+          path: vrp-cli/bindings
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
@@ -38,6 +75,7 @@ jobs:
 
   windows:
     name: Build windows wheel (${{ matrix.target }})
+    needs: bindings
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -45,6 +83,11 @@ jobs:
         target: [x64, x86]
     steps:
       - uses: actions/checkout@v7
+      - name: Download generated bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: generated-bindings
+          path: vrp-cli/bindings
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
@@ -65,6 +108,7 @@ jobs:
 
   macos:
     name: Build macos wheel (${{ matrix.target }})
+    needs: bindings
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -72,6 +116,11 @@ jobs:
         target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v7
+      - name: Download generated bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: generated-bindings
+          path: vrp-cli/bindings
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'

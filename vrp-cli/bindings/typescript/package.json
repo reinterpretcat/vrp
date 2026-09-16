@@ -1,0 +1,8 @@
+{
+  "name": "vrp-cli-bindings-codegen",
+  "private": true,
+  "devDependencies": {
+    "json-schema-to-typescript": "16.0.0",
+    "typescript": "7.0.2"
+  }
+}

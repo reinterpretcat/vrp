@@ -142,8 +142,7 @@
   },
   "objectives": [
     {
-      "type": "maximize-value",
-      "reductionFactor": 0.1
+      "type": "maximize-value"
     },
     {
       "type": "minimize-unassigned"

@@ -11,6 +11,9 @@ homepage.workspace = true
 repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+# The TypeScript declarations are generated before release rather than committed. `include` both
+# overrides gitignore for that file and keeps the published Rust crate deliberately small.
+include = ["src/**", "tests/**", "examples/**", "bindings/typescript/format_types.d.ts"]
 
 [features]
 default = ["vrp-core", "csv-format", "scientific-format"]
@@ -18,10 +21,19 @@ default = ["vrp-core", "csv-format", "scientific-format"]
 csv-format = ["csv"]
 scientific-format = ["vrp-scientific"]
 py_bindings = ["dep:pyo3"]
+# opt-in, non-default: derives `JsonSchema` on the config types and enables the same for the
+# pragmatic format, which together let the `schema_gen` example emit the json schemas
+schema = ["dep:schemars", "vrp-pragmatic/schema"]
 
 [lib]
 name = "vrp_cli"
 crate-type = ["cdylib", "lib"]
+
+# generates the json schemas; skipped unless the `schema` feature is enabled, so that `cargo test
+# --all-targets` keeps working with default features
+[[example]]
+name = "schema_gen"
+required-features = ["schema"]
 
 [dependencies]
 vrp-core = { workspace = true, optional = true }
@@ -32,6 +44,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 csv = { version = "1.3.1", optional = true }
+schemars = { version = "1.2.2", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 clap = "4.5.39"
@@ -46,8 +59,11 @@ pyo3 = { version = "0.29.2", features = ["extension-module", "abi3-py310"], opti
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.100" }
-serde-wasm-bindgen = "0.6.5"
+# the wasm binding converts arguments with the engine's own JSON implementation, so no serde based
+# javascript bridge is needed
 js-sys = "0.3.77"
+# without a panic hook a panic surfaces as a bare "unreachable executed" with no message
+console_error_panic_hook = "0.1.7"
 
 [dev-dependencies]
 tempfile = "3.20.0"

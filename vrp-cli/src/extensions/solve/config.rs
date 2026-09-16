@@ -24,6 +24,7 @@ use vrp_core::solver::*;
 
 /// An algorithm configuration.
 #[derive(Clone, Default, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Config {
     /// Specifies evolution configuration.
     pub evolution: Option<EvolutionConfig>,
@@ -41,6 +42,7 @@ pub struct Config {
 
 /// An evolution configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EvolutionConfig {
     pub initial: Option<InitialConfig>,
@@ -48,6 +50,7 @@ pub struct EvolutionConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum PopulationType {
@@ -93,6 +96,7 @@ pub enum PopulationType {
 
 /// An initial solution configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct InitialConfig {
     pub method: RecreateMethod,
     pub alternatives: InitialAlternativesConfig,
@@ -100,6 +104,7 @@ pub struct InitialConfig {
 
 /// An initial solution alternatives configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct InitialAlternativesConfig {
     pub methods: Vec<RecreateMethod>,
@@ -109,6 +114,7 @@ pub struct InitialAlternativesConfig {
 
 /// A selection operator configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum SelectionType {
@@ -121,6 +127,7 @@ pub enum SelectionType {
 
 /// A hyper heuristic configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum HyperType {
     /// A hyper heuristic which selects one operator from the list based on its predefined probability.
@@ -138,6 +145,7 @@ pub enum HyperType {
 
 /// A operator configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum SearchOperatorType {
     /// A metaheuristic which splits problem into smaller and solves them independently.
@@ -177,15 +185,18 @@ pub enum SearchOperatorType {
 
 /// A operator probability type
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
 pub enum OperatorProbabilityType {
     /// A scalar probability based type.
+    #[cfg_attr(feature = "schema", schemars(title = "OperatorProbabilityTypeScalar"))]
     Scalar {
         /// Probability value of the operator.
         scalar: Float,
     },
 
     /// A context specific probability type.
+    #[cfg_attr(feature = "schema", schemars(title = "OperatorProbabilityTypeContext"))]
     Context {
         /// Threshold parameters.
         threshold: ContextThreshold,
@@ -196,6 +207,7 @@ pub enum OperatorProbabilityType {
 
 /// A context condition for `MutationProbabilityType`.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ContextThreshold {
     /// Min amount of jobs in individual.
     pub jobs: usize,
@@ -205,6 +217,7 @@ pub struct ContextThreshold {
 
 /// A selection phase filter for `MutationProbabilityType`.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum ContextPhase {
     /// Initial selection phase.
@@ -231,6 +244,7 @@ pub enum ContextPhase {
 
 /// A ruin method configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RuinGroupConfig {
     /// Ruin methods.
     methods: Vec<RuinMethod>,
@@ -240,6 +254,7 @@ pub struct RuinGroupConfig {
 
 /// Specifies ruin methods with their probability weight and specific parameters.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum RuinMethod {
     /// Adjusted string removal method.
@@ -270,6 +285,7 @@ pub enum RuinMethod {
 
 /// Specifies recreate methods with their probability weight and specific parameters.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum RecreateMethod {
     /// Cheapest insertion method.
@@ -311,6 +327,7 @@ pub enum RecreateMethod {
 
 /// Specifies a fixed job order for blink insertion.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum BlinksJobOrder {
     Random,
@@ -324,6 +341,7 @@ pub enum BlinksJobOrder {
 
 /// A local search configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum LocalOperatorType {
     #[serde(rename(deserialize = "swap-star"))]
@@ -343,6 +361,7 @@ pub enum LocalOperatorType {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct NoiseConfig {
     probability: Float,
     min: Float,
@@ -350,6 +369,7 @@ pub struct NoiseConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminationConfig {
     pub max_time: Option<usize>,
@@ -358,6 +378,7 @@ pub struct TerminationConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct VariationConfig {
     interval_type: String,
@@ -368,12 +389,14 @@ pub struct VariationConfig {
 
 /// A telemetry config.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TelemetryConfig {
     progress: Option<ProgressConfig>,
     metrics: Option<MetricsConfig>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct ProgressConfig {
     /// Specifies whether logging is enabled. Default is false.
@@ -385,6 +408,7 @@ pub struct ProgressConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct MetricsConfig {
     /// Specifies whether metrics collection is enabled. Default is false.
@@ -395,6 +419,7 @@ pub struct MetricsConfig {
 
 /// An environment specific configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct EnvironmentConfig {
@@ -407,6 +432,7 @@ pub struct EnvironmentConfig {
 
 /// Global logging configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct LoggingConfig {
     /// Specifies whether logging is enabled. Default is false.
@@ -416,12 +442,14 @@ pub struct LoggingConfig {
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct MinMaxConfig {
     pub min: usize,
     pub max: usize,
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct NameWeight {
     pub name: String,
     pub weight: usize,
@@ -429,6 +457,7 @@ pub struct NameWeight {
 
 /// Specifies output configuration.
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OutputConfig {
     /// True if the solution, serialized as geojson features, should be included in solution.extras.

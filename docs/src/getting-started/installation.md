@@ -12,11 +12,29 @@ pip install vrp-cli
 python examples/python-interop/example.py # run test example
 ```
 
+The package ships typed `pydantic` models for every document the solver exchanges as `vrp_cli.models`, generated from the
+solver's own rust types.
+
 Alternatively, you can use [maturin](https://github.com/PyO3/maturin) tool to build solver locally.
 
 You can find extra information in [python example section](https://reinterpretcat.github.io/vrp/examples/interop/python.html)
-of the docs. The [full source code](./examples/python-interop/example.py) of python example is available in the repo which
-contains useful model wrappers with help of `pydantic` lib.
+of the docs. The [full source code](./examples/python-interop/example.py) of python example is available in the repo.
+
+
+## Install with npm
+
+There is no published package yet, but the solver can be built for `WebAssembly` and used from a browser or from node:
+
+```shell
+pip install -r vrp-cli/bindings/python/requirements-codegen.txt
+npm ci --prefix vrp-cli/bindings/typescript
+./vrp-cli/bindings/generate.sh
+cd vrp-cli
+wasm-pack build --target web                        # browsers
+wasm-pack build --target nodejs --out-dir pkg-node  # node
+```
+
+See the [javascript example section](https://reinterpretcat.github.io/vrp/examples/interop/javascript.html) of the docs.
 
 
 ## Install from Docker
