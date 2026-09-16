@@ -10,7 +10,6 @@ use rustc_hash::FxHasher;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
-use std::iter::once;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -360,28 +359,14 @@ where
     }
 
     fn distribute_error(&mut self, coord: &Coordinate, radius: usize) {
-        let nodes = once((*coord, None))
-            .chain(
-                self.nodes
-                    .get(coord)
-                    .unwrap()
-                    .neighbours(self, radius)
-                    .filter_map(|(coord, offset)| coord.map(|coord| (coord, offset)))
-                    .map(|(coord, (x, y))| {
-                        let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as Float;
-                        (coord, Some(distribution_factor))
-                    }),
-            )
-            .collect::<Vec<_>>();
+        self.nodes.get_mut(coord).unwrap().error = 0.5 * self.growing_threshold;
 
-        nodes.into_iter().for_each(|(coord, distribution_factor)| {
-            let node = self.nodes.get_mut(&coord).unwrap();
-            if let Some(distribution_factor) = distribution_factor {
+        for (coordinate, (x, y)) in neighbour_coordinates(*coord, radius) {
+            if let Some(node) = self.nodes.get_mut(&coordinate) {
+                let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as Float;
                 node.error += distribution_factor * node.error
-            } else {
-                node.error = 0.5 * self.growing_threshold
             }
-        });
+        }
     }
 
     fn grow_nodes(&self, coord: &Coordinate) -> Vec<(Coordinate, Vec<Float>)> {
@@ -441,26 +426,20 @@ where
     }
 
     fn adjust_weights(&mut self, coord: &Coordinate, weights: &[Float], radius: usize, is_new_input: bool) {
-        let node = self.nodes.get(coord).expect("invalid coordinate");
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as Float));
         let learning_rate = if is_new_input { learning_rate } else { 0.25 * learning_rate };
 
-        let nodes = once((*coord, weights, learning_rate))
-            .chain(node.neighbours(self, radius).filter_map(|(coord, offset)| coord.map(|coord| (coord, offset))).map(
-                |(coord, offset)| {
-                    let distance = offset.0.abs() + offset.1.abs();
-                    let learning_rate = learning_rate / distance as Float;
-                    (coord, weights, learning_rate)
-                },
-            ))
-            .collect::<Vec<_>>();
+        let node = self.nodes.get_mut(coord).expect("invalid coordinate");
+        node.adjust(weights, learning_rate);
+        self.min_max_weights.update(node.weights.as_slice());
 
-        nodes.into_iter().for_each(|(coord, weights, learning_rate)| {
-            if let Some(node) = self.nodes.get_mut(&coord) {
+        for (coordinate, (x, y)) in neighbour_coordinates(*coord, radius) {
+            if let Some(node) = self.nodes.get_mut(&coordinate) {
+                let learning_rate = learning_rate / (x.abs() + y.abs()) as Float;
                 node.adjust(weights, learning_rate);
                 self.min_max_weights.update(node.weights.as_slice());
             }
-        })
+        }
     }
 
     /// Gets a mutable reference for node with given coordinate.
@@ -620,6 +599,19 @@ where
     pub(crate) fn normalize<'a>(&'a self, values: &'a [Float]) -> impl Iterator<Item = Float> + 'a {
         normalize(values, &self.min_max_weights)
     }
+}
+
+fn neighbour_coordinates(
+    Coordinate(center_x, center_y): Coordinate,
+    radius: usize,
+) -> impl Iterator<Item = (Coordinate, (i32, i32))> {
+    let radius = radius as i32;
+
+    (-radius..=radius).flat_map(move |x| {
+        (-radius..=radius)
+            .filter(move |&y| x != 0 || y != 0)
+            .map(move |y| (Coordinate(center_x + x, center_y + y), (x, y)))
+    })
 }
 
 fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {

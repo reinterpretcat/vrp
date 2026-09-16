@@ -4,8 +4,16 @@ use vrp_pragmatic::format::FormatError;
 
 #[test]
 fn can_use_to_string() {
-    let c_str = CString::new("asd").unwrap();
-    assert_eq!(to_string(c_str.as_ptr() as *const c_char), "asd".to_string());
+    let c_str = CString::new("Привет, 世界").unwrap();
+    assert_eq!(to_string(c_str.as_ptr() as *const c_char), "Привет, 世界".to_string());
+}
+
+#[test]
+fn can_use_to_strings() {
+    let strings = [CString::new("first").unwrap(), CString::new("второй").unwrap()];
+    let pointers = strings.iter().map(|string| string.as_ptr()).collect::<Vec<_>>();
+
+    assert_eq!(to_strings(pointers.as_ptr(), pointers.len()), vec!["first".to_string(), "второй".to_string()]);
 }
 
 #[test]

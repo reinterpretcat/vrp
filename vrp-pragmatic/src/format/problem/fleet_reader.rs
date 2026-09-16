@@ -5,7 +5,6 @@ mod fleet_reader_test;
 use super::*;
 use crate::Location as ApiLocation;
 use crate::format::UnknownLocationFallback;
-use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
@@ -208,6 +207,10 @@ pub(super) fn read_fleet(
 
 /// Creates a matrices using approximation.
 pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
+    create_approx_matrices_with_index(problem, &CoordIndex::new(problem))
+}
+
+pub(super) fn create_approx_matrices_with_index(problem: &ApiProblem, coord_index: &CoordIndex) -> Vec<Matrix> {
     const DEFAULT_SPEED: Float = 10.;
     // get each speed value once
     let speeds = problem
@@ -219,7 +222,8 @@ pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .collect::<HashSet<_>>();
     let speeds = speeds.into_iter().map(Float::from_bits).collect::<Vec<_>>();
 
-    let locations = get_unique_locations(problem)
+    let locations = coord_index
+        .unique()
         .into_iter()
         .filter(|location| !matches!(location, ApiLocation::Custom { .. }))
         .collect::<Vec<_>>();

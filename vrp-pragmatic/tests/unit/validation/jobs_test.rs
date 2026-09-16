@@ -73,3 +73,29 @@ fn can_detect_negative_demand() {
 
     assert_result("E1107", "job1", result);
 }
+
+#[test]
+fn can_iterate_all_task_kinds_in_validation_order() {
+    let task_with_duration = |duration| JobTask {
+        places: vec![JobPlace { duration, ..create_job_place((duration, 0.), None) }],
+        demand: None,
+        order: None,
+    };
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![Job {
+                pickups: Some(vec![task_with_duration(1.)]),
+                deliveries: Some(vec![task_with_duration(2.)]),
+                replacements: Some(vec![task_with_duration(3.)]),
+                services: Some(vec![task_with_duration(4.)]),
+                ..create_job("job1")
+            }],
+            ..create_empty_plan()
+        },
+        ..create_empty_problem()
+    };
+
+    let durations = job_tasks(&problem.plan.jobs[0]).map(|task| task.places[0].duration).collect::<Vec<_>>();
+
+    assert_eq!(durations, vec![1., 2., 3., 4.]);
+}

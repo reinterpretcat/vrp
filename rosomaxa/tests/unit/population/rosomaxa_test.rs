@@ -367,6 +367,22 @@ mod selection {
     }
 
     #[test]
+    fn exploitation_batch_uses_fixed_pre_batch_best() {
+        let mut rosomaxa = create_rosomaxa(4);
+        rosomaxa.add(VectorSolution { data: vec![10.], weights: vec![10.], fitness: 10. });
+        rosomaxa.phase = RosomaxaPhases::Exploitation { selection_size: 4 };
+
+        let is_improved = rosomaxa.add_all(vec![
+            VectorSolution { data: vec![5.], weights: vec![5.], fitness: 5. },
+            VectorSolution { data: vec![9.], weights: vec![9.], fitness: 9. },
+        ]);
+        let fitness = rosomaxa.ranked().map(|solution| solution.fitness).collect::<Vec<_>>();
+
+        assert!(is_improved);
+        assert_eq!(fitness, vec![5., 9.]);
+    }
+
+    #[test]
     fn can_skip_exploration_at_exact_phase_boundary() {
         let initial_size = 4;
         let mut rosomaxa = create_rosomaxa(initial_size);

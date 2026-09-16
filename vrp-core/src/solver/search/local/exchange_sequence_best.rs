@@ -157,6 +157,27 @@ struct MoveCandidate {
     sequence_move: SequenceMove,
 }
 
+impl MoveCandidate {
+    fn relocation(
+        insertion_ctx: &InsertionContext,
+        sequence_move: SequenceMove,
+        neighbor_cost: Cost,
+        removal_cost: Option<Cost>,
+        activities: &[&Activity],
+    ) -> Self {
+        let estimated_cost =
+            estimate_relocation_cost(insertion_ctx, &sequence_move, removal_cost, activities).unwrap_or(neighbor_cost);
+
+        Self { estimated_cost, sequence_move }
+    }
+
+    fn exchange(insertion_ctx: &InsertionContext, sequence_move: SequenceMove, neighbor_cost: Cost) -> Self {
+        let estimated_cost = estimate_exchange_cost(insertion_ctx, &sequence_move).unwrap_or(neighbor_cost);
+
+        Self { estimated_cost, sequence_move }
+    }
+}
+
 struct IntraRouteSource {
     removal_cost: Cost,
     route_idx: usize,
@@ -168,6 +189,22 @@ struct IntraRouteSource {
 struct JobPosition {
     route_idx: usize,
     position: usize,
+}
+
+struct PairActivities<'a> {
+    forward: Vec<&'a Activity>,
+    reversed: Vec<&'a Activity>,
+}
+
+impl<'a> PairActivities<'a> {
+    fn new(route: &'a Route, jobs: &'a [Job; 2]) -> Self {
+        let mut forward = route.tour.job_activities(&jobs[0]).collect::<Vec<_>>();
+        let second_start = forward.len();
+        forward.extend(route.tour.job_activities(&jobs[1]));
+        let reversed = forward[second_start..].iter().chain(&forward[..second_start]).copied().collect();
+
+        Self { forward, reversed }
+    }
 }
 
 fn select_sequence_move(
@@ -210,6 +247,7 @@ fn select_sequence_move(
         let profile = &insertion_ctx.solution.routes[source_route_idx].route().actor.vehicle.profile;
         let jobs = &source_jobs[source_position..source_position + 2];
         let first_jobs = [jobs[0].clone(), jobs[1].clone()];
+        let mut relocation_activities = None;
         // The removed path is identical for all four relocation orientations around every target.
         // Calculate it once per source pair; on large routes this avoids most repeated route scans.
         let relocation_removal = if move_types.relocate {
@@ -232,8 +270,14 @@ fn select_sequence_move(
             }
 
             if move_types.relocate {
+                let activities = relocation_activities.get_or_insert_with(|| {
+                    PairActivities::new(insertion_ctx.solution.routes[source_route_idx].route(), &first_jobs)
+                });
                 for position in [RelativePosition::Before, RelativePosition::After] {
-                    for jobs in [first_jobs.clone(), [first_jobs[1].clone(), first_jobs[0].clone()]] {
+                    for (jobs, activities) in [
+                        (first_jobs.clone(), activities.forward.as_slice()),
+                        ([first_jobs[1].clone(), first_jobs[0].clone()], activities.reversed.as_slice()),
+                    ] {
                         let sequence_move = SequenceMove::Relocate {
                             source_route_idx,
                             target_route_idx: target.route_idx,
@@ -243,7 +287,13 @@ fn select_sequence_move(
                         };
                         add_candidate(
                             &mut candidates,
-                            create_candidate(insertion_ctx, sequence_move, neighbor_cost, relocation_removal),
+                            MoveCandidate::relocation(
+                                insertion_ctx,
+                                sequence_move,
+                                neighbor_cost,
+                                relocation_removal,
+                                activities,
+                            ),
                         );
                     }
                 }
@@ -256,7 +306,7 @@ fn select_sequence_move(
                     first_jobs: first_jobs.clone(),
                     second_jobs: JobSequence::One(anchor.clone()),
                 };
-                add_candidate(&mut candidates, create_candidate(insertion_ctx, sequence_move, neighbor_cost, None));
+                add_candidate(&mut candidates, MoveCandidate::exchange(insertion_ctx, sequence_move, neighbor_cost));
             }
 
             if move_types.exchange_two_with_two
@@ -272,7 +322,7 @@ fn select_sequence_move(
                     first_jobs: first_jobs.clone(),
                     second_jobs: JobSequence::Two([second_jobs[0].clone(), second_jobs[1].clone()]),
                 };
-                add_candidate(&mut candidates, create_candidate(insertion_ctx, sequence_move, neighbor_cost, None));
+                add_candidate(&mut candidates, MoveCandidate::exchange(insertion_ctx, sequence_move, neighbor_cost));
             }
         }
     }
@@ -517,53 +567,39 @@ fn add_candidate(candidates: &mut Vec<MoveCandidate>, candidate: MoveCandidate) 
     }
 }
 
-fn create_candidate(
-    insertion_ctx: &InsertionContext,
-    sequence_move: SequenceMove,
-    neighbor_cost: Cost,
-    relocation_removal: Option<Cost>,
-) -> MoveCandidate {
-    let estimated_cost = estimate_move_cost(insertion_ctx, &sequence_move, relocation_removal).unwrap_or(neighbor_cost);
-
-    MoveCandidate { estimated_cost, sequence_move }
-}
-
-fn estimate_move_cost(
+fn estimate_relocation_cost(
     insertion_ctx: &InsertionContext,
     sequence_move: &SequenceMove,
-    relocation_removal: Option<Cost>,
+    removal_cost: Option<Cost>,
+    activities: &[&Activity],
 ) -> Option<Cost> {
-    match sequence_move {
-        SequenceMove::Relocate { source_route_idx, target_route_idx, jobs, anchor, position } => {
-            let removal = relocation_removal?;
-            let insertion = estimate_insertion_cost(
-                insertion_ctx,
-                *target_route_idx,
-                anchor,
-                *position,
-                *source_route_idx,
-                jobs.as_slice(),
-            )?;
+    let SequenceMove::Relocate { target_route_idx, anchor, position, .. } = sequence_move else {
+        unreachable!("expected a relocation move")
+    };
+    let removal_cost = removal_cost?;
+    let insertion_cost = estimate_insertion_cost(insertion_ctx, *target_route_idx, anchor, *position, activities)?;
 
-            Some(removal + insertion)
-        }
-        SequenceMove::Exchange { first_route_idx, second_route_idx, first_jobs, second_jobs } => {
-            let first = estimate_replacement_cost(
-                insertion_ctx,
-                *first_route_idx,
-                first_jobs.as_slice(),
-                Some((*second_route_idx, second_jobs.as_slice())),
-            )?;
-            let second = estimate_replacement_cost(
-                insertion_ctx,
-                *second_route_idx,
-                second_jobs.as_slice(),
-                Some((*first_route_idx, first_jobs.as_slice())),
-            )?;
+    Some(removal_cost + insertion_cost)
+}
 
-            Some(first + second)
-        }
-    }
+fn estimate_exchange_cost(insertion_ctx: &InsertionContext, sequence_move: &SequenceMove) -> Option<Cost> {
+    let SequenceMove::Exchange { first_route_idx, second_route_idx, first_jobs, second_jobs } = sequence_move else {
+        unreachable!("expected an exchange move")
+    };
+    let first = estimate_replacement_cost(
+        insertion_ctx,
+        *first_route_idx,
+        first_jobs.as_slice(),
+        Some((*second_route_idx, second_jobs.as_slice())),
+    )?;
+    let second = estimate_replacement_cost(
+        insertion_ctx,
+        *second_route_idx,
+        second_jobs.as_slice(),
+        Some((*first_route_idx, first_jobs.as_slice())),
+    )?;
+
+    Some(first + second)
 }
 
 fn estimate_replacement_cost(
@@ -603,8 +639,7 @@ fn estimate_insertion_cost(
     route_idx: usize,
     anchor: &Job,
     position: RelativePosition,
-    inserted_route_idx: usize,
-    inserted_jobs: &[Job],
+    inserted_activities: &[&Activity],
 ) -> Option<Cost> {
     let route = insertion_ctx.solution.routes.get(route_idx)?.route();
     let insertion_idx = get_insertion_position(route, anchor, position)?;
@@ -614,9 +649,7 @@ fn estimate_insertion_cost(
     let new_cost = get_path_cost(
         insertion_ctx,
         route,
-        std::iter::once(previous)
-            .chain(get_job_activities(insertion_ctx, inserted_route_idx, inserted_jobs))
-            .chain(std::iter::once(next)),
+        std::iter::once(previous).chain(inserted_activities.iter().copied()).chain(std::iter::once(next)),
     );
 
     Some(new_cost - old_cost)

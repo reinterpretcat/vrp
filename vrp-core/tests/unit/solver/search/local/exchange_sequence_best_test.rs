@@ -3,7 +3,8 @@ use crate::algorithms::geometry::Point;
 use crate::construction::features::{TransportFeatureBuilder, create_minimize_tours_feature};
 use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::domain::get_customer_ids_from_routes;
-use crate::helpers::models::problem::TestSingleBuilder;
+use crate::helpers::models::problem::{TestSingleBuilder, test_multi_with_id};
+use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder};
 use crate::helpers::solver::{
     create_default_refinement_ctx, generate_matrix_distances_from_points, generate_matrix_routes,
     generate_matrix_routes_with_defaults, promote_to_locked, rearrange_jobs_in_routes,
@@ -94,6 +95,35 @@ fn create_euclidean_insertion_ctx(points: &[(Float, Float)], job_order: &[&str])
 
 fn create_search(move_types: MoveTypes) -> ExchangeSequenceBest {
     ExchangeSequenceBest::with_move_types(move_types)
+}
+
+#[test]
+fn pair_activities_preserve_group_order() {
+    let first = test_multi_with_id(
+        "first",
+        vec![TestSingleBuilder::default().build_shared(), TestSingleBuilder::default().build_shared()],
+    );
+    let second = test_multi_with_id(
+        "second",
+        vec![TestSingleBuilder::default().build_shared(), TestSingleBuilder::default().build_shared()],
+    );
+    let route = RouteBuilder::default()
+        .add_activities([
+            ActivityBuilder::with_location(1).job(Some(first.jobs[0].clone())).build(),
+            ActivityBuilder::with_location(2).job(Some(second.jobs[0].clone())).build(),
+            ActivityBuilder::with_location(3).job(Some(first.jobs[1].clone())).build(),
+            ActivityBuilder::with_location(4).job(Some(second.jobs[1].clone())).build(),
+        ])
+        .build();
+    let jobs = [Job::Multi(first), Job::Multi(second)];
+
+    let activities = PairActivities::new(&route, &jobs);
+
+    assert_eq!(activities.forward.iter().map(|activity| activity.place.location).collect::<Vec<_>>(), vec![1, 3, 2, 4]);
+    assert_eq!(
+        activities.reversed.iter().map(|activity| activity.place.location).collect::<Vec<_>>(),
+        vec![2, 4, 1, 3]
+    );
 }
 
 #[test]

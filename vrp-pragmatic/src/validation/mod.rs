@@ -11,7 +11,7 @@ pub struct ValidationContext<'a> {
     pub matrices: Option<&'a Vec<Matrix>>,
 
     coord_index: &'a CoordIndex,
-    job_index: HashMap<String, Job>,
+    job_index: HashMap<&'a str, &'a Job>,
 }
 
 mod common;
@@ -40,7 +40,7 @@ impl<'a> ValidationContext<'a> {
             problem,
             matrices,
             coord_index,
-            job_index: problem.plan.jobs.iter().map(|job| (job.id.clone(), job.clone())).collect(),
+            job_index: problem.plan.jobs.iter().map(|job| (job.id.as_str(), job)).collect(),
         }
     }
 
@@ -69,18 +69,16 @@ impl<'a> ValidationContext<'a> {
     fn vehicles(&self) -> impl Iterator<Item = &VehicleType> {
         self.problem.fleet.vehicles.iter()
     }
+}
 
-    /// Gets a flat list of job tasks from the job.
-    fn tasks(&self, job: &'a Job) -> Vec<&'a JobTask> {
-        job.pickups
-            .as_ref()
-            .iter()
-            .flat_map(|tasks| tasks.iter())
-            .chain(job.deliveries.as_ref().iter().flat_map(|tasks| tasks.iter()))
-            .chain(job.replacements.as_ref().iter().flat_map(|tasks| tasks.iter()))
-            .chain(job.services.as_ref().iter().flat_map(|tasks| tasks.iter()))
-            .collect()
-    }
+/// Iterates over job tasks in validation order.
+fn job_tasks(job: &Job) -> impl Iterator<Item = &JobTask> {
+    job.pickups
+        .iter()
+        .flatten()
+        .chain(job.deliveries.iter().flatten())
+        .chain(job.replacements.iter().flatten())
+        .chain(job.services.iter().flatten())
 }
 
 fn is_reserved_job_id(job_id: &str) -> bool {

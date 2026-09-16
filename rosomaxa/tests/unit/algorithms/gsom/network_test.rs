@@ -227,6 +227,53 @@ fn can_update_min_max_weights() {
 }
 
 #[test]
+fn can_update_sparse_neighbourhood_with_negative_coordinates() {
+    let mut network = create_uniform_network(false);
+    network.nodes.clear();
+    [
+        (Coordinate(0, 0), 2.),
+        (Coordinate(-1, -1), 4.),
+        (Coordinate(2, 0), 6.),
+        (Coordinate(0, 1), 8.),
+        (Coordinate(3, 0), 10.),
+    ]
+    .into_iter()
+    .for_each(|(coordinate, error)| {
+        network.nodes.insert(coordinate, Node::new(coordinate, &[1., 1., 1.], error, 100, DataStorage::default()));
+    });
+    network.growing_threshold = 10.;
+    network.distribution_factor = 0.5;
+
+    network.distribute_error(&Coordinate(0, 0), 2);
+
+    assert_eq!(network.nodes[&Coordinate(0, 0)].error, 5.);
+    assert_eq!(network.nodes[&Coordinate(-1, -1)].error, 5.);
+    assert_eq!(network.nodes[&Coordinate(2, 0)].error, 7.5);
+    assert_eq!(network.nodes[&Coordinate(0, 1)].error, 12.);
+    assert_eq!(network.nodes[&Coordinate(3, 0)].error, 10.);
+
+    network.min_max_weights = MinMaxWeights::new(3);
+    network.learning_rate = 0.1;
+    network.adjust_weights(&Coordinate(0, 0), &[2., 3., 4.], 2, true);
+
+    let center_rate = 0.1 * (1. - 3.8 / 5.);
+    let distance_two_rate = center_rate / 2.;
+    assert_eq!(
+        network.nodes[&Coordinate(0, 0)].weights,
+        vec![1. + center_rate, 1. + 2. * center_rate, 1. + 3. * center_rate]
+    );
+    assert_eq!(
+        network.nodes[&Coordinate(-1, -1)].weights,
+        vec![1. + distance_two_rate, 1. + 2. * distance_two_rate, 1. + 3. * distance_two_rate]
+    );
+    assert_eq!(network.nodes[&Coordinate(2, 0)].weights, network.nodes[&Coordinate(-1, -1)].weights);
+    assert_eq!(network.nodes[&Coordinate(0, 1)].weights, network.nodes[&Coordinate(0, 0)].weights);
+    assert_eq!(network.nodes[&Coordinate(3, 0)].weights, vec![1., 1., 1.]);
+    assert_eq!(network.min_max_weights.min, network.nodes[&Coordinate(-1, -1)].weights);
+    assert_eq!(network.min_max_weights.max, network.nodes[&Coordinate(0, 0)].weights);
+}
+
+#[test]
 fn can_reset_min_max_weights() {
     let dimension = 3;
     let mut min_max_weights = MinMaxWeights::new(dimension);

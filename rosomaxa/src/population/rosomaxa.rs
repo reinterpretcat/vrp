@@ -97,6 +97,19 @@ where
     type Individual = S;
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
+        // Exploitation does not retain the original batch, so accepted solutions can move directly
+        // into elite storage instead of being deep-copied first.
+        if matches!(&self.phase, RosomaxaPhases::Exploitation { .. }) {
+            let best_known = self.elite.best();
+            let elite = individuals
+                .into_iter()
+                .filter(|individual| self.is_comparable_with_best_known(individual, best_known))
+                .map(|individual| init_individual(&self.external_ctx, individual))
+                .collect::<Vec<_>>();
+
+            return self.elite.add_all(elite);
+        }
+
         // NOTE avoid extra deep copy
         let best_known = self.elite.best();
         let elite = individuals

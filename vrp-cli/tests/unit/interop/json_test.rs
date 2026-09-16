@@ -1,8 +1,14 @@
 use super::*;
 use crate::helpers::generate::{SIMPLE_PROBLEM, create_empty_plan, create_test_job, create_test_vehicle_type};
+use vrp_pragmatic::format::Location;
 use vrp_pragmatic::format::problem::{Fleet, MatrixProfile, Plan};
 
 const ONE_GENERATION_CONFIG: &str = r#"{"termination": {"maxGenerations": 1}}"#;
+const SIMPLE_MATRIX: &str = r#"{
+    "profile": "normal_car",
+    "travelTimes": [0, 1, 1, 0],
+    "distances": [0, 1, 1, 0]
+}"#;
 
 fn codes_of(err: &MultiFormatError) -> Vec<String> {
     err.errors.iter().map(|error| error.code.clone()).collect()
@@ -85,6 +91,62 @@ fn can_solve_simple_problem() {
     assert!(solution.starts_with('{'));
     assert!(solution.ends_with('}'));
     assert!(solution.contains("statistic"));
+}
+
+#[test]
+fn can_solve_with_supplied_matrix() {
+    let solution = solve(SIMPLE_PROBLEM, &[SIMPLE_MATRIX.to_string()], ONE_GENERATION_CONFIG).unwrap();
+
+    assert!(solution.contains("statistic"));
+}
+
+#[test]
+fn can_validate_supplied_matrix_during_solve() {
+    let malformed_matrix = r#"{"profile":"normal_car","travelTimes":[0],"distances":[0]}"#.to_string();
+    let err = solve(SIMPLE_PROBLEM, &[malformed_matrix], ONE_GENERATION_CONFIG).unwrap_err();
+
+    assert_eq!(codes_of(&err), vec!["E1504"]);
+}
+
+#[test]
+fn can_report_problem_and_supplied_matrix_errors_during_solve() {
+    let problem = SIMPLE_PROBLEM.replace("single_job", "departure");
+    let malformed_matrix = r#"{"profile":"normal_car","travelTimes":[0],"distances":[0]}"#.to_string();
+    let err = solve(&problem, &[malformed_matrix], ONE_GENERATION_CONFIG).unwrap_err();
+
+    assert_eq!(codes_of(&err), vec!["E1104", "E1504"]);
+}
+
+#[test]
+fn can_reject_empty_profiles_before_approximation() {
+    let mut problem: Problem = serde_json::from_str(SIMPLE_PROBLEM).unwrap();
+    problem.fleet.profiles.clear();
+    let problem = serde_json::to_string(&problem).unwrap();
+
+    let err = solve(&problem, &[], ONE_GENERATION_CONFIG).unwrap_err();
+
+    assert_eq!(codes_of(&err), vec!["E1501", "E1505"]);
+}
+
+#[test]
+fn can_reject_indexed_locations_without_matrices() {
+    let mut problem: Problem = serde_json::from_str(SIMPLE_PROBLEM).unwrap();
+    problem.plan.jobs[0].deliveries.as_mut().unwrap()[0].places[0].location = Location::Reference { index: 0 };
+    problem.fleet.vehicles[0].shifts[0].start.location = Location::Reference { index: 0 };
+    let problem = serde_json::to_string(&problem).unwrap();
+
+    let err = solve(&problem, &[], ONE_GENERATION_CONFIG).unwrap_err();
+
+    assert_eq!(codes_of(&err), vec!["E1503"]);
+}
+
+#[test]
+fn problem_validation_precedes_config_parsing() {
+    let problem = SIMPLE_PROBLEM.replace("single_job", "departure");
+
+    let err = solve(&problem, &[], "not a json").unwrap_err();
+
+    assert_eq!(codes_of(&err), vec!["E1104"]);
 }
 
 #[test]

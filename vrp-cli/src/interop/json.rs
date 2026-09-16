@@ -58,7 +58,11 @@ pub fn convert(format: &str, inputs: &[String]) -> InteropResult<String> {
 /// routing data.
 pub fn solve(problem: &str, matrices: &[String], config: &str) -> InteropResult<String> {
     let (problem, matrices) = parse_problem(problem, matrices)?;
-    validate_parsed(&problem, &matrices)?;
+    // Matrix-backed problems are validated by the pragmatic reader below. Approximation needs an
+    // early check so malformed input cannot reach matrix generation.
+    if matrices.is_empty() {
+        validate_parsed(&problem, &matrices)?;
+    }
 
     // NOTE: reuse the already parsed values instead of deserializing the raw input a second time
     let core_problem =

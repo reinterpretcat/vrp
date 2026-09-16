@@ -95,7 +95,7 @@ fn to_strings(pointer: *const *const c_char, len: usize) -> Vec<String> {
     }
 
     assert!(!pointer.is_null(), "received a null array pointer with a non-zero length");
-    let pointers = unsafe { slice::from_raw_parts(pointer, len).to_vec() };
+    let pointers = unsafe { slice::from_raw_parts(pointer, len) };
 
     pointers.iter().map(|pointer| to_string(*pointer)).collect()
 }
@@ -103,7 +103,7 @@ fn to_strings(pointer: *const *const c_char, len: usize) -> Vec<String> {
 fn call_back(result: Result<String, MultiFormatError>, success: Callback, failure: Callback) {
     match result {
         Ok(ok) => {
-            let ok = CString::new(ok.as_bytes()).unwrap();
+            let ok = CString::new(ok.into_bytes()).unwrap();
             success(ok.as_ptr());
         }
         Err(err) => call_failure(err, failure),
@@ -111,7 +111,7 @@ fn call_back(result: Result<String, MultiFormatError>, success: Callback, failur
 }
 
 fn call_failure(err: MultiFormatError, failure: Callback) {
-    let error = CString::new(err.to_json().as_bytes()).unwrap();
+    let error = CString::new(err.to_json().into_bytes()).unwrap();
     failure(error.as_ptr());
 }
 
