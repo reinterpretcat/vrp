@@ -3,23 +3,20 @@
 mod exchange_swap_star_test;
 
 use super::*;
-use crate::models::problem::Job;
+use crate::models::problem::{Job, Single};
+use crate::models::solution::Leg;
 use crate::solver::search::create_environment_with_custom_quota;
-use crate::utils::Either;
 use rosomaxa::utils::*;
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::iter::once;
 
 /// Implements a SWAP* algorithm described in "Hybrid Genetic Search for the CVRP:
 /// Open-Source Implementation and SWAP* Neighborhood" by Thibaut Vidal.
 ///
-/// The key idea is described by the following theorem:
-/// In a best Swap* move between customers v and v0 within routes r and r0 , the new insertion
-/// position of v in r0 is either:
-/// i) in place of v0 , or
-/// ii) among the three best insertion positions in r0 as evaluated prior to the removal of v0.
-/// A symmetrical argument holds for the new insertion position of v0 in r.
+/// Customers are exchanged between routes, but can be reinserted away from the vacated positions.
+/// For additive travel costs, the best position is either the new removal gap or one of the three
+/// cheapest original insertion positions. With richer features this is a bounded shortlist, not an
+/// exact guarantee. Positions are checked against the normal constraints after removing the other job.
 /// For more details, see `<https://arxiv.org/abs/2012.10384>`
 pub struct ExchangeSwapStar {
     leg_selection: LegSelection,
@@ -61,31 +58,12 @@ impl LocalOperator for ExchangeSwapStar {
                 quota.as_deref(),
             );
 
-            if let Some(insertion_pair) = insertion_pair {
-                match candidate.as_mut() {
-                    Some(candidate) => {
-                        try_exchange_jobs(
-                            candidate,
-                            insertion_pair,
-                            &self.leg_selection,
-                            self.result_selector.as_ref(),
-                        );
-                    }
-                    None => {
-                        // Most sampled route pairs have no improving exchange. Materialize the full solution only
-                        // after preprocessing has found a pair which can actually be applied.
-                        let mut next =
-                            InsertionContext { environment: search_environment.clone(), ..insertion_ctx.deep_copy() };
-                        if try_exchange_jobs(
-                            &mut next,
-                            insertion_pair,
-                            &self.leg_selection,
-                            self.result_selector.as_ref(),
-                        ) {
-                            candidate = Some(next);
-                        }
-                    }
-                }
+            if let Some(insertion_pair) = insertion_pair
+                && let Some(mut next) =
+                    try_exchange_jobs(source, insertion_pair, &self.leg_selection, self.result_selector.as_ref())
+            {
+                next.environment = search_environment.clone();
+                candidate = Some(next);
             }
 
             if is_quota_reached { Err(()) } else { Ok(()) }
@@ -163,10 +141,18 @@ struct JobRemovalContext {
     route_ctx: RouteContext,
     position: InsertionPosition,
     original_cost: InsertionCost,
+    removed_indices: Vec<usize>,
 }
 
 /// Creates a route context with `extract_job` removed and evaluates its original insertion cost.
 fn prepare_job_removal(search_ctx: &SearchContext, route_ctx: &RouteContext, extract_job: &Job) -> JobRemovalContext {
+    let removed_indices = route_ctx
+        .route()
+        .tour
+        .all_activities()
+        .enumerate()
+        .filter_map(|(index, activity)| (activity.retrieve_job().as_ref() == Some(extract_job)).then_some(index))
+        .collect();
     let insertion_index = route_ctx.route().tour.index(extract_job).expect("cannot find job in route");
     let position = InsertionPosition::Concrete(insertion_index - 1);
     let route_ctx = remove_job_with_copy(search_ctx, extract_job, route_ctx);
@@ -182,11 +168,21 @@ fn prepare_job_removal(search_ctx: &SearchContext, route_ctx: &RouteContext, ext
     .map(|success: InsertionSuccess| success.cost)
     .unwrap_or_default();
 
-    JobRemovalContext { route_ctx, position, original_cost }
+    JobRemovalContext { route_ctx, position, original_cost, removed_indices }
+}
+
+impl JobRemovalContext {
+    /// Maps a surviving original leg to its position after removing all activities of the job.
+    fn map_position(&self, position: usize) -> Option<usize> {
+        let removed_before = self.removed_indices.partition_point(|&index| index <= position);
+        let touches_removed =
+            removed_before.checked_sub(1).is_some_and(|index| self.removed_indices[index] == position)
+                || self.removed_indices.get(removed_before) == Some(&(position + 1));
+        (!touches_removed).then(|| position - removed_before)
+    }
 }
 
 /// Tries to find insertion cost for `insert_job` in place of a previously extracted job.
-/// NOTE hard constraints are NOT evaluated.
 fn find_in_place_result(
     search_ctx: &SearchContext,
     removal_ctx: &JobRemovalContext,
@@ -203,89 +199,92 @@ fn find_in_place_result(
     )
 }
 
-fn find_top_results(search_ctx: &SearchContext, route_ctx: &RouteContext, jobs: &[Job]) -> Vec<Vec<InsertionResult>> {
-    let legs_count = route_ctx.route().tour.legs().count();
-
+fn find_top_positions(search_ctx: &SearchContext, route_ctx: &RouteContext, jobs: &[Job]) -> Vec<Vec<usize>> {
     jobs.iter()
         .map(|job| {
             let eval_ctx = get_evaluation_context(search_ctx, job);
-
-            let mut results = (0..legs_count)
-                .map(InsertionPosition::Concrete)
-                .map(|position| {
-                    eval_job_insertion_in_route(
+            let mut positions = route_ctx
+                .route()
+                .tour
+                .legs()
+                .filter_map(|leg| match job {
+                    // Feasibility before removal must not hide positions which become usable after exchange.
+                    Job::Single(single) => {
+                        estimate_insertion_cost(search_ctx, route_ctx, single, leg).map(|cost| (cost, leg.1))
+                    }
+                    // Multi jobs need the insertion machinery to position their dependent activities.
+                    Job::Multi(_) => eval_job_insertion_in_route(
                         search_ctx.0,
                         &eval_ctx,
                         route_ctx,
-                        position,
+                        InsertionPosition::Concrete(leg.1),
                         InsertionResult::make_failure(),
                     )
+                    .try_into()
+                    .ok()
+                    .map(|success: InsertionSuccess| (success.cost, success.activities[0].1)),
                 })
                 .collect::<Vec<_>>();
-
-            results.sort_by(|left, right| match (left, right) {
-                (InsertionResult::Success(_), InsertionResult::Failure(_)) => Ordering::Less,
-                (InsertionResult::Failure(_), InsertionResult::Success(_)) => Ordering::Greater,
-                (InsertionResult::Failure(_), InsertionResult::Failure(_)) => Ordering::Equal,
-                (InsertionResult::Success(left), InsertionResult::Success(right)) => left.cost.cmp(&right.cost),
-            });
-
-            results.truncate(3);
-
-            results
+            positions.sort_by(|left, right| left.0.cmp(&right.0));
+            positions.into_iter().map(|(_, index)| index).take(3).collect()
         })
         .collect()
 }
 
-fn choose_best_result(
+/// Ranks single-job positions using the configured objective, without claiming they are feasible.
+fn estimate_insertion_cost(
     search_ctx: &SearchContext,
-    in_place_result: InsertionResult,
-    top_results: &[InsertionResult],
-) -> InsertionResult {
-    let failure = InsertionResult::make_failure();
+    route_ctx: &RouteContext,
+    single: &Arc<Single>,
+    leg: Leg<'_>,
+) -> Option<InsertionCost> {
+    let (activities, index) = leg;
+    let prev = activities.first()?;
+    let next = activities.get(1);
+    let start_time = route_ctx.route().tour.start()?.schedule.departure;
+    let mut target = Activity::new_with_job(single.clone());
+    let mut best = None;
 
-    let in_place_idx = in_place_result
-        .as_success()
-        .and_then(|success| success.activities.first())
-        .map(|(_, idx)| *idx)
-        .unwrap_or(usize::MAX - 1);
-
-    let (idx, result) = once(&in_place_result)
-        .chain(top_results.iter().filter(|result| {
-            // NOTE exclude results near in place result
-            result.as_success().is_some_and(|success| {
-                success
-                    .activities
-                    .first()
-                    .map(|(_, idx)| *idx != in_place_idx && *idx != in_place_idx + 1)
-                    .unwrap_or(false)
-            })
-        }))
-        .enumerate()
-        .fold((0, &failure), |(acc_idx, acc_result), (idx, result)| match (acc_result, result) {
-            (InsertionResult::Success(acc_success), InsertionResult::Success(success)) => {
-                match search_ctx.2.select_cost(&acc_success.cost, &success.cost) {
-                    Either::Left(_) => (acc_idx, acc_result),
-                    Either::Right(_) => (idx, result),
-                }
+    for (place_idx, place) in single.places.iter().enumerate() {
+        target.place.idx = place_idx;
+        target.place.location = place.location.unwrap_or(prev.place.location);
+        target.place.duration = place.duration;
+        for time in &place.times {
+            target.place.time = time.to_time_window(start_time);
+            let activity_ctx = ActivityContext { index, prev, target: &target, next };
+            let cost = search_ctx.0.problem.goal.estimate(&MoveContext::activity(
+                &search_ctx.0.solution,
+                route_ctx,
+                &activity_ctx,
+            ));
+            if best.as_ref().is_none_or(|best| cost < *best) {
+                best = Some(cost);
             }
-            (InsertionResult::Success(_), InsertionResult::Failure(_)) => (acc_idx, acc_result),
-            _ => (idx, result),
-        });
-
-    if idx == 0 {
-        in_place_result
-    } else {
-        match result {
-            InsertionResult::Success(success) => InsertionResult::Success(InsertionSuccess {
-                cost: success.cost.clone(),
-                job: success.job.clone(),
-                activities: success.activities.iter().map(|(activity, idx)| (activity.deep_copy(), *idx)).collect(),
-                actor: success.actor.clone(),
-            }),
-            InsertionResult::Failure(_) => InsertionResult::make_failure(),
         }
     }
+
+    best
+}
+
+fn find_best_result(
+    search_ctx: &SearchContext,
+    removal_ctx: &JobRemovalContext,
+    insert_job: &Job,
+    top_positions: &[usize],
+) -> InsertionResult {
+    let eval_ctx = get_evaluation_context(search_ctx, insert_job);
+    let in_place = find_in_place_result(search_ctx, removal_ctx, insert_job);
+
+    top_positions.iter().filter_map(|&index| removal_ctx.map_position(index)).fold(in_place, |best, index| {
+        let result = eval_job_insertion_in_route(
+            search_ctx.0,
+            &eval_ctx,
+            &removal_ctx.route_ctx,
+            InsertionPosition::Concrete(index),
+            InsertionResult::make_failure(),
+        );
+        search_ctx.2.select_insertion(search_ctx.0, best, result)
+    })
 }
 
 fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> RouteContext {
@@ -322,8 +321,8 @@ fn find_exchange_jobs_in_routes(
     let outer_jobs = get_movable_jobs(insertion_ctx, outer_route_ctx);
     let inner_jobs = get_movable_jobs(insertion_ctx, inner_route_ctx);
 
-    let outer_top_results = find_top_results(&search_ctx, inner_route_ctx, outer_jobs.as_slice());
-    let inner_top_results = find_top_results(&search_ctx, outer_route_ctx, inner_jobs.as_slice());
+    let outer_top_positions = find_top_positions(&search_ctx, inner_route_ctx, outer_jobs.as_slice());
+    let inner_top_positions = find_top_positions(&search_ctx, outer_route_ctx, inner_jobs.as_slice());
 
     // Removing a job, refreshing its route state, and evaluating its original cost depend only on
     // that job and route. Prepare them once for every candidate paired with the extracted job.
@@ -361,16 +360,18 @@ fn find_exchange_jobs_in_routes(
             let outer_job = &outer_jobs[*outer_idx];
             let inner_job = &inner_jobs[*inner_idx];
 
-            let outer_in_place_result =
-                find_in_place_result(&search_ctx, &inner_removal_contexts[*inner_idx], outer_job);
-            let inner_in_place_result =
-                find_in_place_result(&search_ctx, &outer_removal_contexts[*outer_idx], inner_job);
-
-            let outer_result =
-                choose_best_result(&search_ctx, outer_in_place_result, outer_top_results[*outer_idx].as_slice());
-
-            let inner_result =
-                choose_best_result(&search_ctx, inner_in_place_result, inner_top_results[*inner_idx].as_slice());
+            let outer_result = find_best_result(
+                &search_ctx,
+                &inner_removal_contexts[*inner_idx],
+                outer_job,
+                &outer_top_positions[*outer_idx],
+            );
+            let inner_result = find_best_result(
+                &search_ctx,
+                &outer_removal_contexts[*outer_idx],
+                inner_job,
+                &inner_top_positions[*inner_idx],
+            );
 
             let delta_cost = match (&outer_result, &inner_result) {
                 (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) => {
@@ -398,62 +399,68 @@ fn find_exchange_jobs_in_routes(
     (insertion_pair, is_quota_reached())
 }
 
-/// Tries to apply insertion results to target insertion context.
+/// Rechecks a shortlisted exchange on a complete candidate. Positions are already relative to removed routes.
 fn try_exchange_jobs(
-    insertion_ctx: &mut InsertionContext,
+    insertion_ctx: &InsertionContext,
     insertion_pair: (InsertionResult, InsertionResult),
     leg_selection: &LegSelection,
     result_selector: &dyn ResultSelector,
-) -> bool {
-    if let (InsertionResult::Success(outer_success), InsertionResult::Success(inner_success)) = insertion_pair {
-        let constraint = insertion_ctx.problem.goal.clone();
-
-        let outer_job = outer_success.job.clone();
-        let inner_job = inner_success.job.clone();
-
-        // remove jobs from results and revaluate them again
-        let mut insertion_successes = once((outer_success, inner_job))
-            .chain(once((inner_success, outer_job)))
-            .filter_map(|(success, job)| {
-                let mut route_ctx = insertion_ctx
-                    .solution
-                    .routes
-                    .iter()
-                    .find(|route_ctx| route_ctx.route().actor == success.actor)
-                    .expect("cannot find route for insertion")
-                    .deep_copy();
-
-                // NOTE job can be already removed in in-place case
-                let removed_idx = route_ctx.route().tour.index(&job).unwrap_or(usize::MAX);
-
-                route_ctx.route_mut().tour.remove(&job);
-                constraint.accept_route_state(&mut route_ctx);
-
-                let position = success.activities.first().unwrap().1;
-                let position = if position < removed_idx || position == 0 { position } else { position - 1 };
-                let position = InsertionPosition::Concrete(position);
-
-                let search_ctx: SearchContext = (insertion_ctx, leg_selection, result_selector);
-                let eval_ctx = get_evaluation_context(&search_ctx, &success.job);
-                let alternative = InsertionResult::make_failure();
-
-                eval_job_insertion_in_route(insertion_ctx, &eval_ctx, &route_ctx, position, alternative)
-                    .try_into()
-                    .ok()
-                    .map(|success: InsertionSuccess| (success, Some(route_ctx)))
-            })
-            .collect::<Vec<_>>();
-
-        if insertion_successes.len() == 2 {
-            apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
-            apply_insertion_with_route(insertion_ctx, insertion_successes.pop().unwrap());
-            finalize_insertion_ctx(insertion_ctx);
-
-            return true;
-        }
+) -> Option<InsertionContext> {
+    let (InsertionResult::Success(outer), InsertionResult::Success(inner)) = insertion_pair else {
+        return None;
+    };
+    if insertion_ctx.solution.locked.contains(&outer.job) || insertion_ctx.solution.locked.contains(&inner.job) {
+        return None;
     }
 
-    false
+    // Only the chosen exchange gets a full copy. Losing job pairs use the prepared route contexts.
+    let mut candidate = insertion_ctx.deep_copy();
+    for (success, removed_job) in [(&outer, &inner.job), (&inner, &outer.job)] {
+        let route_ctx = candidate.solution.routes.iter_mut().find(|route| route.route().actor == success.actor)?;
+        if !route_ctx.route_mut().tour.remove(removed_job) {
+            return None;
+        }
+        candidate.problem.goal.accept_route_state(route_ctx);
+        candidate.solution.required.push(removed_job.clone());
+    }
+    let get_anchor = |proposal: &InsertionSuccess| {
+        let route = candidate.solution.routes.iter().find(|route| route.route().actor == proposal.actor)?;
+        Some(route.route().tour.get(proposal.activities.first()?.1)?.job.clone())
+    };
+    let anchors = [get_anchor(&outer)?, get_anchor(&inner)?];
+    // Route refresh alone does not update shared features, such as job-group membership.
+    candidate.problem.goal.accept_solution_state(&mut candidate.solution);
+
+    for (proposal, anchor) in [outer, inner].into_iter().zip(anchors) {
+        let route_ctx = candidate.solution.routes.iter().find(|route| route.route().actor == proposal.actor)?;
+        // Shared-state refresh can also remove breaks or reloads. Follow the original predecessor,
+        // or search again if it disappeared, instead of applying a shifted numeric position.
+        let position = match anchor {
+            None => InsertionPosition::Concrete(0),
+            Some(anchor) => route_ctx
+                .route()
+                .tour
+                .all_activities()
+                .position(|activity| activity.job.as_ref().is_some_and(|job| Arc::ptr_eq(job, &anchor)))
+                .map(InsertionPosition::Concrete)
+                .unwrap_or(InsertionPosition::Any),
+        };
+        let search_ctx = (&candidate, leg_selection, result_selector);
+        let result = eval_job_insertion_in_route(
+            &candidate,
+            &get_evaluation_context(&search_ctx, &proposal.job),
+            route_ctx,
+            position,
+            InsertionResult::make_failure(),
+        );
+        let InsertionResult::Success(success) = result else {
+            return None;
+        };
+        apply_insertion_success(&mut candidate, success);
+    }
+    finalize_insertion_ctx(&mut candidate);
+
+    Some(candidate)
 }
 
 #[cfg(test)]
@@ -467,8 +474,10 @@ fn try_exchange_jobs_in_routes(
     let (insertion_pair, is_quota_reached) =
         find_exchange_jobs_in_routes(insertion_ctx, route_pair, leg_selection, result_selector, quota.as_deref());
 
-    if let Some(insertion_pair) = insertion_pair {
-        try_exchange_jobs(insertion_ctx, insertion_pair, leg_selection, result_selector);
+    if let Some(insertion_pair) = insertion_pair
+        && let Some(candidate) = try_exchange_jobs(insertion_ctx, insertion_pair, leg_selection, result_selector)
+    {
+        *insertion_ctx = candidate;
     }
 
     is_quota_reached
