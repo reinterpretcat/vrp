@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.25.0"
+version = "1.26.0"
 # let-chains are used across the workspace and stabilised in 1.88; 1.85 (edition 2024) is not sufficient
 rust-version = "1.88"
 authors = ["Ilya Builuk <ilya.builuk@gmail.com>"]
@@ -27,11 +27,11 @@ edition = "2024"
 
 [workspace.dependencies]
 # internal dependencies
-rosomaxa = { path = "rosomaxa", version = "0.9.0" }
-vrp-core = { path = "vrp-core", version = "1.25.0" }
-vrp-scientific = { path = "vrp-scientific", version = "1.25.0" }
-vrp-pragmatic = { path = "vrp-pragmatic", version = "1.25.0" }
-vrp-cli = { path = "vrp-cli", version = "1.25.0" }
+rosomaxa = { path = "rosomaxa", version = "0.10.0" }
+vrp-core = { path = "vrp-core", version = "1.26.0" }
+vrp-scientific = { path = "vrp-scientific", version = "1.26.0" }
+vrp-pragmatic = { path = "vrp-pragmatic", version = "1.26.0" }
+vrp-cli = { path = "vrp-cli", version = "1.26.0" }
 
 # external dependencies
 serde = { version = "1.0.219", features = ["derive"] }

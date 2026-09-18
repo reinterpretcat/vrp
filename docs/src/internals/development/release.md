@@ -16,6 +16,9 @@ A few version strings are written out by hand and do not follow the manifest. Up
 
 * the `deps.rs` badge and the `docker run` tag in `README.md`
 * the `docker run` tag in `docs/src/getting-started/installation.md`
+* `version` and `date-released` in `CITATION.cff`
+
+The cli reports `--version` from `CARGO_PKG_VERSION`, so that one needs nothing.
 
 The crates must be released together whenever one of them starts using a new API or feature of
 another. `vrp-cli` currently depends on the `schema` feature of `vrp-pragmatic`, so publishing it

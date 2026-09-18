@@ -660,7 +660,7 @@ checksum = "fbd780fe5cc30f81464441920d82ac8740e2e46b29a6fad543ddd075229ce37e"
 
 [[package]]
 name = "heuristic-research"
-version = "1.25.0"
+version = "1.26.0"
 dependencies = [
  "itertools 0.14.0",
  "lazy_static",
@@ -770,7 +770,7 @@ dependencies = [
 
 [[package]]
 name = "json-pragmatic"
-version = "1.25.0"
+version = "1.26.0"
 dependencies = [
  "vrp-pragmatic",
 ]
@@ -1273,7 +1273,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "rosomaxa"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "getrandom 0.3.4",
  "js-sys",
@@ -1606,7 +1606,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-cli"
-version = "1.25.0"
+version = "1.26.0"
 dependencies = [
  "clap",
  "console_error_panic_hook",
@@ -1627,7 +1627,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-core"
-version = "1.25.0"
+version = "1.26.0"
 dependencies = [
  "lazy_static",
  "nohash-hasher",
@@ -1641,7 +1641,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-pragmatic"
-version = "1.25.0"
+version = "1.26.0"
 dependencies = [
  "criterion",
  "paste",
@@ -1657,7 +1657,7 @@ dependencies = [
 
 [[package]]
 name = "vrp-scientific"
-version = "1.25.0"
+version = "1.26.0"
 dependencies = [
  "criterion",
  "paste",
