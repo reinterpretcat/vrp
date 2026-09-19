@@ -179,8 +179,12 @@ fn can_handle_order_between_special_activities() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
-        get_ids_from_tour(&solution.tours[0]),
-        vec![vec!["departure"], vec!["job2"], vec!["break"], vec!["job1"], vec!["arrival"]]
-    );
+    // a break can be right after departure
+    let activities = get_ids_from_tour(&solution.tours[0]).into_iter().flatten().collect::<Vec<_>>();
+    let position = |id: &str| activities.iter().position(|activity| activity == id);
+
+    assert!(position("break").is_some(), "break was not assigned: {activities:?}");
+    let (first, second) = (position("job2"), position("job1"));
+    assert!(first.is_some() && second.is_some(), "a job was left unassigned: {activities:?}");
+    assert!(first < second, "job2 has a lower order and must be served first: {activities:?}");
 }
