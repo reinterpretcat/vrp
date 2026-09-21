@@ -143,6 +143,19 @@ impl Tour {
         }
     }
 
+    /// Returns a leg by index without traversing preceding legs.
+    pub fn leg(&self, index: usize) -> Option<Leg<'_>> {
+        let activities = self.data.activities.get(index..)?;
+        let leg = match activities {
+            [_, _, ..] => &activities[..2],
+            // Open tours also have a final leg without a destination.
+            [_] if !self.is_closed || index == 0 => activities,
+            _ => return None,
+        };
+
+        Some((leg, index))
+    }
+
     /// Returns all jobs.
     pub fn jobs(&'_ self) -> impl Iterator<Item = &Job> + '_ {
         self.data.jobs.iter()

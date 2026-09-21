@@ -45,6 +45,44 @@ pub fn eval_job_insertion_in_route(
     position: InsertionPosition,
     alternative: InsertionResult,
 ) -> InsertionResult {
+    eval_job_insertion(insertion_ctx, eval_ctx, route_ctx, position, alternative, |move_ctx| {
+        insertion_ctx.problem.goal.estimate(move_ctx)
+    })
+}
+
+/// Evaluates multiple positions, reusing route costs but checking constraints at each position.
+pub(crate) fn eval_job_insertions_in_route(
+    insertion_ctx: &InsertionContext,
+    eval_ctx: &EvaluationContext,
+    route_ctx: &RouteContext,
+    positions: impl IntoIterator<Item = InsertionPosition>,
+) -> InsertionResult {
+    let mut route_costs = None;
+
+    positions
+        .into_iter()
+        .map(|position| {
+            eval_job_insertion(
+                insertion_ctx,
+                eval_ctx,
+                route_ctx,
+                position,
+                InsertionResult::make_failure(),
+                |move_ctx| route_costs.get_or_insert_with(|| insertion_ctx.problem.goal.estimate(move_ctx)).clone(),
+            )
+        })
+        .reduce(|best, result| eval_ctx.result_selector.select_insertion(insertion_ctx, best, result))
+        .unwrap_or_else(InsertionResult::make_failure)
+}
+
+fn eval_job_insertion(
+    insertion_ctx: &InsertionContext,
+    eval_ctx: &EvaluationContext,
+    route_ctx: &RouteContext,
+    position: InsertionPosition,
+    alternative: InsertionResult,
+    estimate_route: impl FnOnce(&MoveContext<'_>) -> InsertionCost,
+) -> InsertionResult {
     // NOTE do not evaluate unassigned job in unmodified route if it has a concrete code
     match (route_ctx.is_stale(), insertion_ctx.solution.unassigned.get(eval_ctx.job)) {
         (false, Some(UnassignmentInfo::Simple(_))) | (false, Some(UnassignmentInfo::Detailed(_))) => {
@@ -53,17 +91,14 @@ pub fn eval_job_insertion_in_route(
         _ => {}
     }
 
-    let goal = &insertion_ctx.problem.goal;
-
-    if let Some(violation) = goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job)) {
-        return eval_ctx.result_selector.select_insertion(
-            insertion_ctx,
-            alternative,
-            InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone())),
-        );
+    let move_ctx = MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job);
+    // Infeasible search randomizes constraint checks, so even unchanged routes need a fresh check.
+    if let Some(violation) = insertion_ctx.problem.goal.evaluate(&move_ctx) {
+        let failure = InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone()));
+        return eval_ctx.result_selector.select_insertion(insertion_ctx, alternative, failure);
     }
 
-    let route_costs = goal.estimate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job));
+    let route_costs = estimate_route(&move_ctx);
 
     // analyze alternative and return it if it looks better based on routing cost comparison
     let (route_costs, best_known_cost) = match alternative.as_success() {
@@ -74,12 +109,17 @@ pub fn eval_job_insertion_in_route(
         _ => (route_costs, None),
     };
 
-    let solution_ctx = &insertion_ctx.solution;
-
     eval_ctx.result_selector.select_insertion(
         insertion_ctx,
         alternative,
-        eval_job_constraint_in_route(eval_ctx, solution_ctx, route_ctx, position, route_costs, best_known_cost),
+        eval_job_constraint_in_route(
+            eval_ctx,
+            &insertion_ctx.solution,
+            route_ctx,
+            position,
+            route_costs,
+            best_known_cost,
+        ),
     )
 }
 
@@ -260,7 +300,7 @@ fn analyze_insertion_in_route(
     };
 
     match insertion_idx {
-        Some(idx) => match route_ctx.route().tour.legs().nth(idx) {
+        Some(idx) => match route_ctx.route().tour.leg(idx) {
             Some(leg) => {
                 let mut result = init;
                 let _ = analyze_leg_insertion(leg, &mut result);

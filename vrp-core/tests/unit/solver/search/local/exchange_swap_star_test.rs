@@ -478,18 +478,18 @@ fn can_find_insertion_cost_impl(job_id: &str, expected: Cost) {
     assert_eq!(result, InsertionCost::new(&[expected]));
 }
 
-parameterized_test! { can_find_in_place_result, (route_idx, insert_job, extract_job, disallowed_pairs, job_order, expected), {
-    can_find_in_place_result_impl(route_idx, insert_job, extract_job, disallowed_pairs, job_order, expected);
+parameterized_test! { can_find_best_in_place_result, (route_idx, insert_job, extract_job, disallowed_pairs, job_order, expected), {
+    can_find_best_in_place_result_impl(route_idx, insert_job, extract_job, disallowed_pairs, job_order, expected);
 }}
 
-can_find_in_place_result! {
+can_find_best_in_place_result! {
     case_01: (0, "c2", "c3", vec![], vec![vec!["c0", "c1", "c3"], vec!["c4", "c5", "c2"]], Some((2., 2))),
     case_02: (0, "c1", "c3", vec![], vec![vec!["c0", "c3", "c2"], vec!["c4", "c5", "c1"]], Some((0., 1))),
     case_03: (0, "c0", "c3", vec![], vec![vec!["c3", "c1", "c2"], vec!["c4", "c5", "c0"]], Some((0., 0))),
     case_04: (0, "c3", "c0", vec![], vec![vec!["c0", "c1", "c2"], vec!["c4", "c5", "c3"]], Some((8., 0))),
 }
 
-fn can_find_in_place_result_impl(
+fn can_find_best_in_place_result_impl(
     route_idx: usize,
     insert_job: &str,
     extract_job: &str,
@@ -508,7 +508,7 @@ fn can_find_in_place_result_impl(
     let extract_job = jobs_map.get(extract_job).unwrap();
     let in_place_ctx = prepare_job_removal(&search_ctx, route_ctx, extract_job);
 
-    let result = find_in_place_result(&search_ctx, &in_place_ctx, insert_job)
+    let result = find_best_result(&search_ctx, &in_place_ctx, insert_job, &[])
         .try_into()
         .ok()
         .map(|success: InsertionSuccess| (success.cost, success.activities.first().unwrap().1));
@@ -538,6 +538,132 @@ fn can_find_top_positions_impl(job_id: &str, disallowed_pairs: Vec<(&str, &str)>
         find_top_positions(&search_ctx, route_ctx, job_ids.as_slice()).iter().flatten().copied().collect::<Vec<_>>();
 
     assert_eq!(results, expected);
+}
+
+fn select_top_positions_with_sort(mut positions: Vec<(InsertionCost, usize)>) -> Vec<usize> {
+    positions.sort_by(|left, right| left.0.cmp(&right.0));
+    positions.into_iter().map(|(_, index)| index).take(3).collect()
+}
+
+#[test]
+fn selects_top_positions_like_stable_sort() {
+    // Exhaust all short streams over three costs, including ties at the cutoff and late improvements.
+    for size in 0..=7 {
+        for mut pattern in 0..3_usize.pow(size) {
+            let positions = (0..size)
+                .map(|index| {
+                    let cost = (pattern % 3) as Float - 1.;
+                    pattern /= 3;
+                    (InsertionCost::new(&[cost]), (size - index) as usize)
+                })
+                .collect::<Vec<_>>();
+
+            assert_eq!(select_top_positions(positions.iter().cloned()), select_top_positions_with_sort(positions));
+        }
+    }
+}
+
+#[test]
+fn preserves_top_position_ties_and_duplicates() {
+    let mut evaluated = 0;
+    let positions = [9, 2, 9, 1].into_iter().map(|index| {
+        evaluated += 1;
+        (InsertionCost::new(&[1.]), index)
+    });
+
+    assert_eq!(select_top_positions(positions), vec![9, 2, 9]);
+    assert_eq!(evaluated, 4);
+}
+
+#[test]
+fn selects_top_positions_with_full_cost_ordering() {
+    let costs: &[&[Cost]] = &[
+        &[],
+        &[0.],
+        &[-0.],
+        &[0., 0.],
+        &[0., 1.],
+        &[0., -1.],
+        &[1., -10.],
+        &[-1., 10.],
+        &[0., 0., 0., 0., 0., 0., -1.],
+        &[Float::NEG_INFINITY],
+        &[Float::INFINITY],
+        &[Float::NAN],
+    ];
+    let mut positions =
+        costs.iter().enumerate().map(|(index, cost)| (InsertionCost::new(cost), index)).collect::<Vec<_>>();
+
+    for _ in 0..positions.len() {
+        // Prefixes also exercise cases where infinities or NaNs survive in the shortlist.
+        for size in 0..=positions.len() {
+            assert_eq!(
+                select_top_positions(positions[..size].iter().cloned()),
+                select_top_positions_with_sort(positions[..size].to_vec()),
+            );
+        }
+        positions.rotate_left(1);
+    }
+}
+
+#[test]
+fn matches_full_sort_for_single_and_multi_insertions() {
+    for is_open in [false, true] {
+        let insertion_ctx = create_insertion_ctx((5, 2), vec![], is_open);
+        let search_ctx: SearchContext = (&insertion_ctx, &LegSelection::Exhaustive, &BestResultSelector::default());
+        let route_ctx = &insertion_ctx.solution.routes[0];
+        let mut jobs = get_jobs_by_ids(&insertion_ctx, &["c5", "c6", "c7"]);
+        jobs.push(Job::Multi(test_multi_with_id(
+            "multi",
+            vec![
+                TestSingleBuilder::default().id("m1").location(Some(1)).build_shared(),
+                TestSingleBuilder::default().id("m2").location(Some(3)).build_shared(),
+            ],
+        )));
+        let actual = find_top_positions(&search_ctx, route_ctx, &jobs);
+        let removed = get_jobs_by_ids(&insertion_ctx, &["c2"]);
+        let removal = prepare_job_removal(&search_ctx, route_ctx, &removed[0]);
+
+        for (job, actual) in jobs.iter().zip(actual) {
+            // Retain the old full-sort ranking as an independent reference for both evaluation paths.
+            let eval_ctx = get_evaluation_context(&search_ctx, job);
+            let positions = route_ctx.route().tour.legs().filter_map(|leg| match job {
+                Job::Single(single) => {
+                    estimate_insertion_cost(&search_ctx, route_ctx, single, leg).map(|cost| (cost, leg.1))
+                }
+                Job::Multi(_) => eval_job_insertion_in_route(
+                    &insertion_ctx,
+                    &eval_ctx,
+                    route_ctx,
+                    InsertionPosition::Concrete(leg.1),
+                    InsertionResult::make_failure(),
+                )
+                .try_into()
+                .ok()
+                .map(|success: InsertionSuccess| (success.cost, success.activities[0].1)),
+            });
+            let expected = select_top_positions_with_sort(positions.collect());
+            assert!(!expected.is_empty());
+            assert_eq!(actual, expected);
+
+            // The same shortlist must also produce the same constrained insertion after removal.
+            let summarize = |result: InsertionResult| {
+                let success: InsertionSuccess = result.try_into().expect("expected insertion success");
+                let activities = success
+                    .activities
+                    .into_iter()
+                    .map(|(activity, index)| {
+                        (index, activity.place.idx, activity.place.location, activity.place.time, activity.schedule)
+                    })
+                    .collect::<Vec<_>>();
+                (success.cost, success.job, activities)
+            };
+            assert_eq!(
+                summarize(find_best_result(&search_ctx, &removal, job, &actual)),
+                summarize(find_best_result(&search_ctx, &removal, job, &expected)),
+            );
+        }
+    }
 }
 
 parameterized_test! { can_create_route_pairs, (route_pairs_threshold, is_proximity, expected_length), {

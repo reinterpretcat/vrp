@@ -140,6 +140,39 @@ fn can_get_legs() {
     compare_legs(legs.get(2).unwrap(), &(vec![a2_ptr, end_ptr], 2));
 }
 
+parameterized_test! {can_get_leg_by_index, (has_start, is_closed, job_count), {
+    can_get_leg_by_index_impl(has_start, is_closed, job_count);
+}}
+
+can_get_leg_by_index! {
+    empty: (false, false, 0),
+    start_only: (true, false, 0),
+    start_and_end: (true, true, 0),
+    open_one_job: (true, false, 1),
+    closed_one_job: (true, true, 1),
+    open_many_jobs: (true, false, 17),
+    closed_many_jobs: (true, true, 17),
+}
+
+fn can_get_leg_by_index_impl(has_start: bool, is_closed: bool, job_count: usize) {
+    let mut tour = Tour::default();
+    if has_start {
+        tour.set_start(ActivityBuilder::default().job(None).build());
+    }
+    if is_closed {
+        tour.set_end(ActivityBuilder::default().job(None).build());
+    }
+    for _ in 0..job_count {
+        tour.insert_last(ActivityBuilder::default().build());
+    }
+
+    for index in (0..=tour.total() + 1).chain(std::iter::once(usize::MAX)) {
+        let identify_leg = |(activities, index): Leg<'_>| (activities.as_ptr(), activities.len(), index);
+
+        assert_eq!(tour.leg(index).map(identify_leg), tour.legs().nth(index).map(identify_leg), "leg {index}");
+    }
+}
+
 #[test]
 fn can_get_job_index() {
     let mut tour = Tour::default();

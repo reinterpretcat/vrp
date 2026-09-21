@@ -4,6 +4,50 @@ use crate::helpers::example::create_example_objective;
 use crate::{get_default_population, get_default_selection_size};
 use std::sync::Arc;
 
+#[test]
+fn can_defer_improvement_storage_until_first_generation() {
+    let mut tracker = ImprovementTracker::new(1000);
+
+    assert_eq!(tracker.buffer.capacity(), 0);
+    assert_eq!(tracker.i_all_ratio, 0.);
+    assert_eq!(tracker.i_1000_ratio, 0.);
+    assert!(!tracker.is_last_improved);
+
+    tracker.track(0, true);
+
+    assert_eq!(tracker.buffer.len(), 1000);
+    assert_eq!(tracker.i_all_ratio, 1.);
+    assert_eq!(tracker.i_1000_ratio, 1.);
+    assert!(tracker.is_last_improved);
+}
+
+#[test]
+fn can_match_eager_improvement_storage() {
+    for size in [1, 3, 1000] {
+        for pattern in 0..3 {
+            let mut lazy = ImprovementTracker::new(size);
+            let mut eager = ImprovementTracker::new(size);
+            eager.buffer = vec![false; size];
+
+            for generation in 0..size * 3 + 17 {
+                let is_improved = match pattern {
+                    0 => false,
+                    1 => true,
+                    _ => generation % 7 == 0 || generation % 11 == 0,
+                };
+                lazy.track(generation, is_improved);
+                eager.track(generation, is_improved);
+
+                assert_eq!(lazy.buffer, eager.buffer);
+                assert_eq!(lazy.total_improvements, eager.total_improvements);
+                assert_eq!(lazy.i_all_ratio.to_bits(), eager.i_all_ratio.to_bits());
+                assert_eq!(lazy.i_1000_ratio.to_bits(), eager.i_1000_ratio.to_bits());
+                assert_eq!(lazy.is_last_improved, eager.is_last_improved);
+            }
+        }
+    }
+}
+
 fn compare_statistic(statistics: &HeuristicStatistics, expected: (usize, Float, Float)) {
     assert_eq!(statistics.generation, expected.0);
     assert_eq!(statistics.improvement_all_ratio, expected.1);

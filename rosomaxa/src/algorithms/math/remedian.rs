@@ -43,20 +43,7 @@ where
     pub fn new(base: usize, exponent: usize, order_fn: F) -> Self {
         assert!(base > 0);
 
-        let mut buffers: Vec<Vec<T>> = Vec::with_capacity(exponent);
-        (0..exponent).for_each(|_| {
-            buffers.push(Vec::with_capacity(base));
-        });
-
-        Self {
-            base,
-            exponent,
-            buffers,
-            ordered: Vec::with_capacity(base.saturating_mul(exponent)),
-            count: 0,
-            is_full: false,
-            order_fn,
-        }
+        Self { base, exponent, buffers: Vec::new(), ordered: Vec::new(), count: 0, is_full: false, order_fn }
     }
 
     /// Adds a new observation.
@@ -64,6 +51,12 @@ where
     pub fn add_observation(&mut self, value: T) -> bool {
         if self.is_full {
             return false;
+        }
+
+        // Some estimators never receive observations, so allocate their storage only when needed.
+        if self.buffers.is_empty() {
+            self.buffers = (0..self.exponent).map(|_| Vec::with_capacity(self.base)).collect();
+            self.ordered = Vec::with_capacity(self.base.saturating_mul(self.exponent));
         }
 
         self.count += 1;

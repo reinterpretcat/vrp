@@ -330,6 +330,7 @@ where
 
 struct ImprovementTracker {
     buffer: Vec<bool>,
+    window_size: usize,
     total_improvements: usize,
 
     pub i_all_ratio: Float,
@@ -340,7 +341,8 @@ struct ImprovementTracker {
 impl ImprovementTracker {
     pub fn new(size: usize) -> Self {
         Self {
-            buffer: vec![false; size],
+            buffer: Vec::new(),
+            window_size: size,
             total_improvements: 0,
             i_all_ratio: 0.,
             i_1000_ratio: 0.,
@@ -349,6 +351,10 @@ impl ImprovementTracker {
     }
 
     pub fn track(&mut self, generation: usize, is_improved: bool) {
+        if self.buffer.is_empty() {
+            self.buffer = vec![false; self.window_size];
+        }
+
         let length = self.buffer.len();
 
         if is_improved {

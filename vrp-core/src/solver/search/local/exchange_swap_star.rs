@@ -182,53 +182,50 @@ impl JobRemovalContext {
     }
 }
 
-/// Tries to find insertion cost for `insert_job` in place of a previously extracted job.
-fn find_in_place_result(
-    search_ctx: &SearchContext,
-    removal_ctx: &JobRemovalContext,
-    insert_job: &Job,
-) -> InsertionResult {
-    let eval_ctx = get_evaluation_context(search_ctx, insert_job);
-
-    eval_job_insertion_in_route(
-        search_ctx.0,
-        &eval_ctx,
-        &removal_ctx.route_ctx,
-        removal_ctx.position,
-        InsertionResult::make_failure(),
-    )
-}
-
+/// Ranks insertion positions before the opposite job is removed from the route.
 fn find_top_positions(search_ctx: &SearchContext, route_ctx: &RouteContext, jobs: &[Job]) -> Vec<Vec<usize>> {
     jobs.iter()
         .map(|job| {
             let eval_ctx = get_evaluation_context(search_ctx, job);
-            let mut positions = route_ctx
-                .route()
-                .tour
-                .legs()
-                .filter_map(|leg| match job {
-                    // Feasibility before removal must not hide positions which become usable after exchange.
-                    Job::Single(single) => {
-                        estimate_insertion_cost(search_ctx, route_ctx, single, leg).map(|cost| (cost, leg.1))
-                    }
-                    // Multi jobs need the insertion machinery to position their dependent activities.
-                    Job::Multi(_) => eval_job_insertion_in_route(
-                        search_ctx.0,
-                        &eval_ctx,
-                        route_ctx,
-                        InsertionPosition::Concrete(leg.1),
-                        InsertionResult::make_failure(),
-                    )
-                    .try_into()
-                    .ok()
-                    .map(|success: InsertionSuccess| (success.cost, success.activities[0].1)),
-                })
-                .collect::<Vec<_>>();
-            positions.sort_by(|left, right| left.0.cmp(&right.0));
-            positions.into_iter().map(|(_, index)| index).take(3).collect()
+            let positions = route_ctx.route().tour.legs().filter_map(|leg| match job {
+                // Feasibility before removal must not hide positions which become usable after exchange.
+                Job::Single(single) => {
+                    estimate_insertion_cost(search_ctx, route_ctx, single, leg).map(|cost| (cost, leg.1))
+                }
+                // Multi jobs need the insertion machinery to position their dependent activities.
+                Job::Multi(_) => eval_job_insertion_in_route(
+                    search_ctx.0,
+                    &eval_ctx,
+                    route_ctx,
+                    InsertionPosition::Concrete(leg.1),
+                    InsertionResult::make_failure(),
+                )
+                .try_into()
+                .ok()
+                .map(|success: InsertionSuccess| (success.cost, success.activities[0].1)),
+            });
+            select_top_positions(positions)
         })
         .collect()
+}
+
+/// Keeps the three cheapest positions without sorting all candidates.
+fn select_top_positions(positions: impl Iterator<Item = (InsertionCost, usize)>) -> Vec<usize> {
+    const LIMIT: usize = 3;
+    let mut best: Vec<(InsertionCost, usize)> = Vec::with_capacity(LIMIT);
+
+    for candidate in positions {
+        // Keep scan order for equal costs, including repeated positions produced by Multi jobs.
+        let index = best.partition_point(|known| known.0 <= candidate.0);
+        if index < LIMIT {
+            if best.len() == LIMIT {
+                best.pop();
+            }
+            best.insert(index, candidate);
+        }
+    }
+
+    best.into_iter().map(|(_, index)| index).collect()
 }
 
 /// Ranks single-job positions using the configured objective, without claiming they are feasible.
@@ -273,18 +270,12 @@ fn find_best_result(
     top_positions: &[usize],
 ) -> InsertionResult {
     let eval_ctx = get_evaluation_context(search_ctx, insert_job);
-    let in_place = find_in_place_result(search_ctx, removal_ctx, insert_job);
+    // These positions share the same job and post-removal route, so route costs can be reused.
+    let positions = std::iter::once(removal_ctx.position).chain(
+        top_positions.iter().filter_map(|&index| removal_ctx.map_position(index).map(InsertionPosition::Concrete)),
+    );
 
-    top_positions.iter().filter_map(|&index| removal_ctx.map_position(index)).fold(in_place, |best, index| {
-        let result = eval_job_insertion_in_route(
-            search_ctx.0,
-            &eval_ctx,
-            &removal_ctx.route_ctx,
-            InsertionPosition::Concrete(index),
-            InsertionResult::make_failure(),
-        );
-        search_ctx.2.select_insertion(search_ctx.0, best, result)
-    })
+    eval_job_insertions_in_route(search_ctx.0, &eval_ctx, &removal_ctx.route_ctx, positions)
 }
 
 fn remove_job_with_copy(search_ctx: &SearchContext, job: &Job, route_ctx: &RouteContext) -> RouteContext {
