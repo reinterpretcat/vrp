@@ -349,8 +349,7 @@ fn get_init_size(matches: &ArgMatches) -> GenericResult<Option<usize>> {
     matches
         .get_one::<String>(INIT_SIZE_ARG_NAME)
         .map(|size| {
-            if let Some(value) = size.parse::<usize>().ok().and_then(|value| if value < 1 { None } else { Some(value) })
-            {
+            if let Some(value) = size.parse::<usize>().ok().filter(|&value| value > 0) {
                 Ok(Some(value))
             } else {
                 Err(format!("init size must be an integer bigger than 0, got '{size}'").into())

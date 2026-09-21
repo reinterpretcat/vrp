@@ -5,7 +5,6 @@ use crate::helpers::utils::random::FakeRandom;
 use crate::models::{FeatureBuilder, FeatureObjective, FeatureState};
 use crate::prelude::{Cost, Job};
 use crate::solver::create_default_heuristic_operator;
-use rosomaxa::prelude::*;
 
 struct RouteCountKey;
 

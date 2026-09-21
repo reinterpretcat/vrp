@@ -4,7 +4,7 @@ use crate::helpers::example::{create_default_heuristic_context, create_example_o
 use crate::population::Greedy;
 use crate::termination::MaxGeneration;
 use crate::utils::{Environment, Quota};
-use crate::{TelemetryMode, get_default_population, get_default_selection_size};
+use crate::{TelemetryMode, get_default_population};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -42,9 +42,8 @@ fn create_builder(
 fn create_context_with_quota(quota: Option<Arc<dyn Quota>>) -> VectorContext {
     let environment = Arc::new(Environment { quota, ..Environment::default() });
     let objective = create_example_objective();
-    let selection_size = get_default_selection_size(environment.as_ref());
-    let population =
-        get_default_population(objective.clone(), VectorRosomaxaContext, environment.clone(), selection_size);
+    // Keep the phase independent of the CI runner's CPU count.
+    let population = get_default_population(objective.clone(), VectorRosomaxaContext, environment.clone(), 2);
 
     VectorContext::new(objective, population, TelemetryMode::None, environment)
 }
@@ -108,7 +107,7 @@ fn can_configure_intensify_operators() {
 
 #[test]
 fn rejects_phase_gated_variation_without_escape() {
-    let result = create_builder(create_default_heuristic_context())
+    let result = create_builder(create_context_with_quota(None))
         .with_min_cv(Some(("sample".to_string(), 100, 0.01, false)), 0)
         .build();
 
