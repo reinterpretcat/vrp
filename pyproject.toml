@@ -1,0 +1,24 @@
+[project]
+name = "vrp-1"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Severin Schirmer", email = "severin@sensorita.no" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "ipykernel>=7.3.0",
+    "vrp-cli",
+]
+
+[tool.uv.sources]
+# PyPI 1.24.0 has no vrp_cli.models; build the local unreleased package instead.
+vrp-cli = { path = "vrp-cli", editable = true }
+
+[project.scripts]
+vrp-1 = "vrp_1:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
