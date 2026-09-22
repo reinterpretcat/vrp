@@ -1,0 +1,1799 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "Industriveien 3",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.99080843,
+                  "lng": 10.91082007
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Industriveien 16",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.99073437,
+                  "lng": 10.91866655
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Odvar Solbergs vei 126",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96793592,
+                  "lng": 10.90217906
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 658",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.97962346,
+                  "lng": 10.92413521
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Birkelundveien 64",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.00671995,
+                  "lng": 10.93031407
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Stuaveien 18",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.03027768,
+                  "lng": 10.89002026
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Nedre Rommen 3",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96316572,
+                  "lng": 10.90608816
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Nedre Rommen 5",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9626733,
+                  "lng": 10.90599985
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Vestlisvingen 23",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96770926,
+                  "lng": 10.92431675
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 391",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95186249,
+                  "lng": 10.86773149
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Hadelandsveien 835",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.054746,
+                  "lng": 10.882257
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bråtagrenda 3",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.04801928,
+                  "lng": 11.04528353
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bryggeriveien 2",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.99312827,
+                  "lng": 10.93179995
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Industriveien 14a",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.01141694,
+                  "lng": 11.0407617
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 187",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.01799267,
+                  "lng": 11.05833202
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Brennaveien 18",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.991749,
+                  "lng": 10.91343481
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 183",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.01472406,
+                  "lng": 11.05545278
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Industriveien 14",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.99048296,
+                  "lng": 10.91732551
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Lurudveien 7",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.01358397,
+                  "lng": 11.04569162
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Marenlundveien 5",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.00992699,
+                  "lng": 11.04615911
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Høgslundveien 25",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.00950117,
+                  "lng": 11.05002199
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Gneisveien 18",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.01238574,
+                  "lng": 11.05869226
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 306",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.02341897,
+                  "lng": 11.09056542
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Engerveien 142",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.00534099,
+                  "lng": 11.08983927
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 56",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9834533,
+                  "lng": 11.02207891
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 433",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.03166108,
+                  "lng": 11.11694781
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Brådalsstubben 18",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.98488714,
+                  "lng": 10.9269261
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Vestbyvegen 79",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.10074762,
+                  "lng": 11.02158594
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Morteveien 12",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.98703526,
+                  "lng": 10.94022124
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Støperiveien 5 #1",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.94755997,
+                  "lng": 11.00553387
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Stovner Senter 3",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96177659,
+                  "lng": 10.92514263
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Furuholtet 1",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.99999493,
+                  "lng": 11.04050707
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Torvet 6",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95651519,
+                  "lng": 11.04884641
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Slattum Terrasse 2",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.00939982,
+                  "lng": 10.92165515
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Messeveien 8",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95002411,
+                  "lng": 11.05630409
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Vardekroken 19",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.01983654,
+                  "lng": 11.04879174
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Leiraveien 16",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96812576,
+                  "lng": 11.07310893
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Leiraveien 12",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96537672,
+                  "lng": 11.07242681
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Rolf Olsens Vei 22",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96552542,
+                  "lng": 11.06572836
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Leiraveien 5",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96285401,
+                  "lng": 11.06647251
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Isakveien 64",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95249763,
+                  "lng": 11.07513775
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Inges gate 36",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95223141,
+                  "lng": 11.07464524
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bregneveien 2",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96957073,
+                  "lng": 11.05099304
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Storgata 57",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96141595,
+                  "lng": 11.05046914
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Tuenveien 64",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.94323662,
+                  "lng": 11.09664286
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Tuenveien 90",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.94291852,
+                  "lng": 11.09662971
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Solheimveien 44",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.93266124,
+                  "lng": 10.94181006
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Gårdsveien 1",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9502835,
+                  "lng": 10.87312349
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 36",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.97954262,
+                  "lng": 10.99130333
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Fabrikkgata 3",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95322133,
+                  "lng": 11.05199939
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Smalvollveien 65",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.92270121,
+                  "lng": 10.8435218
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Haugerudhagan 1",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9168091,
+                  "lng": 10.84543978
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Smalvollveien 62",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.92177823,
+                  "lng": 10.84001391
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Lørenveien 68",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.92965092,
+                  "lng": 10.80049285
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bøkkerveien 4",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.92745756,
+                  "lng": 10.79506158
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "General Ruges vei 107",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.86374156,
+                  "lng": 10.8427181
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Gamleveien 88",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9195159,
+                  "lng": 10.95419049
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Solheimveien 30",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.93421356,
+                  "lng": 10.93931082
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Strømsveien 239",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9242177,
+                  "lng": 10.84117427
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Haslevollen 3a",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9251163,
+                  "lng": 10.79137881
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "St. Halvards gate 2-4",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.9052813,
+                  "lng": 10.76835601
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bidenkaps gate 3",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91943802,
+                  "lng": 10.7411412
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bygdøy allé 63",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91882319,
+                  "lng": 10.70373898
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Kveldroveien 47",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.72593874,
+                  "lng": 10.78115561
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Grini Næringspark 1",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.94581212,
+                  "lng": 10.59741433
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Østaveien 117",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91867742,
+                  "lng": 10.93054859
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Steinsoppveien 7",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91545107,
+                  "lng": 10.93890495
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Piggsoppveien 28",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91430223,
+                  "lng": 10.94063759
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Piggsoppveien 46",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91521045,
+                  "lng": 10.94052073
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Rimsoppfaret 2",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91254949,
+                  "lng": 10.94358465
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Gamleveien 1",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.05386707,
+                  "lng": 10.88238146
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Askveien 81",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.06411559,
+                  "lng": 10.91092269
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Nordmarkveien 6",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.99667426,
+                  "lng": 10.74995811
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Hadelandsveien 1653",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.1195675,
+                  "lng": 10.83496324
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Sagstuveien 101",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 60.12074576,
+                  "lng": 10.82648072
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Brennaveien 20",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.98959893,
+                  "lng": 10.90680788
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Industriveien 15",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.98945113,
+                  "lng": 10.91366843
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Stamveien 1",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.98324498,
+                  "lng": 10.93988943
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Destilleriveien 11",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.98865331,
+                  "lng": 10.9454564
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Trondheimsveien 445",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95932441,
+                  "lng": 10.88003655
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Kalbakkveien 46",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95704386,
+                  "lng": 10.87528011
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Jernkroken 16",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.95576895,
+                  "lng": 10.89555709
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Nedre Rommen 7",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96271431,
+                  "lng": 10.90474949
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Elvesvingen 23",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96486089,
+                  "lng": 11.03219171
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Støperiveien 5 #2",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.94772308,
+                  "lng": 11.00663627
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Fetveien 80",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.97453788,
+                  "lng": 11.03135574
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Odalsgata 29",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96265456,
+                  "lng": 11.04729342
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Odalsgata 25",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.96228612,
+                  "lng": 11.04827788
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Fetveien 35",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.97812941,
+                  "lng": 11.01948233
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Eyvind Lyches vei 19A",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.89385111,
+                  "lng": 10.5148597
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bakkerudveien 89",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.89953901,
+                  "lng": 10.98836226
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Korallsoppveien 2C",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.91133658,
+                  "lng": 10.94346708
+                },
+                "duration": 300.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "truck",
+        "vehicleIds": [
+          "truck_1",
+          "truck_2"
+        ],
+        "profile": {
+          "matrix": "normal_car"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 59.93028,
+                "lng": 10.8286
+              }
+            },
+            "end": {
+              "latest": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 59.93028,
+                "lng": 10.8286
+              }
+            }
+          }
+        ],
+        "capacity": [
+          70
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car"
+      }
+    ]
+  }
+}

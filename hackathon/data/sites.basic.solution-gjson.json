@@ -1,0 +1,2443 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:00:00Z",
+        "departure": "2019-07-04T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:12:25Z",
+        "departure": "2019-07-04T09:17:25Z",
+        "distance": "7449",
+        "jobs_ids": "General Ruges vei 107",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8427181,
+          59.86374156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:43:37Z",
+        "departure": "2019-07-04T09:48:37Z",
+        "distance": "23172",
+        "jobs_ids": "Kveldroveien 47",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "2",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.78115561,
+          59.72593874
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:26:11Z",
+        "departure": "2019-07-04T10:31:11Z",
+        "distance": "45710",
+        "jobs_ids": "Bakkerudveien 89",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "3",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.98836226,
+          59.89953901
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:40:14Z",
+        "departure": "2019-07-04T10:45:14Z",
+        "distance": "51141",
+        "jobs_ids": "Støperiveien 5 #1",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "4",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.00553387,
+          59.94755997
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:45:20Z",
+        "departure": "2019-07-04T10:50:20Z",
+        "distance": "51205",
+        "jobs_ids": "Støperiveien 5 #2",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "5",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.00663627,
+          59.94772308
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:54:18Z",
+        "departure": "2019-07-04T10:59:18Z",
+        "distance": "53586",
+        "jobs_ids": "Elvesvingen 23",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "6",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.03219171,
+          59.96486089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:00:46Z",
+        "departure": "2019-07-04T11:05:46Z",
+        "distance": "54463",
+        "jobs_ids": "Odalsgata 29",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04729342,
+          59.96265456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:05:53Z",
+        "departure": "2019-07-04T11:10:53Z",
+        "distance": "54531",
+        "jobs_ids": "Odalsgata 25",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "8",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04827788,
+          59.96228612
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:11:09Z",
+        "departure": "2019-07-04T11:16:09Z",
+        "distance": "54687",
+        "jobs_ids": "Storgata 57",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "9",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05046914,
+          59.96141595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:17:04Z",
+        "departure": "2019-07-04T11:22:04Z",
+        "distance": "55240",
+        "jobs_ids": "Torvet 6",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "10",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04884641,
+          59.95651519
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:22:45Z",
+        "departure": "2019-07-04T11:27:45Z",
+        "distance": "55647",
+        "jobs_ids": "Fabrikkgata 3",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "11",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05199939,
+          59.95322133
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:28:28Z",
+        "departure": "2019-07-04T11:33:28Z",
+        "distance": "56076",
+        "jobs_ids": "Messeveien 8",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "12",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05630409,
+          59.95002411
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:37:26Z",
+        "departure": "2019-07-04T11:42:26Z",
+        "distance": "58459",
+        "jobs_ids": "Tuenveien 90",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "13",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.09662971,
+          59.94291852
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:42:30Z",
+        "departure": "2019-07-04T11:47:30Z",
+        "distance": "58494",
+        "jobs_ids": "Tuenveien 64",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "14",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.09664286,
+          59.94323662
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:50:08Z",
+        "departure": "2019-07-04T11:55:08Z",
+        "distance": "60077",
+        "jobs_ids": "Inges gate 36",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "15",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.07464524,
+          59.95223141
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:55:12Z",
+        "departure": "2019-07-04T12:00:12Z",
+        "distance": "60117",
+        "jobs_ids": "Isakveien 64",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "16",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.07513775,
+          59.95249763
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:02:17Z",
+        "departure": "2019-07-04T12:07:17Z",
+        "distance": "61367",
+        "jobs_ids": "Leiraveien 5",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "17",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.06647251,
+          59.96285401
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:08:00Z",
+        "departure": "2019-07-04T12:13:00Z",
+        "distance": "61802",
+        "jobs_ids": "Leiraveien 12",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "18",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.07242681,
+          59.96537672
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:13:31Z",
+        "departure": "2019-07-04T12:18:31Z",
+        "distance": "62110",
+        "jobs_ids": "Leiraveien 16",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "19",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.07310893,
+          59.96812576
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:19:21Z",
+        "departure": "2019-07-04T12:24:21Z",
+        "distance": "62613",
+        "jobs_ids": "Rolf Olsens Vei 22",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "20",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.06572836,
+          59.96552542
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:25:55Z",
+        "departure": "2019-07-04T12:30:55Z",
+        "distance": "63549",
+        "jobs_ids": "Bregneveien 2",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "21",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05099304,
+          59.96957073
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:32:58Z",
+        "departure": "2019-07-04T12:37:58Z",
+        "distance": "64775",
+        "jobs_ids": "Fetveien 80",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "22",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.03135574,
+          59.97453788
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:39:15Z",
+        "departure": "2019-07-04T12:44:15Z",
+        "distance": "65548",
+        "jobs_ids": "Fetveien 35",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "23",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.01948233,
+          59.97812941
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:46:53Z",
+        "departure": "2019-07-04T12:51:53Z",
+        "distance": "67125",
+        "jobs_ids": "Trondheimsveien 36",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "24",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.99130333,
+          59.97954262
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:54:50Z",
+        "departure": "2019-07-04T12:59:50Z",
+        "distance": "68893",
+        "jobs_ids": "Trondheimsveien 56",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "25",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.02207891,
+          59.9834533
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:03:21Z",
+        "departure": "2019-07-04T13:08:21Z",
+        "distance": "71001",
+        "jobs_ids": "Furuholtet 1",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "26",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04050707,
+          59.99999493
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:10:19Z",
+        "departure": "2019-07-04T13:15:19Z",
+        "distance": "72184",
+        "jobs_ids": "Høgslundveien 25",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "27",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05002199,
+          60.00950117
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:15:41Z",
+        "departure": "2019-07-04T13:20:41Z",
+        "distance": "72404",
+        "jobs_ids": "Marenlundveien 5",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "28",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04615911,
+          60.00992699
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:21:15Z",
+        "departure": "2019-07-04T13:26:15Z",
+        "distance": "72747",
+        "jobs_ids": "Industriveien 14a",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "29",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.0407617,
+          60.01141694
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:26:52Z",
+        "departure": "2019-07-04T13:31:52Z",
+        "distance": "73112",
+        "jobs_ids": "Lurudveien 7",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "30",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04569162,
+          60.01358397
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:33:04Z",
+        "departure": "2019-07-04T13:38:04Z",
+        "distance": "73829",
+        "jobs_ids": "Vardekroken 19",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "31",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04879174,
+          60.01983654
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:39:01Z",
+        "departure": "2019-07-04T13:44:01Z",
+        "distance": "74398",
+        "jobs_ids": "Trondheimsveien 187",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "32",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05833202,
+          60.01799267
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:44:41Z",
+        "departure": "2019-07-04T13:49:41Z",
+        "distance": "74796",
+        "jobs_ids": "Trondheimsveien 183",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "33",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05545278,
+          60.01472406
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:50:13Z",
+        "departure": "2019-07-04T13:55:13Z",
+        "distance": "75113",
+        "jobs_ids": "Gneisveien 18",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "34",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.05869226,
+          60.01238574
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:58:23Z",
+        "departure": "2019-07-04T14:03:23Z",
+        "distance": "77015",
+        "jobs_ids": "Engerveien 142",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "35",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.08983927,
+          60.00534099
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T14:06:44Z",
+        "departure": "2019-07-04T14:11:44Z",
+        "distance": "79028",
+        "jobs_ids": "Trondheimsveien 306",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "36",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.09056542,
+          60.02341897
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T14:14:37Z",
+        "departure": "2019-07-04T14:19:37Z",
+        "distance": "80758",
+        "jobs_ids": "Trondheimsveien 433",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "37",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.11694781,
+          60.03166108
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T14:26:55Z",
+        "departure": "2019-07-04T14:31:55Z",
+        "distance": "85138",
+        "jobs_ids": "Bråtagrenda 3",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "38",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.04528353,
+          60.04801928
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T14:41:57Z",
+        "departure": "2019-07-04T14:46:57Z",
+        "distance": "91153",
+        "jobs_ids": "Vestbyvegen 79",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "39",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.02158594,
+          60.10074762
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T15:04:33Z",
+        "departure": "2019-07-04T15:09:33Z",
+        "distance": "101716",
+        "jobs_ids": "Hadelandsveien 1653",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "40",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.83496324,
+          60.1195675
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T15:10:22Z",
+        "departure": "2019-07-04T15:15:22Z",
+        "distance": "102204",
+        "jobs_ids": "Sagstuveien 101",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "41",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.82648072,
+          60.12074576
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T15:28:28Z",
+        "departure": "2019-07-04T15:33:28Z",
+        "distance": "110059",
+        "jobs_ids": "Askveien 81",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "42",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.91092269,
+          60.06411559
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T15:36:38Z",
+        "departure": "2019-07-04T15:41:38Z",
+        "distance": "111963",
+        "jobs_ids": "Hadelandsveien 835",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "43",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.882257,
+          60.054746
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T15:41:48Z",
+        "departure": "2019-07-04T15:46:48Z",
+        "distance": "112061",
+        "jobs_ids": "Gamleveien 1",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "44",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.88238146,
+          60.05386707
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T15:51:14Z",
+        "departure": "2019-07-04T15:56:14Z",
+        "distance": "114721",
+        "jobs_ids": "Stuaveien 18",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "45",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.89002026,
+          60.03027768
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T16:10:38Z",
+        "departure": "2019-07-04T16:15:38Z",
+        "distance": "123365",
+        "jobs_ids": "Nordmarkveien 6",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "46",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.74995811,
+          59.99667426
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T16:32:39Z",
+        "departure": "2019-07-04T16:37:39Z",
+        "distance": "133576",
+        "jobs_ids": "Grini Næringspark 1",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "47",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.59741433,
+          59.94581212
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T16:49:58Z",
+        "departure": "2019-07-04T16:54:58Z",
+        "distance": "140970",
+        "jobs_ids": "Eyvind Lyches vei 19A",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "48",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.5148597,
+          59.89385111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T17:13:08Z",
+        "departure": "2019-07-04T17:18:08Z",
+        "distance": "151873",
+        "jobs_ids": "Bygdøy allé 63",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "49",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.70373898,
+          59.91882319
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T17:21:37Z",
+        "departure": "2019-07-04T17:26:37Z",
+        "distance": "153961",
+        "jobs_ids": "Bidenkaps gate 3",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "50",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.7411412,
+          59.91943802
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T17:30:16Z",
+        "departure": "2019-07-04T17:35:16Z",
+        "distance": "156150",
+        "jobs_ids": "St. Halvards gate 2-4",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "51",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.76835601,
+          59.9052813
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T17:39:31Z",
+        "departure": "2019-07-04T17:44:31Z",
+        "distance": "158705",
+        "jobs_ids": "Haslevollen 3a",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "52",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.79137881,
+          59.9251163
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T17:45:04Z",
+        "departure": "2019-07-04T17:50:04Z",
+        "distance": "159037",
+        "jobs_ids": "Bøkkerveien 4",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "53",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.79506158,
+          59.92745756
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T17:50:43Z",
+        "departure": "2019-07-04T17:55:43Z",
+        "distance": "159426",
+        "jobs_ids": "Lørenveien 68",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "54",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.80049285,
+          59.92965092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T17:58:20Z",
+        "departure": "2019-07-04T17:58:20Z",
+        "distance": "160995",
+        "jobs_ids": "arrival",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "55",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:00:00Z",
+        "departure": "2019-07-04T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:05:25Z",
+        "departure": "2019-07-04T09:10:25Z",
+        "distance": "3245",
+        "jobs_ids": "Trondheimsveien 391",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.86773149,
+          59.95186249
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:11:00Z",
+        "departure": "2019-07-04T09:16:00Z",
+        "distance": "3593",
+        "jobs_ids": "Gårdsveien 1",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "2",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.87312349,
+          59.9502835
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:17:16Z",
+        "departure": "2019-07-04T09:22:16Z",
+        "distance": "4355",
+        "jobs_ids": "Kalbakkveien 46",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "3",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.87528011,
+          59.95704386
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:22:53Z",
+        "departure": "2019-07-04T09:27:53Z",
+        "distance": "4722",
+        "jobs_ids": "Trondheimsveien 445",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "4",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.88003655,
+          59.95932441
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:29:28Z",
+        "departure": "2019-07-04T09:34:28Z",
+        "distance": "5673",
+        "jobs_ids": "Jernkroken 16",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "5",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.89555709,
+          59.95576895
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:36:01Z",
+        "departure": "2019-07-04T09:41:01Z",
+        "distance": "6600",
+        "jobs_ids": "Nedre Rommen 7",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "6",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.90474949,
+          59.96271431
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:41:08Z",
+        "departure": "2019-07-04T09:46:08Z",
+        "distance": "6670",
+        "jobs_ids": "Nedre Rommen 5",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.90599985,
+          59.9626733
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:46:14Z",
+        "departure": "2019-07-04T09:51:14Z",
+        "distance": "6725",
+        "jobs_ids": "Nedre Rommen 3",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "8",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.90608816,
+          59.96316572
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T09:52:11Z",
+        "departure": "2019-07-04T09:57:11Z",
+        "distance": "7299",
+        "jobs_ids": "Odvar Solbergs vei 126",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "9",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.90217906,
+          59.96793592
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:01:14Z",
+        "departure": "2019-07-04T10:06:14Z",
+        "distance": "9724",
+        "jobs_ids": "Brennaveien 20",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "10",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.90680788,
+          59.98959893
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:06:40Z",
+        "departure": "2019-07-04T10:11:40Z",
+        "distance": "9985",
+        "jobs_ids": "Industriveien 3",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "11",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.91082007,
+          59.99080843
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:11:58Z",
+        "departure": "2019-07-04T10:16:58Z",
+        "distance": "10164",
+        "jobs_ids": "Brennaveien 18",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "12",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.91343481,
+          59.991749
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:17:24Z",
+        "departure": "2019-07-04T10:22:24Z",
+        "distance": "10420",
+        "jobs_ids": "Industriveien 15",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "13",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.91366843,
+          59.98945113
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:22:47Z",
+        "departure": "2019-07-04T10:27:47Z",
+        "distance": "10654",
+        "jobs_ids": "Industriveien 14",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "14",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.91732551,
+          59.99048296
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:27:55Z",
+        "departure": "2019-07-04T10:32:55Z",
+        "distance": "10734",
+        "jobs_ids": "Industriveien 16",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "15",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.91866655,
+          59.99073437
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:36:23Z",
+        "departure": "2019-07-04T10:41:23Z",
+        "distance": "12818",
+        "jobs_ids": "Slattum Terrasse 2",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "16",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.92165515,
+          60.00939982
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:42:20Z",
+        "departure": "2019-07-04T10:47:20Z",
+        "distance": "13385",
+        "jobs_ids": "Birkelundveien 64",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "17",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.93031407,
+          60.00671995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:49:52Z",
+        "departure": "2019-07-04T10:54:52Z",
+        "distance": "14900",
+        "jobs_ids": "Bryggeriveien 2",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "18",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.93179995,
+          59.99312827
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T10:56:23Z",
+        "departure": "2019-07-04T11:01:23Z",
+        "distance": "15809",
+        "jobs_ids": "Destilleriveien 11",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "19",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.9454564,
+          59.98865331
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:01:57Z",
+        "departure": "2019-07-04T11:06:57Z",
+        "distance": "16152",
+        "jobs_ids": "Morteveien 12",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "20",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.94022124,
+          59.98703526
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:07:39Z",
+        "departure": "2019-07-04T11:12:39Z",
+        "distance": "16574",
+        "jobs_ids": "Stamveien 1",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "21",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.93988943,
+          59.98324498
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:13:53Z",
+        "departure": "2019-07-04T11:18:53Z",
+        "distance": "17319",
+        "jobs_ids": "Brådalsstubben 18",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "22",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.9269261,
+          59.98488714
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:19:54Z",
+        "departure": "2019-07-04T11:24:54Z",
+        "distance": "17925",
+        "jobs_ids": "Trondheimsveien 658",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "23",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.92413521,
+          59.97962346
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:27:07Z",
+        "departure": "2019-07-04T11:32:07Z",
+        "distance": "19251",
+        "jobs_ids": "Vestlisvingen 23",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "24",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.92431675,
+          59.96770926
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:33:13Z",
+        "departure": "2019-07-04T11:38:13Z",
+        "distance": "19913",
+        "jobs_ids": "Stovner Senter 3",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "25",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.92514263,
+          59.96177659
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:43:30Z",
+        "departure": "2019-07-04T11:48:30Z",
+        "distance": "23081",
+        "jobs_ids": "Solheimveien 30",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "26",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.93931082,
+          59.93421356
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:48:52Z",
+        "departure": "2019-07-04T11:53:52Z",
+        "distance": "23303",
+        "jobs_ids": "Solheimveien 44",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "27",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.94181006,
+          59.93266124
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T11:56:34Z",
+        "departure": "2019-07-04T12:01:34Z",
+        "distance": "24921",
+        "jobs_ids": "Gamleveien 88",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "28",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.95419049,
+          59.9195159
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:03:12Z",
+        "departure": "2019-07-04T12:08:12Z",
+        "distance": "25897",
+        "jobs_ids": "Rimsoppfaret 2",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "29",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.94358465,
+          59.91254949
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:08:26Z",
+        "departure": "2019-07-04T12:13:26Z",
+        "distance": "26032",
+        "jobs_ids": "Korallsoppveien 2C",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "30",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.94346708,
+          59.91133658
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:14:03Z",
+        "departure": "2019-07-04T12:19:03Z",
+        "distance": "26398",
+        "jobs_ids": "Piggsoppveien 28",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "31",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.94063759,
+          59.91430223
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:19:13Z",
+        "departure": "2019-07-04T12:24:13Z",
+        "distance": "26499",
+        "jobs_ids": "Piggsoppveien 46",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "32",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.94052073,
+          59.91521045
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:24:22Z",
+        "departure": "2019-07-04T12:29:22Z",
+        "distance": "26593",
+        "jobs_ids": "Steinsoppveien 7",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "33",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.93890495,
+          59.91545107
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:30:21Z",
+        "departure": "2019-07-04T12:35:21Z",
+        "distance": "27182",
+        "jobs_ids": "Østaveien 117",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "34",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.93054859,
+          59.91867742
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:43:16Z",
+        "departure": "2019-07-04T12:48:16Z",
+        "distance": "31935",
+        "jobs_ids": "Haugerudhagan 1",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "35",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.84543978,
+          59.9168091
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:49:19Z",
+        "departure": "2019-07-04T12:54:19Z",
+        "distance": "32566",
+        "jobs_ids": "Smalvollveien 62",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "36",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.84001391,
+          59.92177823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T12:54:41Z",
+        "departure": "2019-07-04T12:59:41Z",
+        "distance": "32787",
+        "jobs_ids": "Smalvollveien 65",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "37",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8435218,
+          59.92270121
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:00:02Z",
+        "departure": "2019-07-04T13:05:02Z",
+        "distance": "33001",
+        "jobs_ids": "Strømsveien 239",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "38",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.84117427,
+          59.9242177
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2019-07-04T13:06:39Z",
+        "departure": "2019-07-04T13:06:39Z",
+        "distance": "33974",
+        "jobs_ids": "arrival",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "39",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "56",
+        "arrival": "2019-07-04T17:58:20Z",
+        "departure": "2019-07-04T09:00:00Z",
+        "distance": "160995",
+        "shift_idx": "0",
+        "stroke": "#e6194b",
+        "stroke-width": "4",
+        "tour_idx": "0",
+        "vehicle_id": "truck_2"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.8427181,
+            59.86374156
+          ],
+          [
+            10.78115561,
+            59.72593874
+          ],
+          [
+            10.98836226,
+            59.89953901
+          ],
+          [
+            11.00553387,
+            59.94755997
+          ],
+          [
+            11.00663627,
+            59.94772308
+          ],
+          [
+            11.03219171,
+            59.96486089
+          ],
+          [
+            11.04729342,
+            59.96265456
+          ],
+          [
+            11.04827788,
+            59.96228612
+          ],
+          [
+            11.05046914,
+            59.96141595
+          ],
+          [
+            11.04884641,
+            59.95651519
+          ],
+          [
+            11.05199939,
+            59.95322133
+          ],
+          [
+            11.05630409,
+            59.95002411
+          ],
+          [
+            11.09662971,
+            59.94291852
+          ],
+          [
+            11.09664286,
+            59.94323662
+          ],
+          [
+            11.07464524,
+            59.95223141
+          ],
+          [
+            11.07513775,
+            59.95249763
+          ],
+          [
+            11.06647251,
+            59.96285401
+          ],
+          [
+            11.07242681,
+            59.96537672
+          ],
+          [
+            11.07310893,
+            59.96812576
+          ],
+          [
+            11.06572836,
+            59.96552542
+          ],
+          [
+            11.05099304,
+            59.96957073
+          ],
+          [
+            11.03135574,
+            59.97453788
+          ],
+          [
+            11.01948233,
+            59.97812941
+          ],
+          [
+            10.99130333,
+            59.97954262
+          ],
+          [
+            11.02207891,
+            59.9834533
+          ],
+          [
+            11.04050707,
+            59.99999493
+          ],
+          [
+            11.05002199,
+            60.00950117
+          ],
+          [
+            11.04615911,
+            60.00992699
+          ],
+          [
+            11.0407617,
+            60.01141694
+          ],
+          [
+            11.04569162,
+            60.01358397
+          ],
+          [
+            11.04879174,
+            60.01983654
+          ],
+          [
+            11.05833202,
+            60.01799267
+          ],
+          [
+            11.05545278,
+            60.01472406
+          ],
+          [
+            11.05869226,
+            60.01238574
+          ],
+          [
+            11.08983927,
+            60.00534099
+          ],
+          [
+            11.09056542,
+            60.02341897
+          ],
+          [
+            11.11694781,
+            60.03166108
+          ],
+          [
+            11.04528353,
+            60.04801928
+          ],
+          [
+            11.02158594,
+            60.10074762
+          ],
+          [
+            10.83496324,
+            60.1195675
+          ],
+          [
+            10.82648072,
+            60.12074576
+          ],
+          [
+            10.91092269,
+            60.06411559
+          ],
+          [
+            10.882257,
+            60.054746
+          ],
+          [
+            10.88238146,
+            60.05386707
+          ],
+          [
+            10.89002026,
+            60.03027768
+          ],
+          [
+            10.74995811,
+            59.99667426
+          ],
+          [
+            10.59741433,
+            59.94581212
+          ],
+          [
+            10.5148597,
+            59.89385111
+          ],
+          [
+            10.70373898,
+            59.91882319
+          ],
+          [
+            10.7411412,
+            59.91943802
+          ],
+          [
+            10.76835601,
+            59.9052813
+          ],
+          [
+            10.79137881,
+            59.9251163
+          ],
+          [
+            10.79506158,
+            59.92745756
+          ],
+          [
+            10.80049285,
+            59.92965092
+          ],
+          [
+            10.8286,
+            59.93028
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "40",
+        "arrival": "2019-07-04T13:06:39Z",
+        "departure": "2019-07-04T09:00:00Z",
+        "distance": "33974",
+        "shift_idx": "0",
+        "stroke": "#3cb44b",
+        "stroke-width": "4",
+        "tour_idx": "1",
+        "vehicle_id": "truck_1"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.86773149,
+            59.95186249
+          ],
+          [
+            10.87312349,
+            59.9502835
+          ],
+          [
+            10.87528011,
+            59.95704386
+          ],
+          [
+            10.88003655,
+            59.95932441
+          ],
+          [
+            10.89555709,
+            59.95576895
+          ],
+          [
+            10.90474949,
+            59.96271431
+          ],
+          [
+            10.90599985,
+            59.9626733
+          ],
+          [
+            10.90608816,
+            59.96316572
+          ],
+          [
+            10.90217906,
+            59.96793592
+          ],
+          [
+            10.90680788,
+            59.98959893
+          ],
+          [
+            10.91082007,
+            59.99080843
+          ],
+          [
+            10.91343481,
+            59.991749
+          ],
+          [
+            10.91366843,
+            59.98945113
+          ],
+          [
+            10.91732551,
+            59.99048296
+          ],
+          [
+            10.91866655,
+            59.99073437
+          ],
+          [
+            10.92165515,
+            60.00939982
+          ],
+          [
+            10.93031407,
+            60.00671995
+          ],
+          [
+            10.93179995,
+            59.99312827
+          ],
+          [
+            10.9454564,
+            59.98865331
+          ],
+          [
+            10.94022124,
+            59.98703526
+          ],
+          [
+            10.93988943,
+            59.98324498
+          ],
+          [
+            10.9269261,
+            59.98488714
+          ],
+          [
+            10.92413521,
+            59.97962346
+          ],
+          [
+            10.92431675,
+            59.96770926
+          ],
+          [
+            10.92514263,
+            59.96177659
+          ],
+          [
+            10.93931082,
+            59.93421356
+          ],
+          [
+            10.94181006,
+            59.93266124
+          ],
+          [
+            10.95419049,
+            59.9195159
+          ],
+          [
+            10.94358465,
+            59.91254949
+          ],
+          [
+            10.94346708,
+            59.91133658
+          ],
+          [
+            10.94063759,
+            59.91430223
+          ],
+          [
+            10.94052073,
+            59.91521045
+          ],
+          [
+            10.93890495,
+            59.91545107
+          ],
+          [
+            10.93054859,
+            59.91867742
+          ],
+          [
+            10.84543978,
+            59.9168091
+          ],
+          [
+            10.84001391,
+            59.92177823
+          ],
+          [
+            10.8435218,
+            59.92270121
+          ],
+          [
+            10.84117427,
+            59.9242177
+          ],
+          [
+            10.8286,
+            59.93028
+          ]
+        ]
+      }
+    }
+  ]
+}
