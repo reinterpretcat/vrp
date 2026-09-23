@@ -1,11 +1,11 @@
 {
   "statistic": {
-    "cost": 309.351594,
-    "distance": 194969,
-    "duration": 47099,
+    "cost": 508.75687200000004,
+    "distance": 432335,
+    "duration": 78712,
     "times": {
-      "driving": 19499,
-      "serving": 27600,
+      "driving": 50812,
+      "serving": 27900,
       "waiting": 0,
       "break": 0,
       "commuting": 0,
@@ -40,460 +40,60 @@
         },
         {
           "location": {
-            "lat": 59.86374156,
-            "lng": 10.8427181
+            "lat": 59.9168091,
+            "lng": 10.84543978
           },
           "time": {
-            "arrival": "2019-07-04T09:12:25Z",
-            "departure": "2019-07-04T09:17:25Z"
+            "arrival": "2019-07-04T09:11:50Z",
+            "departure": "2019-07-04T09:16:50Z"
           },
-          "distance": 7449,
+          "distance": 4043,
           "load": [
             1
           ],
           "activities": [
             {
-              "jobId": "General Ruges vei 107",
+              "jobId": "Haugerudhagan 1",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.72593874,
-            "lng": 10.78115561
+            "lat": 59.95186249,
+            "lng": 10.86773149
           },
           "time": {
-            "arrival": "2019-07-04T09:43:37Z",
-            "departure": "2019-07-04T09:48:37Z"
+            "arrival": "2019-07-04T09:26:05Z",
+            "departure": "2019-07-04T09:31:05Z"
           },
-          "distance": 23172,
+          "distance": 8791,
           "load": [
             2
           ],
           "activities": [
             {
-              "jobId": "Kveldroveien 47",
+              "jobId": "Trondheimsveien 391",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.89953901,
-            "lng": 10.98836226
+            "lat": 59.96177659,
+            "lng": 10.92514263
           },
           "time": {
-            "arrival": "2019-07-04T10:26:11Z",
-            "departure": "2019-07-04T10:31:11Z"
+            "arrival": "2019-07-04T09:38:06Z",
+            "departure": "2019-07-04T09:43:06Z"
           },
-          "distance": 45710,
+          "distance": 12904,
           "load": [
             3
           ],
           "activities": [
             {
-              "jobId": "Bakkerudveien 89",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.94755997,
-            "lng": 11.00553387
-          },
-          "time": {
-            "arrival": "2019-07-04T10:40:14Z",
-            "departure": "2019-07-04T10:45:14Z"
-          },
-          "distance": 51141,
-          "load": [
-            4
-          ],
-          "activities": [
-            {
-              "jobId": "Støperiveien 5 #1",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.94772308,
-            "lng": 11.00663627
-          },
-          "time": {
-            "arrival": "2019-07-04T10:45:20Z",
-            "departure": "2019-07-04T10:50:20Z"
-          },
-          "distance": 51205,
-          "load": [
-            5
-          ],
-          "activities": [
-            {
-              "jobId": "Støperiveien 5 #2",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96486089,
-            "lng": 11.03219171
-          },
-          "time": {
-            "arrival": "2019-07-04T10:54:18Z",
-            "departure": "2019-07-04T10:59:18Z"
-          },
-          "distance": 53586,
-          "load": [
-            6
-          ],
-          "activities": [
-            {
-              "jobId": "Elvesvingen 23",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96265456,
-            "lng": 11.04729342
-          },
-          "time": {
-            "arrival": "2019-07-04T11:00:46Z",
-            "departure": "2019-07-04T11:05:46Z"
-          },
-          "distance": 54463,
-          "load": [
-            7
-          ],
-          "activities": [
-            {
-              "jobId": "Odalsgata 29",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96228612,
-            "lng": 11.04827788
-          },
-          "time": {
-            "arrival": "2019-07-04T11:05:53Z",
-            "departure": "2019-07-04T11:10:53Z"
-          },
-          "distance": 54531,
-          "load": [
-            8
-          ],
-          "activities": [
-            {
-              "jobId": "Odalsgata 25",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96141595,
-            "lng": 11.05046914
-          },
-          "time": {
-            "arrival": "2019-07-04T11:11:09Z",
-            "departure": "2019-07-04T11:16:09Z"
-          },
-          "distance": 54687,
-          "load": [
-            9
-          ],
-          "activities": [
-            {
-              "jobId": "Storgata 57",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.95651519,
-            "lng": 11.04884641
-          },
-          "time": {
-            "arrival": "2019-07-04T11:17:04Z",
-            "departure": "2019-07-04T11:22:04Z"
-          },
-          "distance": 55240,
-          "load": [
-            10
-          ],
-          "activities": [
-            {
-              "jobId": "Torvet 6",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.95322133,
-            "lng": 11.05199939
-          },
-          "time": {
-            "arrival": "2019-07-04T11:22:45Z",
-            "departure": "2019-07-04T11:27:45Z"
-          },
-          "distance": 55647,
-          "load": [
-            11
-          ],
-          "activities": [
-            {
-              "jobId": "Fabrikkgata 3",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.95002411,
-            "lng": 11.05630409
-          },
-          "time": {
-            "arrival": "2019-07-04T11:28:28Z",
-            "departure": "2019-07-04T11:33:28Z"
-          },
-          "distance": 56076,
-          "load": [
-            12
-          ],
-          "activities": [
-            {
-              "jobId": "Messeveien 8",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.94291852,
-            "lng": 11.09662971
-          },
-          "time": {
-            "arrival": "2019-07-04T11:37:26Z",
-            "departure": "2019-07-04T11:42:26Z"
-          },
-          "distance": 58459,
-          "load": [
-            13
-          ],
-          "activities": [
-            {
-              "jobId": "Tuenveien 90",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.94323662,
-            "lng": 11.09664286
-          },
-          "time": {
-            "arrival": "2019-07-04T11:42:30Z",
-            "departure": "2019-07-04T11:47:30Z"
-          },
-          "distance": 58494,
-          "load": [
-            14
-          ],
-          "activities": [
-            {
-              "jobId": "Tuenveien 64",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.95223141,
-            "lng": 11.07464524
-          },
-          "time": {
-            "arrival": "2019-07-04T11:50:08Z",
-            "departure": "2019-07-04T11:55:08Z"
-          },
-          "distance": 60077,
-          "load": [
-            15
-          ],
-          "activities": [
-            {
-              "jobId": "Inges gate 36",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.95249763,
-            "lng": 11.07513775
-          },
-          "time": {
-            "arrival": "2019-07-04T11:55:12Z",
-            "departure": "2019-07-04T12:00:12Z"
-          },
-          "distance": 60117,
-          "load": [
-            16
-          ],
-          "activities": [
-            {
-              "jobId": "Isakveien 64",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96285401,
-            "lng": 11.06647251
-          },
-          "time": {
-            "arrival": "2019-07-04T12:02:17Z",
-            "departure": "2019-07-04T12:07:17Z"
-          },
-          "distance": 61367,
-          "load": [
-            17
-          ],
-          "activities": [
-            {
-              "jobId": "Leiraveien 5",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96537672,
-            "lng": 11.07242681
-          },
-          "time": {
-            "arrival": "2019-07-04T12:08:00Z",
-            "departure": "2019-07-04T12:13:00Z"
-          },
-          "distance": 61802,
-          "load": [
-            18
-          ],
-          "activities": [
-            {
-              "jobId": "Leiraveien 12",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96812576,
-            "lng": 11.07310893
-          },
-          "time": {
-            "arrival": "2019-07-04T12:13:31Z",
-            "departure": "2019-07-04T12:18:31Z"
-          },
-          "distance": 62110,
-          "load": [
-            19
-          ],
-          "activities": [
-            {
-              "jobId": "Leiraveien 16",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96552542,
-            "lng": 11.06572836
-          },
-          "time": {
-            "arrival": "2019-07-04T12:19:21Z",
-            "departure": "2019-07-04T12:24:21Z"
-          },
-          "distance": 62613,
-          "load": [
-            20
-          ],
-          "activities": [
-            {
-              "jobId": "Rolf Olsens Vei 22",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96957073,
-            "lng": 11.05099304
-          },
-          "time": {
-            "arrival": "2019-07-04T12:25:55Z",
-            "departure": "2019-07-04T12:30:55Z"
-          },
-          "distance": 63549,
-          "load": [
-            21
-          ],
-          "activities": [
-            {
-              "jobId": "Bregneveien 2",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.97453788,
-            "lng": 11.03135574
-          },
-          "time": {
-            "arrival": "2019-07-04T12:32:58Z",
-            "departure": "2019-07-04T12:37:58Z"
-          },
-          "distance": 64775,
-          "load": [
-            22
-          ],
-          "activities": [
-            {
-              "jobId": "Fetveien 80",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.97812941,
-            "lng": 11.01948233
-          },
-          "time": {
-            "arrival": "2019-07-04T12:39:15Z",
-            "departure": "2019-07-04T12:44:15Z"
-          },
-          "distance": 65548,
-          "load": [
-            23
-          ],
-          "activities": [
-            {
-              "jobId": "Fetveien 35",
+              "jobId": "Stovner Senter 3",
               "type": "pickup"
             }
           ]
@@ -504,12 +104,12 @@
             "lng": 10.99130333
           },
           "time": {
-            "arrival": "2019-07-04T12:46:53Z",
-            "departure": "2019-07-04T12:51:53Z"
+            "arrival": "2019-07-04T09:57:07Z",
+            "departure": "2019-07-04T10:02:07Z"
           },
-          "distance": 67125,
+          "distance": 22199,
           "load": [
-            24
+            4
           ],
           "activities": [
             {
@@ -520,36 +120,16 @@
         },
         {
           "location": {
-            "lat": 59.9834533,
-            "lng": 11.02207891
-          },
-          "time": {
-            "arrival": "2019-07-04T12:54:50Z",
-            "departure": "2019-07-04T12:59:50Z"
-          },
-          "distance": 68893,
-          "load": [
-            25
-          ],
-          "activities": [
-            {
-              "jobId": "Trondheimsveien 56",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 59.99999493,
             "lng": 11.04050707
           },
           "time": {
-            "arrival": "2019-07-04T13:03:21Z",
-            "departure": "2019-07-04T13:08:21Z"
+            "arrival": "2019-07-04T10:10:22Z",
+            "departure": "2019-07-04T10:15:22Z"
           },
-          "distance": 71001,
+          "distance": 27369,
           "load": [
-            26
+            5
           ],
           "activities": [
             {
@@ -560,56 +140,16 @@
         },
         {
           "location": {
-            "lat": 60.00950117,
-            "lng": 11.05002199
-          },
-          "time": {
-            "arrival": "2019-07-04T13:10:19Z",
-            "departure": "2019-07-04T13:15:19Z"
-          },
-          "distance": 72184,
-          "load": [
-            27
-          ],
-          "activities": [
-            {
-              "jobId": "Høgslundveien 25",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 60.00992699,
-            "lng": 11.04615911
-          },
-          "time": {
-            "arrival": "2019-07-04T13:15:41Z",
-            "departure": "2019-07-04T13:20:41Z"
-          },
-          "distance": 72404,
-          "load": [
-            28
-          ],
-          "activities": [
-            {
-              "jobId": "Marenlundveien 5",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 60.01141694,
             "lng": 11.0407617
           },
           "time": {
-            "arrival": "2019-07-04T13:21:15Z",
-            "departure": "2019-07-04T13:26:15Z"
+            "arrival": "2019-07-04T10:20:16Z",
+            "departure": "2019-07-04T10:25:16Z"
           },
-          "distance": 72747,
+          "distance": 29257,
           "load": [
-            29
+            6
           ],
           "activities": [
             {
@@ -624,12 +164,12 @@
             "lng": 11.04569162
           },
           "time": {
-            "arrival": "2019-07-04T13:26:52Z",
-            "departure": "2019-07-04T13:31:52Z"
+            "arrival": "2019-07-04T10:28:20Z",
+            "departure": "2019-07-04T10:33:20Z"
           },
-          "distance": 73112,
+          "distance": 29759,
           "load": [
-            30
+            7
           ],
           "activities": [
             {
@@ -640,76 +180,16 @@
         },
         {
           "location": {
-            "lat": 60.01983654,
-            "lng": 11.04879174
-          },
-          "time": {
-            "arrival": "2019-07-04T13:33:04Z",
-            "departure": "2019-07-04T13:38:04Z"
-          },
-          "distance": 73829,
-          "load": [
-            31
-          ],
-          "activities": [
-            {
-              "jobId": "Vardekroken 19",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 60.01799267,
-            "lng": 11.05833202
-          },
-          "time": {
-            "arrival": "2019-07-04T13:39:01Z",
-            "departure": "2019-07-04T13:44:01Z"
-          },
-          "distance": 74398,
-          "load": [
-            32
-          ],
-          "activities": [
-            {
-              "jobId": "Trondheimsveien 187",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 60.01472406,
-            "lng": 11.05545278
-          },
-          "time": {
-            "arrival": "2019-07-04T13:44:41Z",
-            "departure": "2019-07-04T13:49:41Z"
-          },
-          "distance": 74796,
-          "load": [
-            33
-          ],
-          "activities": [
-            {
-              "jobId": "Trondheimsveien 183",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 60.01238574,
             "lng": 11.05869226
           },
           "time": {
-            "arrival": "2019-07-04T13:50:13Z",
-            "departure": "2019-07-04T13:55:13Z"
+            "arrival": "2019-07-04T10:38:56Z",
+            "departure": "2019-07-04T10:43:56Z"
           },
-          "distance": 75113,
+          "distance": 31475,
           "load": [
-            34
+            8
           ],
           "activities": [
             {
@@ -720,56 +200,16 @@
         },
         {
           "location": {
-            "lat": 60.00534099,
-            "lng": 11.08983927
-          },
-          "time": {
-            "arrival": "2019-07-04T13:58:23Z",
-            "departure": "2019-07-04T14:03:23Z"
-          },
-          "distance": 77015,
-          "load": [
-            35
-          ],
-          "activities": [
-            {
-              "jobId": "Engerveien 142",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 60.02341897,
-            "lng": 11.09056542
-          },
-          "time": {
-            "arrival": "2019-07-04T14:06:44Z",
-            "departure": "2019-07-04T14:11:44Z"
-          },
-          "distance": 79028,
-          "load": [
-            36
-          ],
-          "activities": [
-            {
-              "jobId": "Trondheimsveien 306",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 60.03166108,
             "lng": 11.11694781
           },
           "time": {
-            "arrival": "2019-07-04T14:14:37Z",
-            "departure": "2019-07-04T14:19:37Z"
+            "arrival": "2019-07-04T10:52:17Z",
+            "departure": "2019-07-04T10:57:17Z"
           },
-          "distance": 80758,
+          "distance": 36758,
           "load": [
-            37
+            9
           ],
           "activities": [
             {
@@ -780,160 +220,360 @@
         },
         {
           "location": {
-            "lat": 60.04801928,
-            "lng": 11.04528353
+            "lat": 59.96552542,
+            "lng": 11.06572836
           },
           "time": {
-            "arrival": "2019-07-04T14:26:55Z",
-            "departure": "2019-07-04T14:31:55Z"
+            "arrival": "2019-07-04T11:09:01Z",
+            "departure": "2019-07-04T11:14:01Z"
           },
-          "distance": 85138,
+          "distance": 45513,
           "load": [
-            38
+            10
           ],
           "activities": [
             {
-              "jobId": "Bråtagrenda 3",
+              "jobId": "Rolf Olsens Vei 22",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 60.10074762,
-            "lng": 11.02158594
+            "lat": 59.95223141,
+            "lng": 11.07464524
           },
           "time": {
-            "arrival": "2019-07-04T14:41:57Z",
-            "departure": "2019-07-04T14:46:57Z"
+            "arrival": "2019-07-04T11:18:09Z",
+            "departure": "2019-07-04T11:23:09Z"
           },
-          "distance": 91153,
+          "distance": 47651,
           "load": [
-            39
+            11
           ],
           "activities": [
             {
-              "jobId": "Vestbyvegen 79",
+              "jobId": "Inges gate 36",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 60.1195675,
-            "lng": 10.83496324
+            "lat": 59.95249763,
+            "lng": 11.07513775
           },
           "time": {
-            "arrival": "2019-07-04T15:04:33Z",
-            "departure": "2019-07-04T15:09:33Z"
+            "arrival": "2019-07-04T11:23:13Z",
+            "departure": "2019-07-04T11:28:13Z"
           },
-          "distance": 101716,
+          "distance": 47687,
           "load": [
-            40
+            12
           ],
           "activities": [
             {
-              "jobId": "Hadelandsveien 1653",
+              "jobId": "Isakveien 64",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 60.12074576,
-            "lng": 10.82648072
+            "lat": 59.94323662,
+            "lng": 11.09664286
           },
           "time": {
-            "arrival": "2019-07-04T15:10:22Z",
-            "departure": "2019-07-04T15:15:22Z"
+            "arrival": "2019-07-04T11:35:01Z",
+            "departure": "2019-07-04T11:40:01Z"
           },
-          "distance": 102204,
+          "distance": 51044,
           "load": [
-            41
+            13
           ],
           "activities": [
             {
-              "jobId": "Sagstuveien 101",
+              "jobId": "Tuenveien 64",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 60.06411559,
-            "lng": 10.91092269
+            "lat": 59.94291852,
+            "lng": 11.09662971
           },
           "time": {
-            "arrival": "2019-07-04T15:28:28Z",
-            "departure": "2019-07-04T15:33:28Z"
+            "arrival": "2019-07-04T11:40:01Z",
+            "departure": "2019-07-04T11:45:01Z"
           },
-          "distance": 110059,
+          "distance": 51044,
           "load": [
-            42
+            14
           ],
           "activities": [
             {
-              "jobId": "Askveien 81",
+              "jobId": "Tuenveien 90",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 60.054746,
-            "lng": 10.882257
+            "lat": 59.96812576,
+            "lng": 11.07310893
           },
           "time": {
-            "arrival": "2019-07-04T15:36:38Z",
-            "departure": "2019-07-04T15:41:38Z"
+            "arrival": "2019-07-04T11:56:03Z",
+            "departure": "2019-07-04T12:01:03Z"
           },
-          "distance": 111963,
+          "distance": 56425,
           "load": [
-            43
+            15
           ],
           "activities": [
             {
-              "jobId": "Hadelandsveien 835",
+              "jobId": "Leiraveien 16",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 60.05386707,
-            "lng": 10.88238146
+            "lat": 59.96285401,
+            "lng": 11.06647251
           },
           "time": {
-            "arrival": "2019-07-04T15:41:48Z",
-            "departure": "2019-07-04T15:46:48Z"
+            "arrival": "2019-07-04T12:03:24Z",
+            "departure": "2019-07-04T12:08:24Z"
           },
-          "distance": 112061,
+          "distance": 57211,
           "load": [
-            44
+            16
           ],
           "activities": [
             {
-              "jobId": "Gamleveien 1",
+              "jobId": "Leiraveien 5",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 60.03027768,
-            "lng": 10.89002026
+            "lat": 59.96228612,
+            "lng": 11.04827788
           },
           "time": {
-            "arrival": "2019-07-04T15:51:14Z",
-            "departure": "2019-07-04T15:56:14Z"
+            "arrival": "2019-07-04T12:14:22Z",
+            "departure": "2019-07-04T12:19:22Z"
           },
-          "distance": 114721,
+          "distance": 59432,
           "load": [
-            45
+            17
           ],
           "activities": [
             {
-              "jobId": "Stuaveien 18",
+              "jobId": "Odalsgata 25",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96957073,
+            "lng": 11.05099304
+          },
+          "time": {
+            "arrival": "2019-07-04T12:23:35Z",
+            "departure": "2019-07-04T12:28:35Z"
+          },
+          "distance": 60621,
+          "load": [
+            18
+          ],
+          "activities": [
+            {
+              "jobId": "Bregneveien 2",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.97812941,
+            "lng": 11.01948233
+          },
+          "time": {
+            "arrival": "2019-07-04T12:35:38Z",
+            "departure": "2019-07-04T12:40:38Z"
+          },
+          "distance": 63588,
+          "load": [
+            19
+          ],
+          "activities": [
+            {
+              "jobId": "Fetveien 35",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.99312827,
+            "lng": 10.93179995
+          },
+          "time": {
+            "arrival": "2019-07-04T12:56:24Z",
+            "departure": "2019-07-04T13:01:24Z"
+          },
+          "distance": 69803,
+          "load": [
+            20
+          ],
+          "activities": [
+            {
+              "jobId": "Bryggeriveien 2",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.98959893,
+            "lng": 10.90680788
+          },
+          "time": {
+            "arrival": "2019-07-04T13:14:14Z",
+            "departure": "2019-07-04T13:19:14Z"
+          },
+          "distance": 73133,
+          "load": [
+            21
+          ],
+          "activities": [
+            {
+              "jobId": "Brennaveien 20",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.98945113,
+            "lng": 10.91366843
+          },
+          "time": {
+            "arrival": "2019-07-04T13:23:28Z",
+            "departure": "2019-07-04T13:28:28Z"
+          },
+          "distance": 74156,
+          "load": [
+            22
+          ],
+          "activities": [
+            {
+              "jobId": "Industriveien 15",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.99048296,
+            "lng": 10.91732551
+          },
+          "time": {
+            "arrival": "2019-07-04T13:29:35Z",
+            "departure": "2019-07-04T13:34:35Z"
+          },
+          "distance": 74442,
+          "load": [
+            23
+          ],
+          "activities": [
+            {
+              "jobId": "Industriveien 14",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96793592,
+            "lng": 10.90217906
+          },
+          "time": {
+            "arrival": "2019-07-04T13:49:01Z",
+            "departure": "2019-07-04T13:54:01Z"
+          },
+          "distance": 83259,
+          "load": [
+            24
+          ],
+          "activities": [
+            {
+              "jobId": "Odvar Solbergs vei 126",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.9251163,
+            "lng": 10.79137881
+          },
+          "time": {
+            "arrival": "2019-07-04T14:09:48Z",
+            "departure": "2019-07-04T14:14:48Z"
+          },
+          "distance": 93092,
+          "load": [
+            25
+          ],
+          "activities": [
+            {
+              "jobId": "Haslevollen 3a",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.93028,
+            "lng": 10.8286
+          },
+          "time": {
+            "arrival": "2019-07-04T14:23:35Z",
+            "departure": "2019-07-04T14:33:35Z"
+          },
+          "distance": 96517,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "reload",
+              "type": "reload"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.92965092,
+            "lng": 10.80049285
+          },
+          "time": {
+            "arrival": "2019-07-04T14:43:55Z",
+            "departure": "2019-07-04T14:48:55Z"
+          },
+          "distance": 100106,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "Lørenveien 68",
               "type": "pickup"
             }
           ]
@@ -944,12 +584,12 @@
             "lng": 10.74995811
           },
           "time": {
-            "arrival": "2019-07-04T16:10:38Z",
-            "departure": "2019-07-04T16:15:38Z"
+            "arrival": "2019-07-04T15:09:49Z",
+            "departure": "2019-07-04T15:14:49Z"
           },
-          "distance": 123365,
+          "distance": 110047,
           "load": [
-            46
+            2
           ],
           "activities": [
             {
@@ -964,12 +604,12 @@
             "lng": 10.59741433
           },
           "time": {
-            "arrival": "2019-07-04T16:32:39Z",
-            "departure": "2019-07-04T16:37:39Z"
+            "arrival": "2019-07-04T15:44:06Z",
+            "departure": "2019-07-04T15:49:06Z"
           },
-          "distance": 133576,
+          "distance": 126539,
           "load": [
-            47
+            3
           ],
           "activities": [
             {
@@ -984,12 +624,12 @@
             "lng": 10.5148597
           },
           "time": {
-            "arrival": "2019-07-04T16:49:58Z",
-            "departure": "2019-07-04T16:54:58Z"
+            "arrival": "2019-07-04T16:04:47Z",
+            "departure": "2019-07-04T16:09:47Z"
           },
-          "distance": 140970,
+          "distance": 135528,
           "load": [
-            48
+            4
           ],
           "activities": [
             {
@@ -1004,12 +644,12 @@
             "lng": 10.70373898
           },
           "time": {
-            "arrival": "2019-07-04T17:13:08Z",
-            "departure": "2019-07-04T17:18:08Z"
+            "arrival": "2019-07-04T16:28:26Z",
+            "departure": "2019-07-04T16:33:26Z"
           },
-          "distance": 151873,
+          "distance": 148531,
           "load": [
-            49
+            5
           ],
           "activities": [
             {
@@ -1024,12 +664,12 @@
             "lng": 10.7411412
           },
           "time": {
-            "arrival": "2019-07-04T17:21:37Z",
-            "departure": "2019-07-04T17:26:37Z"
+            "arrival": "2019-07-04T16:45:54Z",
+            "departure": "2019-07-04T16:50:54Z"
           },
-          "distance": 153961,
+          "distance": 152012,
           "load": [
-            50
+            6
           ],
           "activities": [
             {
@@ -1040,80 +680,260 @@
         },
         {
           "location": {
-            "lat": 59.9052813,
-            "lng": 10.76835601
+            "lat": 59.91430223,
+            "lng": 10.94063759
           },
           "time": {
-            "arrival": "2019-07-04T17:30:16Z",
-            "departure": "2019-07-04T17:35:16Z"
+            "arrival": "2019-07-04T17:19:10Z",
+            "departure": "2019-07-04T17:24:10Z"
           },
-          "distance": 156150,
+          "distance": 169600,
           "load": [
-            51
+            7
           ],
           "activities": [
             {
-              "jobId": "St. Halvards gate 2-4",
+              "jobId": "Piggsoppveien 28",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.9251163,
-            "lng": 10.79137881
+            "lat": 59.91521045,
+            "lng": 10.94052073
           },
           "time": {
-            "arrival": "2019-07-04T17:39:31Z",
-            "departure": "2019-07-04T17:44:31Z"
+            "arrival": "2019-07-04T17:25:08Z",
+            "departure": "2019-07-04T17:30:08Z"
           },
-          "distance": 158705,
+          "distance": 169724,
           "load": [
-            52
+            8
           ],
           "activities": [
             {
-              "jobId": "Haslevollen 3a",
+              "jobId": "Piggsoppveien 46",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.92745756,
-            "lng": 10.79506158
+            "lat": 59.91133658,
+            "lng": 10.94346708
           },
           "time": {
-            "arrival": "2019-07-04T17:45:04Z",
-            "departure": "2019-07-04T17:50:04Z"
+            "arrival": "2019-07-04T17:34:09Z",
+            "departure": "2019-07-04T17:39:09Z"
           },
-          "distance": 159037,
+          "distance": 170694,
           "load": [
-            53
+            9
           ],
           "activities": [
             {
-              "jobId": "Bøkkerveien 4",
+              "jobId": "Korallsoppveien 2C",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.92965092,
-            "lng": 10.80049285
+            "lat": 59.91254949,
+            "lng": 10.94358465
           },
           "time": {
-            "arrival": "2019-07-04T17:50:43Z",
-            "departure": "2019-07-04T17:55:43Z"
+            "arrival": "2019-07-04T17:40:19Z",
+            "departure": "2019-07-04T17:45:19Z"
           },
-          "distance": 159426,
+          "distance": 170908,
           "load": [
-            54
+            10
           ],
           "activities": [
             {
-              "jobId": "Lørenveien 68",
+              "jobId": "Rimsoppfaret 2",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.9195159,
+            "lng": 10.95419049
+          },
+          "time": {
+            "arrival": "2019-07-04T17:51:42Z",
+            "departure": "2019-07-04T17:56:42Z"
+          },
+          "distance": 173654,
+          "load": [
+            11
+          ],
+          "activities": [
+            {
+              "jobId": "Gamleveien 88",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.94772308,
+            "lng": 11.00663627
+          },
+          "time": {
+            "arrival": "2019-07-04T18:06:16Z",
+            "departure": "2019-07-04T18:11:16Z"
+          },
+          "distance": 180392,
+          "load": [
+            12
+          ],
+          "activities": [
+            {
+              "jobId": "Støperiveien 5 #2",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.94755997,
+            "lng": 11.00553387
+          },
+          "time": {
+            "arrival": "2019-07-04T18:12:26Z",
+            "departure": "2019-07-04T18:17:26Z"
+          },
+          "distance": 180649,
+          "load": [
+            13
+          ],
+          "activities": [
+            {
+              "jobId": "Støperiveien 5 #1",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.991749,
+            "lng": 10.91343481
+          },
+          "time": {
+            "arrival": "2019-07-04T18:31:46Z",
+            "departure": "2019-07-04T18:36:46Z"
+          },
+          "distance": 189487,
+          "load": [
+            14
+          ],
+          "activities": [
+            {
+              "jobId": "Brennaveien 18",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.00939982,
+            "lng": 10.92165515
+          },
+          "time": {
+            "arrival": "2019-07-04T18:42:23Z",
+            "departure": "2019-07-04T18:47:23Z"
+          },
+          "distance": 192426,
+          "load": [
+            15
+          ],
+          "activities": [
+            {
+              "jobId": "Slattum Terrasse 2",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.05386707,
+            "lng": 10.88238146
+          },
+          "time": {
+            "arrival": "2019-07-04T18:53:59Z",
+            "departure": "2019-07-04T18:58:59Z"
+          },
+          "distance": 198236,
+          "load": [
+            16
+          ],
+          "activities": [
+            {
+              "jobId": "Gamleveien 1",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.06411559,
+            "lng": 10.91092269
+          },
+          "time": {
+            "arrival": "2019-07-04T19:04:03Z",
+            "departure": "2019-07-04T19:09:03Z"
+          },
+          "distance": 200654,
+          "load": [
+            17
+          ],
+          "activities": [
+            {
+              "jobId": "Askveien 81",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.054746,
+            "lng": 10.882257
+          },
+          "time": {
+            "arrival": "2019-07-04T19:15:26Z",
+            "departure": "2019-07-04T19:20:26Z"
+          },
+          "distance": 203330,
+          "load": [
+            18
+          ],
+          "activities": [
+            {
+              "jobId": "Hadelandsveien 835",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96271431,
+            "lng": 10.90474949
+          },
+          "time": {
+            "arrival": "2019-07-04T19:37:11Z",
+            "departure": "2019-07-04T19:42:11Z"
+          },
+          "distance": 216456,
+          "load": [
+            19
+          ],
+          "activities": [
+            {
+              "jobId": "Nedre Rommen 7",
               "type": "pickup"
             }
           ]
@@ -1124,10 +944,10 @@
             "lng": 10.8286
           },
           "time": {
-            "arrival": "2019-07-04T17:58:20Z",
-            "departure": "2019-07-04T17:58:20Z"
+            "arrival": "2019-07-04T19:55:56Z",
+            "departure": "2019-07-04T19:55:56Z"
           },
-          "distance": 160995,
+          "distance": 224828,
           "load": [
             0
           ],
@@ -1140,12 +960,12 @@
         }
       ],
       "statistic": {
-        "cost": 209.43279999999996,
-        "distance": 160995,
-        "duration": 32300,
+        "cost": 256.110536,
+        "distance": 224828,
+        "duration": 39356,
         "times": {
-          "driving": 16100,
-          "serving": 16200,
+          "driving": 25556,
+          "serving": 13800,
           "waiting": 0,
           "break": 0,
           "commuting": 0,
@@ -1180,36 +1000,16 @@
         },
         {
           "location": {
-            "lat": 59.95186249,
-            "lng": 10.86773149
-          },
-          "time": {
-            "arrival": "2019-07-04T09:05:25Z",
-            "departure": "2019-07-04T09:10:25Z"
-          },
-          "distance": 3245,
-          "load": [
-            1
-          ],
-          "activities": [
-            {
-              "jobId": "Trondheimsveien 391",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 59.9502835,
             "lng": 10.87312349
           },
           "time": {
-            "arrival": "2019-07-04T09:11:00Z",
-            "departure": "2019-07-04T09:16:00Z"
+            "arrival": "2019-07-04T09:14:42Z",
+            "departure": "2019-07-04T09:19:42Z"
           },
-          "distance": 3593,
+          "distance": 5395,
           "load": [
-            2
+            1
           ],
           "activities": [
             {
@@ -1224,12 +1024,12 @@
             "lng": 10.87528011
           },
           "time": {
-            "arrival": "2019-07-04T09:17:16Z",
-            "departure": "2019-07-04T09:22:16Z"
+            "arrival": "2019-07-04T09:24:57Z",
+            "departure": "2019-07-04T09:29:57Z"
           },
-          "distance": 4355,
+          "distance": 6497,
           "load": [
-            3
+            2
           ],
           "activities": [
             {
@@ -1244,12 +1044,12 @@
             "lng": 10.88003655
           },
           "time": {
-            "arrival": "2019-07-04T09:22:53Z",
-            "departure": "2019-07-04T09:27:53Z"
+            "arrival": "2019-07-04T09:34:59Z",
+            "departure": "2019-07-04T09:39:59Z"
           },
-          "distance": 4722,
+          "distance": 8663,
           "load": [
-            4
+            3
           ],
           "activities": [
             {
@@ -1260,336 +1060,16 @@
         },
         {
           "location": {
-            "lat": 59.95576895,
-            "lng": 10.89555709
-          },
-          "time": {
-            "arrival": "2019-07-04T09:29:28Z",
-            "departure": "2019-07-04T09:34:28Z"
-          },
-          "distance": 5673,
-          "load": [
-            5
-          ],
-          "activities": [
-            {
-              "jobId": "Jernkroken 16",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96271431,
-            "lng": 10.90474949
-          },
-          "time": {
-            "arrival": "2019-07-04T09:36:01Z",
-            "departure": "2019-07-04T09:41:01Z"
-          },
-          "distance": 6600,
-          "load": [
-            6
-          ],
-          "activities": [
-            {
-              "jobId": "Nedre Rommen 7",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.9626733,
-            "lng": 10.90599985
-          },
-          "time": {
-            "arrival": "2019-07-04T09:41:08Z",
-            "departure": "2019-07-04T09:46:08Z"
-          },
-          "distance": 6670,
-          "load": [
-            7
-          ],
-          "activities": [
-            {
-              "jobId": "Nedre Rommen 5",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96316572,
-            "lng": 10.90608816
-          },
-          "time": {
-            "arrival": "2019-07-04T09:46:14Z",
-            "departure": "2019-07-04T09:51:14Z"
-          },
-          "distance": 6725,
-          "load": [
-            8
-          ],
-          "activities": [
-            {
-              "jobId": "Nedre Rommen 3",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.96793592,
-            "lng": 10.90217906
-          },
-          "time": {
-            "arrival": "2019-07-04T09:52:11Z",
-            "departure": "2019-07-04T09:57:11Z"
-          },
-          "distance": 7299,
-          "load": [
-            9
-          ],
-          "activities": [
-            {
-              "jobId": "Odvar Solbergs vei 126",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.98959893,
-            "lng": 10.90680788
-          },
-          "time": {
-            "arrival": "2019-07-04T10:01:14Z",
-            "departure": "2019-07-04T10:06:14Z"
-          },
-          "distance": 9724,
-          "load": [
-            10
-          ],
-          "activities": [
-            {
-              "jobId": "Brennaveien 20",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.99080843,
-            "lng": 10.91082007
-          },
-          "time": {
-            "arrival": "2019-07-04T10:06:40Z",
-            "departure": "2019-07-04T10:11:40Z"
-          },
-          "distance": 9985,
-          "load": [
-            11
-          ],
-          "activities": [
-            {
-              "jobId": "Industriveien 3",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.991749,
-            "lng": 10.91343481
-          },
-          "time": {
-            "arrival": "2019-07-04T10:11:58Z",
-            "departure": "2019-07-04T10:16:58Z"
-          },
-          "distance": 10164,
-          "load": [
-            12
-          ],
-          "activities": [
-            {
-              "jobId": "Brennaveien 18",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.98945113,
-            "lng": 10.91366843
-          },
-          "time": {
-            "arrival": "2019-07-04T10:17:24Z",
-            "departure": "2019-07-04T10:22:24Z"
-          },
-          "distance": 10420,
-          "load": [
-            13
-          ],
-          "activities": [
-            {
-              "jobId": "Industriveien 15",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.99048296,
-            "lng": 10.91732551
-          },
-          "time": {
-            "arrival": "2019-07-04T10:22:47Z",
-            "departure": "2019-07-04T10:27:47Z"
-          },
-          "distance": 10654,
-          "load": [
-            14
-          ],
-          "activities": [
-            {
-              "jobId": "Industriveien 14",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.99073437,
-            "lng": 10.91866655
-          },
-          "time": {
-            "arrival": "2019-07-04T10:27:55Z",
-            "departure": "2019-07-04T10:32:55Z"
-          },
-          "distance": 10734,
-          "load": [
-            15
-          ],
-          "activities": [
-            {
-              "jobId": "Industriveien 16",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 60.00939982,
-            "lng": 10.92165515
-          },
-          "time": {
-            "arrival": "2019-07-04T10:36:23Z",
-            "departure": "2019-07-04T10:41:23Z"
-          },
-          "distance": 12818,
-          "load": [
-            16
-          ],
-          "activities": [
-            {
-              "jobId": "Slattum Terrasse 2",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 60.00671995,
-            "lng": 10.93031407
-          },
-          "time": {
-            "arrival": "2019-07-04T10:42:20Z",
-            "departure": "2019-07-04T10:47:20Z"
-          },
-          "distance": 13385,
-          "load": [
-            17
-          ],
-          "activities": [
-            {
-              "jobId": "Birkelundveien 64",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.99312827,
-            "lng": 10.93179995
-          },
-          "time": {
-            "arrival": "2019-07-04T10:49:52Z",
-            "departure": "2019-07-04T10:54:52Z"
-          },
-          "distance": 14900,
-          "load": [
-            18
-          ],
-          "activities": [
-            {
-              "jobId": "Bryggeriveien 2",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.98865331,
-            "lng": 10.9454564
-          },
-          "time": {
-            "arrival": "2019-07-04T10:56:23Z",
-            "departure": "2019-07-04T11:01:23Z"
-          },
-          "distance": 15809,
-          "load": [
-            19
-          ],
-          "activities": [
-            {
-              "jobId": "Destilleriveien 11",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.98703526,
-            "lng": 10.94022124
-          },
-          "time": {
-            "arrival": "2019-07-04T11:01:57Z",
-            "departure": "2019-07-04T11:06:57Z"
-          },
-          "distance": 16152,
-          "load": [
-            20
-          ],
-          "activities": [
-            {
-              "jobId": "Morteveien 12",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 59.98324498,
             "lng": 10.93988943
           },
           "time": {
-            "arrival": "2019-07-04T11:07:39Z",
-            "departure": "2019-07-04T11:12:39Z"
+            "arrival": "2019-07-04T09:50:49Z",
+            "departure": "2019-07-04T09:55:49Z"
           },
-          "distance": 16574,
+          "distance": 14750,
           "load": [
-            21
+            4
           ],
           "activities": [
             {
@@ -1600,16 +1080,176 @@
         },
         {
           "location": {
+            "lat": 59.98703526,
+            "lng": 10.94022124
+          },
+          "time": {
+            "arrival": "2019-07-04T09:58:24Z",
+            "departure": "2019-07-04T10:03:24Z"
+          },
+          "distance": 15281,
+          "load": [
+            5
+          ],
+          "activities": [
+            {
+              "jobId": "Morteveien 12",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.98865331,
+            "lng": 10.9454564
+          },
+          "time": {
+            "arrival": "2019-07-04T10:15:50Z",
+            "departure": "2019-07-04T10:20:50Z"
+          },
+          "distance": 17205,
+          "load": [
+            6
+          ],
+          "activities": [
+            {
+              "jobId": "Destilleriveien 11",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.99073437,
+            "lng": 10.91866655
+          },
+          "time": {
+            "arrival": "2019-07-04T10:36:08Z",
+            "departure": "2019-07-04T10:41:08Z"
+          },
+          "distance": 20845,
+          "load": [
+            7
+          ],
+          "activities": [
+            {
+              "jobId": "Industriveien 16",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.99080843,
+            "lng": 10.91082007
+          },
+          "time": {
+            "arrival": "2019-07-04T10:42:49Z",
+            "departure": "2019-07-04T10:47:49Z"
+          },
+          "distance": 21345,
+          "load": [
+            8
+          ],
+          "activities": [
+            {
+              "jobId": "Industriveien 3",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.00671995,
+            "lng": 10.93031407
+          },
+          "time": {
+            "arrival": "2019-07-04T10:54:46Z",
+            "departure": "2019-07-04T10:59:46Z"
+          },
+          "distance": 25103,
+          "load": [
+            9
+          ],
+          "activities": [
+            {
+              "jobId": "Birkelundveien 64",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.1195675,
+            "lng": 10.83496324
+          },
+          "time": {
+            "arrival": "2019-07-04T11:17:06Z",
+            "departure": "2019-07-04T11:22:06Z"
+          },
+          "distance": 40024,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "Hadelandsveien 1653",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.12074576,
+            "lng": 10.82648072
+          },
+          "time": {
+            "arrival": "2019-07-04T11:26:09Z",
+            "departure": "2019-07-04T11:31:09Z"
+          },
+          "distance": 41383,
+          "load": [
+            11
+          ],
+          "activities": [
+            {
+              "jobId": "Sagstuveien 101",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.03027768,
+            "lng": 10.89002026
+          },
+          "time": {
+            "arrival": "2019-07-04T11:48:06Z",
+            "departure": "2019-07-04T11:53:06Z"
+          },
+          "distance": 54474,
+          "load": [
+            12
+          ],
+          "activities": [
+            {
+              "jobId": "Stuaveien 18",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
             "lat": 59.98488714,
             "lng": 10.9269261
           },
           "time": {
-            "arrival": "2019-07-04T11:13:53Z",
-            "departure": "2019-07-04T11:18:53Z"
+            "arrival": "2019-07-04T12:03:03Z",
+            "departure": "2019-07-04T12:08:03Z"
           },
-          "distance": 17319,
+          "distance": 61450,
           "load": [
-            22
+            13
           ],
           "activities": [
             {
@@ -1624,12 +1264,12 @@
             "lng": 10.92413521
           },
           "time": {
-            "arrival": "2019-07-04T11:19:54Z",
-            "departure": "2019-07-04T11:24:54Z"
+            "arrival": "2019-07-04T12:14:53Z",
+            "departure": "2019-07-04T12:19:53Z"
           },
-          "distance": 17925,
+          "distance": 63271,
           "load": [
-            23
+            14
           ],
           "activities": [
             {
@@ -1640,16 +1280,56 @@
         },
         {
           "location": {
+            "lat": 59.9626733,
+            "lng": 10.90599985
+          },
+          "time": {
+            "arrival": "2019-07-04T12:27:53Z",
+            "departure": "2019-07-04T12:32:53Z"
+          },
+          "distance": 66506,
+          "load": [
+            15
+          ],
+          "activities": [
+            {
+              "jobId": "Nedre Rommen 5",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96316572,
+            "lng": 10.90608816
+          },
+          "time": {
+            "arrival": "2019-07-04T12:33:00Z",
+            "departure": "2019-07-04T12:38:00Z"
+          },
+          "distance": 66544,
+          "load": [
+            16
+          ],
+          "activities": [
+            {
+              "jobId": "Nedre Rommen 3",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
             "lat": 59.96770926,
             "lng": 10.92431675
           },
           "time": {
-            "arrival": "2019-07-04T11:27:07Z",
-            "departure": "2019-07-04T11:32:07Z"
+            "arrival": "2019-07-04T12:41:52Z",
+            "departure": "2019-07-04T12:46:52Z"
           },
-          "distance": 19251,
+          "distance": 68182,
           "load": [
-            24
+            17
           ],
           "activities": [
             {
@@ -1660,20 +1340,60 @@
         },
         {
           "location": {
-            "lat": 59.96177659,
-            "lng": 10.92514263
+            "lat": 59.93028,
+            "lng": 10.8286
           },
           "time": {
-            "arrival": "2019-07-04T11:33:13Z",
-            "departure": "2019-07-04T11:38:13Z"
+            "arrival": "2019-07-04T13:02:00Z",
+            "departure": "2019-07-04T13:12:00Z"
           },
-          "distance": 19913,
+          "distance": 77427,
           "load": [
-            25
+            0
           ],
           "activities": [
             {
-              "jobId": "Stovner Senter 3",
+              "jobId": "reload",
+              "type": "reload"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.9242177,
+            "lng": 10.84117427
+          },
+          "time": {
+            "arrival": "2019-07-04T13:20:50Z",
+            "departure": "2019-07-04T13:25:50Z"
+          },
+          "distance": 79383,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "Strømsveien 239",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.92270121,
+            "lng": 10.8435218
+          },
+          "time": {
+            "arrival": "2019-07-04T13:29:23Z",
+            "departure": "2019-07-04T13:34:23Z"
+          },
+          "distance": 80208,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "Smalvollveien 65",
               "type": "pickup"
             }
           ]
@@ -1684,12 +1404,12 @@
             "lng": 10.93931082
           },
           "time": {
-            "arrival": "2019-07-04T11:43:30Z",
-            "departure": "2019-07-04T11:48:30Z"
+            "arrival": "2019-07-04T13:45:36Z",
+            "departure": "2019-07-04T13:50:36Z"
           },
-          "distance": 23081,
+          "distance": 87367,
           "load": [
-            26
+            3
           ],
           "activities": [
             {
@@ -1704,12 +1424,12 @@
             "lng": 10.94181006
           },
           "time": {
-            "arrival": "2019-07-04T11:48:52Z",
-            "departure": "2019-07-04T11:53:52Z"
+            "arrival": "2019-07-04T13:52:26Z",
+            "departure": "2019-07-04T13:57:26Z"
           },
-          "distance": 23303,
+          "distance": 87704,
           "load": [
-            27
+            4
           ],
           "activities": [
             {
@@ -1720,100 +1440,360 @@
         },
         {
           "location": {
-            "lat": 59.9195159,
-            "lng": 10.95419049
+            "lat": 60.00950117,
+            "lng": 11.05002199
           },
           "time": {
-            "arrival": "2019-07-04T11:56:34Z",
-            "departure": "2019-07-04T12:01:34Z"
+            "arrival": "2019-07-04T14:14:35Z",
+            "departure": "2019-07-04T14:19:35Z"
           },
-          "distance": 24921,
+          "distance": 103022,
           "load": [
-            28
+            5
           ],
           "activities": [
             {
-              "jobId": "Gamleveien 88",
+              "jobId": "Høgslundveien 25",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.91254949,
-            "lng": 10.94358465
+            "lat": 60.02341897,
+            "lng": 11.09056542
           },
           "time": {
-            "arrival": "2019-07-04T12:03:12Z",
-            "departure": "2019-07-04T12:08:12Z"
+            "arrival": "2019-07-04T14:28:31Z",
+            "departure": "2019-07-04T14:33:31Z"
           },
-          "distance": 25897,
+          "distance": 107694,
           "load": [
-            29
+            6
           ],
           "activities": [
             {
-              "jobId": "Rimsoppfaret 2",
+              "jobId": "Trondheimsveien 306",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.91133658,
-            "lng": 10.94346708
+            "lat": 60.01799267,
+            "lng": 11.05833202
           },
           "time": {
-            "arrival": "2019-07-04T12:08:26Z",
-            "departure": "2019-07-04T12:13:26Z"
+            "arrival": "2019-07-04T14:38:54Z",
+            "departure": "2019-07-04T14:43:54Z"
           },
-          "distance": 26032,
+          "distance": 110397,
           "load": [
-            30
+            7
           ],
           "activities": [
             {
-              "jobId": "Korallsoppveien 2C",
+              "jobId": "Trondheimsveien 187",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.91430223,
-            "lng": 10.94063759
+            "lat": 60.01472406,
+            "lng": 11.05545278
           },
           "time": {
-            "arrival": "2019-07-04T12:14:03Z",
-            "departure": "2019-07-04T12:19:03Z"
+            "arrival": "2019-07-04T14:48:30Z",
+            "departure": "2019-07-04T14:53:30Z"
           },
-          "distance": 26398,
+          "distance": 111337,
           "load": [
-            31
+            8
           ],
           "activities": [
             {
-              "jobId": "Piggsoppveien 28",
+              "jobId": "Trondheimsveien 183",
               "type": "pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 59.91521045,
-            "lng": 10.94052073
+            "lat": 60.01983654,
+            "lng": 11.04879174
           },
           "time": {
-            "arrival": "2019-07-04T12:19:13Z",
-            "departure": "2019-07-04T12:24:13Z"
+            "arrival": "2019-07-04T14:57:40Z",
+            "departure": "2019-07-04T15:02:40Z"
           },
-          "distance": 26499,
+          "distance": 112894,
           "load": [
-            32
+            9
           ],
           "activities": [
             {
-              "jobId": "Piggsoppveien 46",
+              "jobId": "Vardekroken 19",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.00992699,
+            "lng": 11.04615911
+          },
+          "time": {
+            "arrival": "2019-07-04T15:10:06Z",
+            "departure": "2019-07-04T15:15:06Z"
+          },
+          "distance": 115310,
+          "load": [
+            10
+          ],
+          "activities": [
+            {
+              "jobId": "Marenlundveien 5",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.00534099,
+            "lng": 11.08983927
+          },
+          "time": {
+            "arrival": "2019-07-04T15:30:04Z",
+            "departure": "2019-07-04T15:35:04Z"
+          },
+          "distance": 121986,
+          "load": [
+            11
+          ],
+          "activities": [
+            {
+              "jobId": "Engerveien 142",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 60.04801928,
+            "lng": 11.04528353
+          },
+          "time": {
+            "arrival": "2019-07-04T15:51:48Z",
+            "departure": "2019-07-04T15:56:48Z"
+          },
+          "distance": 132898,
+          "load": [
+            12
+          ],
+          "activities": [
+            {
+              "jobId": "Bråtagrenda 3",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.9834533,
+            "lng": 11.02207891
+          },
+          "time": {
+            "arrival": "2019-07-04T16:09:24Z",
+            "departure": "2019-07-04T16:14:24Z"
+          },
+          "distance": 141516,
+          "load": [
+            13
+          ],
+          "activities": [
+            {
+              "jobId": "Trondheimsveien 56",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.97453788,
+            "lng": 11.03135574
+          },
+          "time": {
+            "arrival": "2019-07-04T16:18:04Z",
+            "departure": "2019-07-04T16:23:04Z"
+          },
+          "distance": 143558,
+          "load": [
+            14
+          ],
+          "activities": [
+            {
+              "jobId": "Fetveien 80",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96141595,
+            "lng": 11.05046914
+          },
+          "time": {
+            "arrival": "2019-07-04T16:27:16Z",
+            "departure": "2019-07-04T16:32:16Z"
+          },
+          "distance": 145756,
+          "load": [
+            15
+          ],
+          "activities": [
+            {
+              "jobId": "Storgata 57",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96265456,
+            "lng": 11.04729342
+          },
+          "time": {
+            "arrival": "2019-07-04T16:33:37Z",
+            "departure": "2019-07-04T16:38:37Z"
+          },
+          "distance": 146075,
+          "load": [
+            16
+          ],
+          "activities": [
+            {
+              "jobId": "Odalsgata 29",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96486089,
+            "lng": 11.03219171
+          },
+          "time": {
+            "arrival": "2019-07-04T16:43:01Z",
+            "departure": "2019-07-04T16:48:01Z"
+          },
+          "distance": 147089,
+          "load": [
+            17
+          ],
+          "activities": [
+            {
+              "jobId": "Elvesvingen 23",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.95651519,
+            "lng": 11.04884641
+          },
+          "time": {
+            "arrival": "2019-07-04T16:55:55Z",
+            "departure": "2019-07-04T17:00:55Z"
+          },
+          "distance": 149157,
+          "load": [
+            18
+          ],
+          "activities": [
+            {
+              "jobId": "Torvet 6",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.96537672,
+            "lng": 11.07242681
+          },
+          "time": {
+            "arrival": "2019-07-04T17:08:09Z",
+            "departure": "2019-07-04T17:13:09Z"
+          },
+          "distance": 151507,
+          "load": [
+            19
+          ],
+          "activities": [
+            {
+              "jobId": "Leiraveien 12",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.95322133,
+            "lng": 11.05199939
+          },
+          "time": {
+            "arrival": "2019-07-04T17:21:12Z",
+            "departure": "2019-07-04T17:26:12Z"
+          },
+          "distance": 154171,
+          "load": [
+            20
+          ],
+          "activities": [
+            {
+              "jobId": "Fabrikkgata 3",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.95002411,
+            "lng": 11.05630409
+          },
+          "time": {
+            "arrival": "2019-07-04T17:31:00Z",
+            "departure": "2019-07-04T17:36:00Z"
+          },
+          "distance": 156325,
+          "load": [
+            21
+          ],
+          "activities": [
+            {
+              "jobId": "Messeveien 8",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.89953901,
+            "lng": 10.98836226
+          },
+          "time": {
+            "arrival": "2019-07-04T17:55:26Z",
+            "departure": "2019-07-04T18:00:26Z"
+          },
+          "distance": 165250,
+          "load": [
+            22
+          ],
+          "activities": [
+            {
+              "jobId": "Bakkerudveien 89",
               "type": "pickup"
             }
           ]
@@ -1824,12 +1804,12 @@
             "lng": 10.93890495
           },
           "time": {
-            "arrival": "2019-07-04T12:24:22Z",
-            "departure": "2019-07-04T12:29:22Z"
+            "arrival": "2019-07-04T18:21:20Z",
+            "departure": "2019-07-04T18:26:20Z"
           },
-          "distance": 26593,
+          "distance": 173093,
           "load": [
-            33
+            23
           ],
           "activities": [
             {
@@ -1844,12 +1824,12 @@
             "lng": 10.93054859
           },
           "time": {
-            "arrival": "2019-07-04T12:30:21Z",
-            "departure": "2019-07-04T12:35:21Z"
+            "arrival": "2019-07-04T18:36:20Z",
+            "departure": "2019-07-04T18:41:20Z"
           },
-          "distance": 27182,
+          "distance": 175787,
           "load": [
-            34
+            24
           ],
           "activities": [
             {
@@ -1860,20 +1840,60 @@
         },
         {
           "location": {
-            "lat": 59.9168091,
-            "lng": 10.84543978
+            "lat": 59.95576895,
+            "lng": 10.89555709
           },
           "time": {
-            "arrival": "2019-07-04T12:43:16Z",
-            "departure": "2019-07-04T12:48:16Z"
+            "arrival": "2019-07-04T18:56:06Z",
+            "departure": "2019-07-04T19:01:06Z"
           },
-          "distance": 31935,
+          "distance": 184158,
           "load": [
-            35
+            25
           ],
           "activities": [
             {
-              "jobId": "Haugerudhagan 1",
+              "jobId": "Jernkroken 16",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.92745756,
+            "lng": 10.79506158
+          },
+          "time": {
+            "arrival": "2019-07-04T19:09:50Z",
+            "departure": "2019-07-04T19:14:50Z"
+          },
+          "distance": 191465,
+          "load": [
+            26
+          ],
+          "activities": [
+            {
+              "jobId": "Bøkkerveien 4",
+              "type": "pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 59.9052813,
+            "lng": 10.76835601
+          },
+          "time": {
+            "arrival": "2019-07-04T19:26:14Z",
+            "departure": "2019-07-04T19:31:14Z"
+          },
+          "distance": 198083,
+          "load": [
+            27
+          ],
+          "activities": [
+            {
+              "jobId": "St. Halvards gate 2-4",
               "type": "pickup"
             }
           ]
@@ -1884,12 +1904,12 @@
             "lng": 10.84001391
           },
           "time": {
-            "arrival": "2019-07-04T12:49:19Z",
-            "departure": "2019-07-04T12:54:19Z"
+            "arrival": "2019-07-04T19:42:34Z",
+            "departure": "2019-07-04T19:47:34Z"
           },
-          "distance": 32566,
+          "distance": 205150,
           "load": [
-            36
+            28
           ],
           "activities": [
             {
@@ -1900,54 +1920,14 @@
         },
         {
           "location": {
-            "lat": 59.92270121,
-            "lng": 10.8435218
-          },
-          "time": {
-            "arrival": "2019-07-04T12:54:41Z",
-            "departure": "2019-07-04T12:59:41Z"
-          },
-          "distance": 32787,
-          "load": [
-            37
-          ],
-          "activities": [
-            {
-              "jobId": "Smalvollveien 65",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 59.9242177,
-            "lng": 10.84117427
-          },
-          "time": {
-            "arrival": "2019-07-04T13:00:02Z",
-            "departure": "2019-07-04T13:05:02Z"
-          },
-          "distance": 33001,
-          "load": [
-            38
-          ],
-          "activities": [
-            {
-              "jobId": "Strømsveien 239",
-              "type": "pickup"
-            }
-          ]
-        },
-        {
-          "location": {
             "lat": 59.93028,
             "lng": 10.8286
           },
           "time": {
-            "arrival": "2019-07-04T13:06:39Z",
-            "departure": "2019-07-04T13:06:39Z"
+            "arrival": "2019-07-04T19:55:56Z",
+            "departure": "2019-07-04T19:55:56Z"
           },
-          "distance": 33974,
+          "distance": 207507,
           "load": [
             0
           ],
@@ -1960,18 +1940,95 @@
         }
       ],
       "statistic": {
-        "cost": 99.918794,
-        "distance": 33974,
-        "duration": 14799,
+        "cost": 252.64633600000005,
+        "distance": 207507,
+        "duration": 39356,
         "times": {
-          "driving": 3399,
-          "serving": 11400,
+          "driving": 25256,
+          "serving": 14100,
           "waiting": 0,
           "break": 0,
           "commuting": 0,
           "parking": 0
         }
       }
+    }
+  ],
+  "unassigned": [
+    {
+      "jobId": "Vestbyvegen 79",
+      "reasons": [
+        {
+          "code": "COMPATIBILITY_CONSTRAINT",
+          "description": "cannot be assigned due to compatibility constraint",
+          "details": [
+            {
+              "vehicleId": "truck_2",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "TIME_WINDOW_CONSTRAINT",
+          "description": "cannot be visited within time window",
+          "details": [
+            {
+              "vehicleId": "truck_1",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "jobId": "Kveldroveien 47",
+      "reasons": [
+        {
+          "code": "TIME_WINDOW_CONSTRAINT",
+          "description": "cannot be visited within time window",
+          "details": [
+            {
+              "vehicleId": "truck_2",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "COMPATIBILITY_CONSTRAINT",
+          "description": "cannot be assigned due to compatibility constraint",
+          "details": [
+            {
+              "vehicleId": "truck_1",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "jobId": "General Ruges vei 107",
+      "reasons": [
+        {
+          "code": "COMPATIBILITY_CONSTRAINT",
+          "description": "cannot be assigned due to compatibility constraint",
+          "details": [
+            {
+              "vehicleId": "truck_2",
+              "shiftIndex": 0
+            }
+          ]
+        },
+        {
+          "code": "TIME_WINDOW_CONSTRAINT",
+          "description": "cannot be visited within time window",
+          "details": [
+            {
+              "vehicleId": "truck_1",
+              "shiftIndex": 0
+            }
+          ]
+        }
+      ]
     }
   ]
 }

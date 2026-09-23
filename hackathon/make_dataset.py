@@ -6,6 +6,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import random
 import time
 import urllib.error
 import urllib.parse
@@ -16,11 +17,13 @@ from pathlib import Path
 from typing import NamedTuple
 
 WASTE_FACILITY = {"lat": 59.93028, "lng": 10.82860}
-SERVICE_DURATION = 300.0
+SERVICE_DURATION = 50.0
 SHIFT_START = "2019-07-04T09:00:00Z"
 SHIFT_END = "2019-07-04T18:00:00Z"
 TRUCK_CAPACITY = 100
 TRUCK_IDS = ["truck_1", "truck_2"]
+COMPATIBILITIES = ("organic", "mixed waste")
+COMPATIBILITY_SEED = 0
 PROFILE = "normal_car"
 MAPBOX_PROFILE = "mapbox/driving"
 MAPBOX_COORD_LIMIT = 25
@@ -72,9 +75,15 @@ def job_ids(sites: list[Site]) -> list[str]:
     return ids
 
 
-def pickup_job(job_id: str, site: Site) -> dict:
+def job_compatibilities(count: int) -> list[str]:
+    rng = random.Random(COMPATIBILITY_SEED)
+    return [rng.choice(COMPATIBILITIES) for _ in range(count)]
+
+
+def pickup_job(job_id: str, site: Site, compatibility: str) -> dict:
     return {
         "id": job_id,
+        "compatibility": compatibility,
         "pickups": [
             {
                 "places": [
@@ -121,9 +130,12 @@ def fleet() -> dict:
 
 
 def build_problem(sites: list[Site]) -> dict:
+    ids = job_ids(sites)
     jobs = [
-        pickup_job(job_id, site)
-        for job_id, site in zip(job_ids(sites), sites, strict=True)
+        pickup_job(job_id, site, compatibility)
+        for job_id, site, compatibility in zip(
+            ids, sites, job_compatibilities(len(ids)), strict=True
+        )
     ]
     return {"plan": {"jobs": jobs}, "fleet": fleet()}
 
@@ -267,10 +279,40 @@ def write_json(path: Path, data: object) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def read_json(path: Path) -> object | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def cached_matrix(locations: list[dict]) -> dict | None:
+    if read_json(LOCATIONS_PATH) != json.loads(json.dumps(locations)):
+        return None
+    matrix = read_json(MATRIX_PATH)
+    if not isinstance(matrix, dict) or matrix.get("profile") != PROFILE:
+        return None
+    travel_times, distances = matrix.get("travelTimes"), matrix.get("distances")
+    expected = len(locations) ** 2
+    if not isinstance(travel_times, list) or len(travel_times) != expected:
+        return None
+    if not isinstance(distances, list) or len(distances) != expected:
+        return None
+    return matrix
+
+
+def routing_matrix(locations: list[dict]) -> dict:
+    matrix = cached_matrix(locations)
+    if matrix is None:
+        return build_routing_matrix(locations, mapbox_token())
+    print(f"Reusing cached {len(locations)}×{len(locations)} matrix from {MATRIX_PATH}")
+    return matrix
+
+
 def main() -> None:
     sites = load_sites(SITES_CSV)
     locations = unique_locations(sites)
-    matrix = build_routing_matrix(locations, mapbox_token())
+    matrix = routing_matrix(locations)
     write_json(PROBLEM_PATH, build_problem(sites))
     write_json(LOCATIONS_PATH, locations)
     write_json(MATRIX_PATH, matrix)

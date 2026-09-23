@@ -13,6 +13,8 @@ target
 
 **/*.env
 
+**/.DS_Store
+
 # IDE
 .idea
 *.iml

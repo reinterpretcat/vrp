@@ -3,6 +3,7 @@
     "jobs": [
       {
         "id": "Industriveien 3",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -22,6 +23,7 @@
       },
       {
         "id": "Industriveien 16",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -41,6 +43,7 @@
       },
       {
         "id": "Odvar Solbergs vei 126",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -60,6 +63,7 @@
       },
       {
         "id": "Trondheimsveien 658",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -79,6 +83,7 @@
       },
       {
         "id": "Birkelundveien 64",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -98,6 +103,7 @@
       },
       {
         "id": "Stuaveien 18",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -117,6 +123,7 @@
       },
       {
         "id": "Nedre Rommen 3",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -136,6 +143,7 @@
       },
       {
         "id": "Nedre Rommen 5",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -155,6 +163,7 @@
       },
       {
         "id": "Vestlisvingen 23",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -174,6 +183,7 @@
       },
       {
         "id": "Trondheimsveien 391",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -193,6 +203,7 @@
       },
       {
         "id": "Hadelandsveien 835",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -212,6 +223,7 @@
       },
       {
         "id": "Bråtagrenda 3",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -231,6 +243,7 @@
       },
       {
         "id": "Bryggeriveien 2",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -250,6 +263,7 @@
       },
       {
         "id": "Industriveien 14a",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -269,6 +283,7 @@
       },
       {
         "id": "Trondheimsveien 187",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -288,6 +303,7 @@
       },
       {
         "id": "Brennaveien 18",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -307,6 +323,7 @@
       },
       {
         "id": "Trondheimsveien 183",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -326,6 +343,7 @@
       },
       {
         "id": "Industriveien 14",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -345,6 +363,7 @@
       },
       {
         "id": "Lurudveien 7",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -364,6 +383,7 @@
       },
       {
         "id": "Marenlundveien 5",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -383,6 +403,7 @@
       },
       {
         "id": "Høgslundveien 25",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -402,6 +423,7 @@
       },
       {
         "id": "Gneisveien 18",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -421,6 +443,7 @@
       },
       {
         "id": "Trondheimsveien 306",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -440,6 +463,7 @@
       },
       {
         "id": "Engerveien 142",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -459,6 +483,7 @@
       },
       {
         "id": "Trondheimsveien 56",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -478,6 +503,7 @@
       },
       {
         "id": "Trondheimsveien 433",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -497,6 +523,7 @@
       },
       {
         "id": "Brådalsstubben 18",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -516,6 +543,7 @@
       },
       {
         "id": "Vestbyvegen 79",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -535,6 +563,7 @@
       },
       {
         "id": "Morteveien 12",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -554,6 +583,7 @@
       },
       {
         "id": "Støperiveien 5 #1",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -573,6 +603,7 @@
       },
       {
         "id": "Stovner Senter 3",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -592,6 +623,7 @@
       },
       {
         "id": "Furuholtet 1",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -611,6 +643,7 @@
       },
       {
         "id": "Torvet 6",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -630,6 +663,7 @@
       },
       {
         "id": "Slattum Terrasse 2",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -649,6 +683,7 @@
       },
       {
         "id": "Messeveien 8",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -668,6 +703,7 @@
       },
       {
         "id": "Vardekroken 19",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -687,6 +723,7 @@
       },
       {
         "id": "Leiraveien 16",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -706,6 +743,7 @@
       },
       {
         "id": "Leiraveien 12",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -725,6 +763,7 @@
       },
       {
         "id": "Rolf Olsens Vei 22",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -744,6 +783,7 @@
       },
       {
         "id": "Leiraveien 5",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -763,6 +803,7 @@
       },
       {
         "id": "Isakveien 64",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -782,6 +823,7 @@
       },
       {
         "id": "Inges gate 36",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -801,6 +843,7 @@
       },
       {
         "id": "Bregneveien 2",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -820,6 +863,7 @@
       },
       {
         "id": "Storgata 57",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -839,6 +883,7 @@
       },
       {
         "id": "Tuenveien 64",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -858,6 +903,7 @@
       },
       {
         "id": "Tuenveien 90",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -877,6 +923,7 @@
       },
       {
         "id": "Solheimveien 44",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -896,6 +943,7 @@
       },
       {
         "id": "Gårdsveien 1",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -915,6 +963,7 @@
       },
       {
         "id": "Trondheimsveien 36",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -934,6 +983,7 @@
       },
       {
         "id": "Fabrikkgata 3",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -953,6 +1003,7 @@
       },
       {
         "id": "Smalvollveien 65",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -972,6 +1023,7 @@
       },
       {
         "id": "Haugerudhagan 1",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -991,6 +1043,7 @@
       },
       {
         "id": "Smalvollveien 62",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1010,6 +1063,7 @@
       },
       {
         "id": "Lørenveien 68",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1029,6 +1083,7 @@
       },
       {
         "id": "Bøkkerveien 4",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1048,6 +1103,7 @@
       },
       {
         "id": "General Ruges vei 107",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1067,6 +1123,7 @@
       },
       {
         "id": "Gamleveien 88",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1086,6 +1143,7 @@
       },
       {
         "id": "Solheimveien 30",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1105,6 +1163,7 @@
       },
       {
         "id": "Strømsveien 239",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1124,6 +1183,7 @@
       },
       {
         "id": "Haslevollen 3a",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1143,6 +1203,7 @@
       },
       {
         "id": "St. Halvards gate 2-4",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1162,6 +1223,7 @@
       },
       {
         "id": "Bidenkaps gate 3",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1181,6 +1243,7 @@
       },
       {
         "id": "Bygdøy allé 63",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1200,6 +1263,7 @@
       },
       {
         "id": "Kveldroveien 47",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1219,6 +1283,7 @@
       },
       {
         "id": "Grini Næringspark 1",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1238,6 +1303,7 @@
       },
       {
         "id": "Østaveien 117",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1257,6 +1323,7 @@
       },
       {
         "id": "Steinsoppveien 7",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1276,6 +1343,7 @@
       },
       {
         "id": "Piggsoppveien 28",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1295,6 +1363,7 @@
       },
       {
         "id": "Piggsoppveien 46",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1314,6 +1383,7 @@
       },
       {
         "id": "Rimsoppfaret 2",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1333,6 +1403,7 @@
       },
       {
         "id": "Gamleveien 1",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1352,6 +1423,7 @@
       },
       {
         "id": "Askveien 81",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1371,6 +1443,7 @@
       },
       {
         "id": "Nordmarkveien 6",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1390,6 +1463,7 @@
       },
       {
         "id": "Hadelandsveien 1653",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1409,6 +1483,7 @@
       },
       {
         "id": "Sagstuveien 101",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1428,6 +1503,7 @@
       },
       {
         "id": "Brennaveien 20",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1447,6 +1523,7 @@
       },
       {
         "id": "Industriveien 15",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1466,6 +1543,7 @@
       },
       {
         "id": "Stamveien 1",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1485,6 +1563,7 @@
       },
       {
         "id": "Destilleriveien 11",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1504,6 +1583,7 @@
       },
       {
         "id": "Trondheimsveien 445",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1523,6 +1603,7 @@
       },
       {
         "id": "Kalbakkveien 46",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1542,6 +1623,7 @@
       },
       {
         "id": "Jernkroken 16",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1561,6 +1643,7 @@
       },
       {
         "id": "Nedre Rommen 7",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1580,6 +1663,7 @@
       },
       {
         "id": "Elvesvingen 23",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1599,6 +1683,7 @@
       },
       {
         "id": "Støperiveien 5 #2",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1618,6 +1703,7 @@
       },
       {
         "id": "Fetveien 80",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1637,6 +1723,7 @@
       },
       {
         "id": "Odalsgata 29",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1656,6 +1743,7 @@
       },
       {
         "id": "Odalsgata 25",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1675,6 +1763,7 @@
       },
       {
         "id": "Fetveien 35",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1694,6 +1783,7 @@
       },
       {
         "id": "Eyvind Lyches vei 19A",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1713,6 +1803,7 @@
       },
       {
         "id": "Bakkerudveien 89",
+        "compatibility": "mixed waste",
         "pickups": [
           {
             "places": [
@@ -1732,6 +1823,7 @@
       },
       {
         "id": "Korallsoppveien 2C",
+        "compatibility": "organic",
         "pickups": [
           {
             "places": [
@@ -1777,16 +1869,25 @@
               }
             },
             "end": {
-              "latest": "2019-07-04T18:00:00Z",
+              "latest": "2019-07-04T20:00:00Z",
               "location": {
                 "lat": 59.93028,
                 "lng": 10.8286
               }
-            }
+            },
+            "reloads": [
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              }
+            ]
           }
         ],
         "capacity": [
-          70
+          30
         ]
       }
     ],
@@ -1795,5 +1896,19 @@
         "name": "normal_car"
       }
     ]
-  }
+  },
+  "objectives": [
+    {
+      "type": "minimize-unassigned"
+    },
+    {
+      "type": "minimize-tours"
+    },
+    {
+      "type": "balance-duration"
+    },
+    {
+      "type": "minimize-cost"
+    }
+  ]
 }
