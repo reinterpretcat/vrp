@@ -729,6 +729,44 @@ mod traveling {
         assert_eq!(result, None);
     }
 
+    /// A job just outside the depot whose service runs straight into a reserved window.
+    fn near_last_activity_meeting_a_break() -> Activity {
+        ActivityBuilder::with_location_tw_and_duration(20, TimeWindow::new(0., 1000.), 10.).build()
+    }
+
+    #[test]
+    fn can_charge_a_last_job_anchor_a_break_extends() {
+        // The production shape, as it stood on a production tenant: a job with a two-hour window appended to a
+        // day carrying a six-hour pause, and the pause charged into that job's own service. The far
+        // job leaves at 110 and the append is reached at 190, works 10 and pays 200 of reserved time
+        // on top, so it leaves at 400 and the tour under this span runs 400 - 100 = 300.
+        //
+        // What let it through was the dominance guard rather than the delta alone. The guard bounds
+        // the walk by `delta + reserved_total` on the reasoning that the delta OVER-states how far
+        // the insertion pushes the tour's end - true for a tour measured to the depot, false for one
+        // measured to its last job, where the delta prices a drive home the span does not contain.
+        // Here the delta is zero (80 out, 20 home, less the 100 the far job's own drive home cost),
+        // the bound reads 10 + 200 = 210 against a cap of 250, and the walk that would have found
+        // the 300 is never taken.
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToLastJob, Schedule::new(100., 110.), 10.);
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(250.)), vec![reserved_time(190., 200.)]);
+
+        let result = evaluate_insertion_at_end(&feature, &route_ctx, &near_last_activity_meeting_a_break());
+
+        assert_eq!(result, ConstraintViolation::skip(DURATION_CODE));
+    }
+
+    #[test]
+    fn can_still_take_a_last_job_a_break_extends_when_the_cap_covers_it() {
+        // the same append against a cap with room for all 300 of it
+        let route_ctx = create_route_with_one_far_job(RouteCostSpan::FirstJobToLastJob, Schedule::new(100., 110.), 10.);
+        let feature = create_limit_feature(&route_ctx, "v1", (None, Some(320.)), vec![reserved_time(190., 200.)]);
+
+        let result = evaluate_insertion_at_end(&feature, &route_ctx, &near_last_activity_meeting_a_break());
+
+        assert_eq!(result, None);
+    }
+
     #[test]
     fn can_leave_a_depot_to_depot_append_on_the_delta() {
         // The carve-out is the span's, not the position's. On `DepotToDepot` the append does not move
