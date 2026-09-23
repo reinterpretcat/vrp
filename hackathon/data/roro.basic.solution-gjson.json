@@ -1,0 +1,1656 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:00:00Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:20:23Z",
+        "departure": "2025-01-02T09:30:23Z",
+        "distance": "10419",
+        "jobs_ids": "9945176",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.742099,
+          59.910208
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:49:37Z",
+        "departure": "2025-01-02T09:59:37Z",
+        "distance": "21127",
+        "jobs_ids": "reload",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "2",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T10:21:05Z",
+        "departure": "2025-01-02T10:31:05Z",
+        "distance": "37083",
+        "jobs_ids": "9956945",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "3",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.050129,
+          59.952036
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T10:50:05Z",
+        "departure": "2025-01-02T11:00:05Z",
+        "distance": "54103",
+        "jobs_ids": "reload",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "4",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:30:13Z",
+        "departure": "2025-01-02T11:40:13Z",
+        "distance": "77511",
+        "jobs_ids": "9956957",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "5",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.519496,
+          59.890583
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T12:10:12Z",
+        "departure": "2025-01-02T12:20:12Z",
+        "distance": "101687",
+        "jobs_ids": "reload",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "6",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T12:53:11Z",
+        "departure": "2025-01-02T13:03:11Z",
+        "distance": "129293",
+        "jobs_ids": "9956972",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.782417,
+          59.742412
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T13:34:26Z",
+        "departure": "2025-01-02T13:44:26Z",
+        "distance": "157009",
+        "jobs_ids": "reload",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "8",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T14:19:37Z",
+        "departure": "2025-01-02T14:29:37Z",
+        "distance": "184449",
+        "jobs_ids": "9956920",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "9",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.488922,
+          59.909079
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T15:03:29Z",
+        "departure": "2025-01-02T15:13:29Z",
+        "distance": "212297",
+        "jobs_ids": "reload",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "10",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T15:48:40Z",
+        "departure": "2025-01-02T15:58:40Z",
+        "distance": "239737",
+        "jobs_ids": "9956921",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "11",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.488922,
+          59.909079
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:32:32Z",
+        "departure": "2025-01-02T16:32:32Z",
+        "distance": "267585",
+        "jobs_ids": "arrival",
+        "marker-color": "#3cb44b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "12",
+        "tour_idx": "0"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:00:00Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:24:38Z",
+        "departure": "2025-01-02T09:34:38Z",
+        "distance": "8744",
+        "jobs_ids": "9965684",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.743041,
+          59.918303
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T10:00:27Z",
+        "departure": "2025-01-02T10:10:27Z",
+        "distance": "22330",
+        "jobs_ids": "9970119",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "2",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.575879,
+          59.915165
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T10:38:39Z",
+        "departure": "2025-01-02T10:48:39Z",
+        "distance": "42156",
+        "jobs_ids": "reload",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "3",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:13:17Z",
+        "departure": "2025-01-02T11:23:17Z",
+        "distance": "50900",
+        "jobs_ids": "9965646",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "4",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.743041,
+          59.918303
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:45:26Z",
+        "departure": "2025-01-02T11:55:26Z",
+        "distance": "59616",
+        "jobs_ids": "reload",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "5",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T12:22:54Z",
+        "departure": "2025-01-02T12:32:54Z",
+        "distance": "77553",
+        "jobs_ids": "9956727",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "6",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.627179,
+          59.944378
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T12:42:56Z",
+        "departure": "2025-01-02T12:52:56Z",
+        "distance": "81042",
+        "jobs_ids": "9930549",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.649445,
+          59.936781
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T13:18:45Z",
+        "departure": "2025-01-02T13:28:45Z",
+        "distance": "96359",
+        "jobs_ids": "reload",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "8",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T13:57:38Z",
+        "departure": "2025-01-02T14:07:38Z",
+        "distance": "115493",
+        "jobs_ids": "9970120",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "9",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.575879,
+          59.915165
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T14:26:05Z",
+        "departure": "2025-01-02T14:36:05Z",
+        "distance": "124769",
+        "jobs_ids": "9930548",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "10",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.649445,
+          59.936781
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T15:01:54Z",
+        "departure": "2025-01-02T15:11:54Z",
+        "distance": "140086",
+        "jobs_ids": "reload",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "11",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T15:41:53Z",
+        "departure": "2025-01-02T15:51:53Z",
+        "distance": "157822",
+        "jobs_ids": "9949149",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "12",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.795338,
+          59.832267
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:18:54Z",
+        "departure": "2025-01-02T16:28:54Z",
+        "distance": "177072",
+        "jobs_ids": "reload",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "13",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:39:19Z",
+        "departure": "2025-01-02T16:49:19Z",
+        "distance": "180878",
+        "jobs_ids": "9957069",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "14",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.855472,
+          59.940716
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:55:40Z",
+        "departure": "2025-01-02T17:05:40Z",
+        "distance": "183742",
+        "jobs_ids": "reload",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "15",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T17:17:19Z",
+        "departure": "2025-01-02T17:27:19Z",
+        "distance": "187154",
+        "jobs_ids": "9971974",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "16",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.85933,
+          59.930656
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T17:37:15Z",
+        "departure": "2025-01-02T17:37:15Z",
+        "distance": "190349",
+        "jobs_ids": "arrival",
+        "marker-color": "#e6194b",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "17",
+        "tour_idx": "1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:00:00Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:36:44Z",
+        "departure": "2025-01-02T09:46:44Z",
+        "distance": "24744",
+        "jobs_ids": "9965445",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.512976,
+          59.889402
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T10:22:52Z",
+        "departure": "2025-01-02T10:32:52Z",
+        "distance": "50358",
+        "jobs_ids": "reload",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "2",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:11:29Z",
+        "departure": "2025-01-02T11:21:29Z",
+        "distance": "80359",
+        "jobs_ids": "9969540",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "3",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.501268,
+          59.940502
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:58:32Z",
+        "departure": "2025-01-02T12:08:32Z",
+        "distance": "111314",
+        "jobs_ids": "reload",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "4",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T12:50:00Z",
+        "departure": "2025-01-02T13:00:00Z",
+        "distance": "140148",
+        "jobs_ids": "9956879",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "5",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.993719,
+          59.757392
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T13:38:13Z",
+        "departure": "2025-01-02T13:48:13Z",
+        "distance": "168561",
+        "jobs_ids": "reload",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "6",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T14:50:14Z",
+        "departure": "2025-01-02T15:00:14Z",
+        "distance": "221239",
+        "jobs_ids": "9970064",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.639692,
+          59.829208
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T15:58:20Z",
+        "departure": "2025-01-02T16:08:20Z",
+        "distance": "274436",
+        "jobs_ids": "reload",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "8",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:20:25Z",
+        "departure": "2025-01-02T16:30:25Z",
+        "distance": "279137",
+        "jobs_ids": "9971962",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "9",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.874638,
+          59.947909
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:39:40Z",
+        "departure": "2025-01-02T16:39:40Z",
+        "distance": "283605",
+        "jobs_ids": "arrival",
+        "marker-color": "#808080",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "10",
+        "tour_idx": "2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:00:00Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "0",
+        "jobs_ids": "departure",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "0",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:13:33Z",
+        "departure": "2025-01-02T09:23:33Z",
+        "distance": "5423",
+        "jobs_ids": "9944882",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "1",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.77623,
+          59.946172
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:34:03Z",
+        "departure": "2025-01-02T09:44:03Z",
+        "distance": "10953",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "2",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T09:58:27Z",
+        "departure": "2025-01-02T10:08:27Z",
+        "distance": "17004",
+        "jobs_ids": "9956956",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "3",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.798823,
+          59.916721
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T10:20:33Z",
+        "departure": "2025-01-02T10:30:33Z",
+        "distance": "21702",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "4",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T10:44:47Z",
+        "departure": "2025-01-02T10:54:47Z",
+        "distance": "26641",
+        "jobs_ids": "9955634",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "5",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.782341,
+          59.929031
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:07:35Z",
+        "departure": "2025-01-02T11:17:35Z",
+        "distance": "32651",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "6",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:31:15Z",
+        "departure": "2025-01-02T11:41:15Z",
+        "distance": "38392",
+        "jobs_ids": "9944610",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "7",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.85099,
+          59.950866
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T11:54:17Z",
+        "departure": "2025-01-02T12:04:17Z",
+        "distance": "44266",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "8",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T12:20:33Z",
+        "departure": "2025-01-02T12:30:33Z",
+        "distance": "52302",
+        "jobs_ids": "9968860",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "9",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.805324,
+          59.892175
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T12:44:43Z",
+        "departure": "2025-01-02T12:54:43Z",
+        "distance": "60087",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "10",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T13:10:59Z",
+        "departure": "2025-01-02T13:20:59Z",
+        "distance": "68123",
+        "jobs_ids": "9968733",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "11",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.805324,
+          59.892175
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T13:35:09Z",
+        "departure": "2025-01-02T13:45:09Z",
+        "distance": "75908",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "12",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T14:01:25Z",
+        "departure": "2025-01-02T14:11:25Z",
+        "distance": "83944",
+        "jobs_ids": "9968922",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "13",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.805324,
+          59.892175
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T14:25:35Z",
+        "departure": "2025-01-02T14:35:35Z",
+        "distance": "91729",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "14",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T14:54:31Z",
+        "departure": "2025-01-02T15:04:31Z",
+        "distance": "100127",
+        "jobs_ids": "9969174",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "15",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.781857,
+          59.909236
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T15:20:28Z",
+        "departure": "2025-01-02T15:30:28Z",
+        "distance": "105963",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "16",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T15:52:25Z",
+        "departure": "2025-01-02T16:02:25Z",
+        "distance": "113863",
+        "jobs_ids": "9943691",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "17",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.745259,
+          59.933949
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:21:33Z",
+        "departure": "2025-01-02T16:31:33Z",
+        "distance": "121763",
+        "jobs_ids": "reload",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "18",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T16:53:30Z",
+        "departure": "2025-01-02T17:03:30Z",
+        "distance": "129663",
+        "jobs_ids": "9943396",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "marker",
+        "stop_idx": "19",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.745259,
+          59.933949
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrival": "2025-01-02T17:22:38Z",
+        "departure": "2025-01-02T17:22:38Z",
+        "distance": "137563",
+        "jobs_ids": "arrival",
+        "marker-color": "#000075",
+        "marker-size": "medium",
+        "marker-symbol": "warehouse",
+        "stop_idx": "20",
+        "tour_idx": "3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.8286,
+          59.93028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "13",
+        "arrival": "2025-01-02T16:32:32Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "267585",
+        "shift_idx": "0",
+        "stroke": "#e6194b",
+        "stroke-width": "4",
+        "tour_idx": "0",
+        "vehicle_id": "truck_1"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.742099,
+            59.910208
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            11.050129,
+            59.952036
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.519496,
+            59.890583
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.782417,
+            59.742412
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.488922,
+            59.909079
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.488922,
+            59.909079
+          ],
+          [
+            10.8286,
+            59.93028
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "18",
+        "arrival": "2025-01-02T17:37:15Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "190349",
+        "shift_idx": "0",
+        "stroke": "#3cb44b",
+        "stroke-width": "4",
+        "tour_idx": "1",
+        "vehicle_id": "truck_4"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.743041,
+            59.918303
+          ],
+          [
+            10.575879,
+            59.915165
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.743041,
+            59.918303
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.627179,
+            59.944378
+          ],
+          [
+            10.649445,
+            59.936781
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.575879,
+            59.915165
+          ],
+          [
+            10.649445,
+            59.936781
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.795338,
+            59.832267
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.855472,
+            59.940716
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.85933,
+            59.930656
+          ],
+          [
+            10.8286,
+            59.93028
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "11",
+        "arrival": "2025-01-02T16:39:40Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "283605",
+        "shift_idx": "0",
+        "stroke": "#4363d8",
+        "stroke-width": "4",
+        "tour_idx": "2",
+        "vehicle_id": "truck_2"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.512976,
+            59.889402
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.501268,
+            59.940502
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.993719,
+            59.757392
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.639692,
+            59.829208
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.874638,
+            59.947909
+          ],
+          [
+            10.8286,
+            59.93028
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "activities": "21",
+        "arrival": "2025-01-02T17:22:38Z",
+        "departure": "2025-01-02T09:00:00Z",
+        "distance": "137563",
+        "shift_idx": "0",
+        "stroke": "#f58231",
+        "stroke-width": "4",
+        "tour_idx": "3",
+        "vehicle_id": "truck_3"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.77623,
+            59.946172
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.798823,
+            59.916721
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.782341,
+            59.929031
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.85099,
+            59.950866
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.805324,
+            59.892175
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.805324,
+            59.892175
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.805324,
+            59.892175
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.781857,
+            59.909236
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.745259,
+            59.933949
+          ],
+          [
+            10.8286,
+            59.93028
+          ],
+          [
+            10.745259,
+            59.933949
+          ],
+          [
+            10.8286,
+            59.93028
+          ]
+        ]
+      }
+    }
+  ]
+}

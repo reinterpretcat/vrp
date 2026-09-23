@@ -1,0 +1,146 @@
+{
+  "Brodtkorbsgate 7, 1338 SANDVIKA": {
+    "lat": 59.890583,
+    "lng": 10.519496,
+    "match": "Brodtkorbsgate 7, 1338 Sandvika, Norway",
+    "confidence": "exact"
+  },
+  "Elgfaret 22, 1453 BJØRNEMYR": {
+    "lat": 59.829208,
+    "lng": 10.639692,
+    "match": "Elgfaret 22, 1453 Bjørnemyr, Norway",
+    "confidence": "exact"
+  },
+  "Gjønnesjordet 20, 1357 BEKKESTUA": {
+    "lat": 59.915165,
+    "lng": 10.575879,
+    "match": "Gjønnesjordet 20, 1357 Bekkestua, Norway",
+    "confidence": "exact"
+  },
+  "Granittveien 110, 1914 YTRE ENEBAKK": {
+    "lat": 59.757392,
+    "lng": 10.993719,
+    "match": "Granittveien 110, 1914 Ytre Enebakk, Norway",
+    "confidence": "exact"
+  },
+  "Grenseveien 91, 0663 OSLO": {
+    "lat": 59.916721,
+    "lng": 10.798823,
+    "match": "Grenseveien 91, 0663 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "Hasleveien 28, 0571 OSLO": {
+    "lat": 59.929031,
+    "lng": 10.782341,
+    "match": "Hasleveien 28b, 0571 Oslo, Norway",
+    "confidence": "low"
+  },
+  "Holmliaveien 75, 1252 OSLO": {
+    "lat": 59.832267,
+    "lng": 10.795338,
+    "match": "Holmliveien 75, 1252 Oslo, Norway",
+    "confidence": "medium"
+  },
+  "Høyungsletta 7, 1407 VINTERBRO": {
+    "lat": 59.742412,
+    "lng": 10.782417,
+    "match": "Høyungsletta 7, 1407 Vinterbro, Norway",
+    "confidence": "exact"
+  },
+  "Jongsstubben 21, 1337 SANDVIKA": {
+    "lat": 59.889402,
+    "lng": 10.512976,
+    "match": "Jongsstubben 21, 1337 Sandvika, Norway",
+    "confidence": "exact"
+  },
+  "Jordalgata 12, 0657 OSLO": {
+    "lat": 59.909236,
+    "lng": 10.781857,
+    "match": "Jordalgata 12a, 0657 Oslo, Norway",
+    "confidence": "low"
+  },
+  "Kongens Gate 8, 0153 OSLO": {
+    "lat": 59.910208,
+    "lng": 10.742099,
+    "match": "Kongens Gate 8, 0153 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "Lovisenberggata 8, 0456 OSLO": {
+    "lat": 59.933949,
+    "lng": 10.745259,
+    "match": "Lovisenberggata 8, 0456 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "Nesgata 6A/B, 2004 LILLESTRØM": {
+    "lat": 59.952036,
+    "lng": 11.050129,
+    "match": "Nesgata 6a, 2004 Lillestrøm, Norway",
+    "confidence": "exact"
+  },
+  "OSTADALSVEIEN 81, 0380 OSLO": {
+    "lat": 59.936781,
+    "lng": 10.649445,
+    "match": "Ostadalsveien 81, 0753 Oslo, Norway",
+    "confidence": "medium"
+  },
+  "Pottemakerveien 10, 0954 OSLO": {
+    "lat": 59.950866,
+    "lng": 10.85099,
+    "match": "Pottemakerveien 10, 0954 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "Rudssletta 124, 1351 RUD": {
+    "lat": 59.909079,
+    "lng": 10.488922,
+    "match": "Rudssletta 124, 1351 Rud, Norway",
+    "confidence": "medium"
+  },
+  "Ryensvingen 9, 0680 OSLO": {
+    "lat": 59.892175,
+    "lng": 10.805324,
+    "match": "Ryensvingen 9, 0680 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "St. Olavs Gate 1, 0165 OSLO": {
+    "lat": 59.918303,
+    "lng": 10.743041,
+    "match": "St. Olavs Gate 1, 0165 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "Stålfjæra 17, 0975 OSLO": {
+    "lat": 59.947909,
+    "lng": 10.874638,
+    "match": "Stålfjæra 17, 0975 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "Verkseier Furulunds V. 46, 0668 OSLO": {
+    "lat": 59.930656,
+    "lng": 10.85933,
+    "match": "Verkseier Furulunds Vei 46, 0668 Oslo, Norway",
+    "confidence": "exact"
+  },
+  "Verksgata 15, 1353 BÆRUMS VERK": {
+    "lat": 59.940502,
+    "lng": 10.501268,
+    "match": "Verksgata 15, 1353 Bærums Verk, Norway",
+    "confidence": "exact"
+  },
+  "Vitaminveien 1 A, 0485 OSLO": {
+    "lat": 59.946172,
+    "lng": 10.77623,
+    "match": "Vitaminveien 1b, 0485 Oslo, Norway",
+    "confidence": "low"
+  },
+  "VOLLSVEIEN 187, 1359 EIKSMARKA": {
+    "lat": 59.944378,
+    "lng": 10.627179,
+    "match": "Vollsveien 187, 1359 Eiksmarka, Norway",
+    "confidence": "exact"
+  },
+  "Østre Aker Vei 100, 0596 OSLO": {
+    "lat": 59.940716,
+    "lng": 10.855472,
+    "match": "Østre Aker Vei 100, 0596 Oslo, Norway",
+    "confidence": "exact"
+  }
+}

@@ -1,0 +1,861 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "9956957",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.890583,
+                  "lng": 10.519496
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9970064",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.829208,
+                  "lng": 10.639692
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9970119",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.915165,
+                  "lng": 10.575879
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9970120",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.915165,
+                  "lng": 10.575879
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9956879",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.757392,
+                  "lng": 10.993719
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9956956",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.916721,
+                  "lng": 10.798823
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9955634",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.929031,
+                  "lng": 10.782341
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9949149",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.832267,
+                  "lng": 10.795338
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9956972",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.742412,
+                  "lng": 10.782417
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9965445",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.889402,
+                  "lng": 10.512976
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9969174",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.909236,
+                  "lng": 10.781857
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9945176",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.910208,
+                  "lng": 10.742099
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9943396",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.933949,
+                  "lng": 10.745259
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9943691",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.933949,
+                  "lng": 10.745259
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9956945",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.952036,
+                  "lng": 11.050129
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9930549",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.936781,
+                  "lng": 10.649445
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9930548",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.936781,
+                  "lng": 10.649445
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9944610",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.950866,
+                  "lng": 10.85099
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9956920",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.909079,
+                  "lng": 10.488922
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9956921",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.909079,
+                  "lng": 10.488922
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9968922",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.892175,
+                  "lng": 10.805324
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9968860",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.892175,
+                  "lng": 10.805324
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9968733",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.892175,
+                  "lng": 10.805324
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9965646",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.918303,
+                  "lng": 10.743041
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9965684",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.918303,
+                  "lng": 10.743041
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9971962",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.947909,
+                  "lng": 10.874638
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9971974",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.930656,
+                  "lng": 10.85933
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9969540",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.940502,
+                  "lng": 10.501268
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9944882",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.946172,
+                  "lng": 10.77623
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9956727",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.944378,
+                  "lng": 10.627179
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9957069",
+        "replacements": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 59.940716,
+                  "lng": 10.855472
+                },
+                "duration": 600.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "truck",
+        "vehicleIds": [
+          "truck_1",
+          "truck_2",
+          "truck_3",
+          "truck_4"
+        ],
+        "profile": {
+          "matrix": "normal_car"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2025-01-02T09:00:00Z",
+              "location": {
+                "lat": 59.93028,
+                "lng": 10.8286
+              }
+            },
+            "end": {
+              "latest": "2025-01-02T18:00:00Z",
+              "location": {
+                "lat": 59.93028,
+                "lng": 10.8286
+              }
+            },
+            "reloads": [
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              },
+              {
+                "location": {
+                  "lat": 59.93028,
+                  "lng": 10.8286
+                },
+                "duration": 600.0
+              }
+            ]
+          }
+        ],
+        "capacity": [
+          1
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car"
+      }
+    ]
+  }
+}
