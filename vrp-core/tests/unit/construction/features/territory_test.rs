@@ -765,6 +765,9 @@ fn push_marginal_fires_when_one_shift_of_several_is_over_its_share() {
         TerritoryProximity::Distance,
         Some(TerritoryBalance::Activities),
         0.0,
+        // deficit_weight: zero keeps PUSH one-sided, which is what every assertion below was
+        // measured against.
+        0.0,
         anchors.clone(),
         HashMap::new(),
         HashMap::new(),
@@ -1034,7 +1037,7 @@ fn shared_over(
     balance: Option<TerritoryBalance>,
     supplied_quotas: HashMap<String, Float>,
 ) -> SharedFixture {
-    shared_over_with_shares(drivers, job_locations, balance, supplied_quotas, HashMap::new(), HashMap::new())
+    shared_over_with_shares(drivers, job_locations, balance, supplied_quotas, HashMap::new(), HashMap::new(), 0.0)
 }
 
 /// [`shared_over`] with caller-supplied quota shares and pools — the route-level quota mode.
@@ -1045,6 +1048,7 @@ fn shared_over_with_shares(
     supplied_quotas: HashMap<String, Float>,
     supplied_shares: HashMap<String, Float>,
     quota_pools: HashMap<String, String>,
+    deficit_weight: Float,
 ) -> SharedFixture {
     let mut fleet_builder = FleetBuilder::default();
     fleet_builder.add_driver(test_driver());
@@ -1084,6 +1088,7 @@ fn shared_over_with_shares(
         TerritoryProximity::Distance,
         balance,
         0.0,
+        deficit_weight,
         anchors,
         HashMap::new(),
         supplied_quotas,
@@ -1186,6 +1191,51 @@ fn push_total_does_not_depend_on_the_hash_seed() {
     }
 }
 
+/// A deficit costs nothing by default: a driver below its band is only a destination for somebody
+/// else's surplus, never billed itself. That is what lets a shortfall concentrated on one technician
+/// hide — work is conserved, so it reappears as a small surplus spread over the others, and every
+/// one of those can sit inside its own band. Measured on a six-technician tenant, run 40: one technician 17% short
+/// with nobody more than 10.6% over, and narrowing the band to 1% did not move it.
+///
+/// `deficit_weight` prices the shortfall itself. Here d0 carries both jobs against a quota of one
+/// and d1 carries none, so the same one-job gap is a surplus on d0 and a deficit on d1: at weight
+/// zero only the first is billed, and at weight one both are.
+#[test]
+fn a_deficit_costs_nothing_until_it_is_weighed() {
+    let drivers = [("d0", 0usize, 1000.0), ("d1", 100usize, 1000.0)];
+    let quotas = HashMap::from([("d0".to_string(), 1.0), ("d1".to_string(), 1.0)]);
+
+    let push_at = |deficit_weight: Float| {
+        let fixture = shared_over_with_shares(
+            &drivers,
+            &[0, 1],
+            Some(TerritoryBalance::Activities),
+            quotas.clone(),
+            HashMap::new(),
+            HashMap::new(),
+            deficit_weight,
+        );
+        let solution = TestInsertionContextBuilder::default()
+            .with_routes(vec![route_with_jobs(
+                fixture.actors[0].clone(),
+                vec![(fixture.singles[0].clone(), 0), (fixture.singles[1].clone(), 1)],
+            )])
+            .build();
+
+        fixture.shared.push(&solution.solution)
+    };
+
+    let one_sided = push_at(0.0);
+    let symmetric = push_at(1.0);
+
+    assert!(one_sided > 0.0, "d0 is over its quota, so the surplus side must bill something");
+    assert!(
+        symmetric > one_sided,
+        "weighing the deficit must add d1's shortfall to the bill: {symmetric} was not above {one_sided}"
+    );
+    assert_eq!(push_at(0.5), one_sided + (symmetric - one_sided) / 2.0, "the weight must scale the deficit side linearly");
+}
+
 // endregion
 
 /// `Distance` and `Duration` are properties of a ROUTE: travel depends on the order the stops are
@@ -1260,6 +1310,7 @@ fn supplied_shares_take_their_level_from_their_own_pool() {
         HashMap::new(),
         shares,
         pools,
+        0.0,
     );
 
     let loads = HashMap::from([("d1".to_string(), 80.0), ("d2".to_string(), 20.0), ("d3".to_string(), 40.0)]);
@@ -1288,6 +1339,7 @@ fn drivers_without_a_pool_share_one_default_pool() {
         HashMap::new(),
         shares,
         HashMap::new(),
+        0.0,
     );
 
     let loads = HashMap::from([("d1".to_string(), 60.0), ("d2".to_string(), 40.0)]);
@@ -1309,6 +1361,7 @@ fn supplied_shares_replace_a_supplied_quota() {
         HashMap::from([("d1".to_string(), 999.0), ("d2".to_string(), 999.0)]),
         HashMap::from([("d1".to_string(), 0.5), ("d2".to_string(), 0.5)]),
         HashMap::new(),
+        0.0,
     );
 
     let loads = HashMap::from([("d1".to_string(), 30.0), ("d2".to_string(), 10.0)]);
@@ -1409,6 +1462,8 @@ fn the_duration_estimate_carries_service_time_as_well_as_travel() {
         TerritoryProximity::Distance,
         Some(TerritoryBalance::Duration),
         0.0,
+        // deficit_weight: zero keeps PUSH one-sided, which is what these assertions were measured against.
+        0.0,
         HashMap::from([("d0".to_string(), vec![0usize])]),
         HashMap::new(),
         HashMap::new(),
@@ -1454,6 +1509,8 @@ fn service_balances_time_at_customers_without_travel() {
         Arc::new(|_: &Job, _: &Actor| true),
         TerritoryProximity::Distance,
         Some(TerritoryBalance::Service),
+        0.0,
+        // deficit_weight: zero keeps PUSH one-sided, which is what these assertions were measured against.
         0.0,
         HashMap::from([("d0".to_string(), vec![0usize])]),
         HashMap::new(),
@@ -1513,6 +1570,8 @@ fn a_duration_job_is_worth_its_round_trip_to_the_total_and_its_service_to_a_rout
         Arc::new(|_: &Job, _: &Actor| true),
         TerritoryProximity::Distance,
         Some(TerritoryBalance::Duration),
+        0.0,
+        // deficit_weight: zero keeps PUSH one-sided, which is what these assertions were measured against.
         0.0,
         HashMap::from([("d0".to_string(), vec![0usize])]),
         HashMap::new(),

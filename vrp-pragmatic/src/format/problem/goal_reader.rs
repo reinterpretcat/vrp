@@ -340,6 +340,7 @@ fn get_objective_feature_layer(
             proximity,
             balance,
             balance_tolerance,
+            deficit_weight,
             anchors,
             weights,
             allow_idle_drivers,
@@ -366,6 +367,7 @@ fn get_objective_feature_layer(
                 .set_proximity(proximity)
                 .set_balance(balance)
                 .set_balance_tolerance(*balance_tolerance)
+                .set_deficit_weight(*deficit_weight)
                 .set_anchors(anchors)
                 .set_weights(weights)
                 // Omitted `quota` ⇒ an empty map ⇒ the derived quota, unchanged.

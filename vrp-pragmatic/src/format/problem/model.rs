@@ -717,6 +717,19 @@ pub enum Objective {
         /// serializer emits, so the objective can steer it either way.
         #[serde(default = "default_balance_tolerance", alias = "balanceTolerance")]
         balance_tolerance: f64,
+        /// How much a DEFICIT costs, as a fraction of what the same gap costs as a surplus.
+        /// Omitted ⇒ 0.0, which is PUSH as it has always been: only a driver above its band is
+        /// billed, and one below is merely a destination for that billing.
+        ///
+        /// Zero is not a degenerate case, it is the measured default. A deficit and a surplus are
+        /// two readings of one misallocation — work is conserved — so pricing both counts the same
+        /// imbalance twice and doubles PUSH against PULL. What it buys is where the pressure SITS:
+        /// the band is applied per driver, so a deficit concentrated on one technician hides as a
+        /// small surplus spread over the others, and only the deficit side can see it.
+        ///
+        /// Accepts the camelCase `deficitWeight` the field serializer emits.
+        #[serde(default, alias = "deficitWeight")]
+        deficit_weight: f64,
         /// Per-driver anchors as routing-matrix location indices, keyed by driver id. A driver holds
         /// a *list*, one entry per patch of ground it works: a technician may hold several separate
         /// service areas, each contested with a different colleague, and a single anchor would be a

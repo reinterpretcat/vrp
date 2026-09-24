@@ -291,6 +291,7 @@ fn territory_with_anchors(anchors: std::collections::HashMap<String, Vec<usize>>
         proximity: TerritoryProximity::Distance,
         balance: None,
         balance_tolerance: 0.05,
+deficit_weight: 0.0,
         anchors,
         weights: None,
         allow_idle_drivers: false,

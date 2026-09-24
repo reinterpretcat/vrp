@@ -73,6 +73,7 @@ fn territory_objective_with_quota_and_weights(
         proximity,
         balance: Some(balance),
         balance_tolerance: 0.0,
+deficit_weight: 0.0,
         anchors,
         weights,
         allow_idle_drivers: false,

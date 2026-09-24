@@ -144,6 +144,7 @@ pub struct TerritoryFeatureBuilder {
     balance_tolerance: Float,
     anchors: HashMap<DriverKey, Vec<Location>>,
     weights: HashMap<DriverKey, Float>,
+    deficit_weight: Float,
     quotas: HashMap<DriverKey, Float>,
     quota_shares: HashMap<DriverKey, Float>,
     quota_pools: HashMap<DriverKey, String>,
@@ -165,6 +166,7 @@ impl TerritoryFeatureBuilder {
             balance_tolerance: 0.0,
             anchors: HashMap::new(),
             weights: HashMap::new(),
+            deficit_weight: 0.0,
             quotas: HashMap::new(),
             quota_shares: HashMap::new(),
             quota_pools: HashMap::new(),
@@ -253,6 +255,22 @@ impl TerritoryFeatureBuilder {
     /// it. A larger weight enlarges that driver's cell (so a sparse-value driver can reach further
     /// for equal value). Defaults to `0.0` per driver, which makes power distance equal to raw
     /// nearest-anchor proximity. Keyed like anchors (driver id, else vehicle id).
+    /// Sets how much a DEFICIT costs, as a fraction of the same gap billed as a surplus. `0.0` (the
+    /// default) is PUSH as it has always been: a driver below its band is a destination for other
+    /// drivers' surplus and is never billed itself.
+    ///
+    /// ⚠️ Work is conserved, so a deficit and a surplus are two readings of ONE misallocation and
+    /// pricing both counts it twice. What the second reading buys is where the pressure sits: the
+    /// band is per driver, so a deficit concentrated on one technician appears as a small surplus
+    /// spread across the rest and can sit inside every band at once. Measured on a six-technician tenant, run 40:
+    /// one technician 17% short with nobody else more than 10.6% over, and narrowing the band to 1%
+    /// did not move it — the deficit had to become expensive, not merely visible.
+    pub fn set_deficit_weight(mut self, w: Float) -> Self {
+        self.deficit_weight = w.max(0.0);
+
+        self
+    }
+
     pub fn set_weights(mut self, w: HashMap<String, Float>) -> Self {
         self.weights = w;
         self
@@ -337,6 +355,7 @@ impl TerritoryFeatureBuilder {
             self.proximity,
             self.balance,
             self.balance_tolerance,
+            self.deficit_weight,
             self.anchors,
             self.weights,
             self.quotas,
@@ -374,6 +393,9 @@ struct TerritoryShared {
     /// Per-driver anchor list; see [`TerritoryFeatureBuilder::set_anchors`]. A missing key or an
     /// empty list means "no anchor", which keeps that driver out of the territory entirely.
     anchors: HashMap<DriverKey, Vec<Location>>,
+    /// See [`TerritoryFeatureBuilder::set_deficit_weight`]. `0.0` ⇒ a deficit costs nobody anything
+    /// and only steers where somebody else's surplus should go.
+    deficit_weight: Float,
     /// Per-driver boundary weight `w_i`; missing entries are `0.0` (unweighted cell). Keyed like
     /// `anchors`: one weight per driver = per territory (however many patches that territory has).
     weights: HashMap<DriverKey, Float>,
@@ -452,6 +474,7 @@ impl TerritoryShared {
         proximity: TerritoryProximity,
         balance: Option<TerritoryBalance>,
         balance_tolerance: Float,
+        deficit_weight: Float,
         anchors: HashMap<DriverKey, Vec<Location>>,
         weights: HashMap<DriverKey, Float>,
         supplied_quotas: HashMap<DriverKey, Float>,
@@ -471,6 +494,7 @@ impl TerritoryShared {
             proximity,
             balance,
             balance_tolerance,
+            deficit_weight,
             job_value_fn,
             profile,
             anchors,
@@ -1063,6 +1087,67 @@ impl TerritoryShared {
             let convexity = if quota > 1e-9 { PUSH_CONVEXITY_GAIN * surplus / quota } else { 1.0 };
             total += (surplus / self.avg_metric) * convexity * nearest;
         }
+
+        if self.deficit_weight <= 0.0 {
+            return total;
+        }
+
+        // The mirror: what a driver's own shortfall costs, rather than only what somebody else's
+        // surplus costs. The two are readings of ONE misallocation, because work is conserved — so
+        // this is not new information, it is the same information seen from the side the deadband
+        // does not hide. A shortfall concentrated on one technician shows up as a small surplus
+        // spread over the rest, and every one of those can sit inside its own band while the
+        // shortfall is large. Measured on a six-technician tenant, run 40: one technician 17% short, nobody else
+        // more than 10.6% over, and narrowing the band to 1% did not move it.
+        //
+        // Counterparties are the over-band drivers, mirroring the surplus side's use of deficit
+        // anchors. When nobody is over the band there is still work to fetch and it has to come
+        // from somewhere, so the reference widens to every OTHER anchored driver rather than
+        // collapsing to zero and silently disabling the term in exactly the case it exists for.
+        let sources: Vec<Location> = self
+            .driver_order
+            .iter()
+            .filter_map(|key| quotas.get(key).map(|quota| (key, quota)))
+            .filter(|(key, quota)| loads.get(*key).copied().unwrap_or(0.0) > self.over_quota(**quota) + 1e-9)
+            .filter_map(|(key, _)| self.driver_anchors(key))
+            .flatten()
+            .copied()
+            .collect();
+
+        for key in self.driver_order.iter() {
+            let Some(&quota) = quotas.get(key) else { continue };
+            let load = loads.get(key).copied().unwrap_or(0.0);
+            let deficit = self.under_quota(quota) - load;
+            if deficit <= 1e-9 {
+                continue;
+            }
+            let Some(anchors) = self.driver_anchors(key) else { continue };
+
+            let counterparties: Vec<Location> = if sources.is_empty() {
+                self.driver_order
+                    .iter()
+                    .filter(|other| *other != key)
+                    .filter_map(|other| self.driver_anchors(other))
+                    .flatten()
+                    .copied()
+                    .collect()
+            } else {
+                sources.clone()
+            };
+
+            // Kept in the deficit → source direction, because `proximity` is not required to be
+            // symmetric and this is the leg the work would travel back along.
+            let nearest = anchors
+                .iter()
+                .flat_map(|&d| counterparties.iter().map(move |&s| (d, s)))
+                .map(|(d, s)| self.proximity(d, s))
+                .min_by(|x, y| x.total_cmp(y))
+                .unwrap_or(0.0);
+
+            let convexity = if quota > 1e-9 { PUSH_CONVEXITY_GAIN * deficit / quota } else { 1.0 };
+            total += self.deficit_weight * (deficit / self.avg_metric) * convexity * nearest;
+        }
+
         total
     }
 
