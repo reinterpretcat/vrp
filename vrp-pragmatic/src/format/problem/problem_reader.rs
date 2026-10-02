@@ -162,6 +162,9 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
     let has_job_time_constraints =
         api_problem.fleet.vehicles.iter().any(|v| v.shifts.iter().any(|s| s.job_times.is_some()));
 
+    let has_visit_windows =
+        api_problem.fleet.vehicles.iter().any(|v| v.shifts.iter().any(|s| s.visit_windows.is_some()));
+
     ProblemProperties {
         has_multi_dimen_capacity,
         has_breaks,
@@ -177,6 +180,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_tour_size_limits,
         has_tour_travel_limits,
         has_job_time_constraints,
+        has_visit_windows,
         has_min_vehicle_shifts,
     }
 }
@@ -235,6 +239,14 @@ fn get_problem_blocks(
     // bounds say when appointments may happen, not when a break may.
     let activity: Arc<dyn ActivityCost> = if problem_props.has_job_time_constraints {
         Arc::new(JobTimeBoundsActivityCost::new(activity, Arc::new(is_stop)))
+    } else {
+        activity
+    };
+
+    // the visit windows wrap the job times: a tagged visit keeps to both, and neither applies to a
+    // break, a reload or a recharge.
+    let activity: Arc<dyn ActivityCost> = if problem_props.has_visit_windows {
+        Arc::new(VisitWindowsActivityCost::new(activity, Arc::new(is_stop)))
     } else {
         activity
     };

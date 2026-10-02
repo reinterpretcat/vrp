@@ -112,6 +112,7 @@ struct ProblemProperties {
     has_tour_size_limits: bool,
     has_tour_travel_limits: bool,
     has_job_time_constraints: bool,
+    has_visit_windows: bool,
     has_min_vehicle_shifts: bool,
 }
 
