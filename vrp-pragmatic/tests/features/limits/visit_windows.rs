@@ -7,7 +7,7 @@ fn window(earliest: f64, latest: f64) -> VisitWindowJson {
     VisitWindowJson { earliest: format_time(earliest), latest: format_time(latest) }
 }
 
-fn problem(jobs: Vec<Job>, recurring: (f64, f64), other: (f64, f64), overflow: bool) -> Problem {
+fn problem(jobs: Vec<Job>, recurring: (f64, f64), non_recurring: (f64, f64), overflow: bool) -> Problem {
     Problem {
         plan: Plan { jobs, ..create_empty_plan() },
         fleet: Fleet {
@@ -15,7 +15,7 @@ fn problem(jobs: Vec<Job>, recurring: (f64, f64), other: (f64, f64), overflow: b
                 shifts: vec![VehicleShift {
                     visit_windows: Some(VisitWindowsJson {
                         recurring: Some(window(recurring.0, recurring.1)),
-                        other: Some(window(other.0, other.1)),
+                        non_recurring: Some(window(non_recurring.0, non_recurring.1)),
                         overflow: Some(overflow),
                     }),
                     ..create_default_vehicle_shift()
@@ -70,20 +70,20 @@ fn with_overflow_the_late_recurring_visit_is_planned() {
         true,
     ));
 
-    assert!(solution.unassigned.is_none(), "overflow places far in the other window");
+    assert!(solution.unassigned.is_none(), "overflow places far in the non-recurring window");
     assert!(service_start(&solution, "near") + 10. <= 20.);
 }
 
 #[test]
-fn an_other_visit_keeps_to_the_other_window() {
-    let solution = solve(problem(vec![tagged("late", 30., "other")], (0., 100.), (50., 100.), false));
+fn a_non_recurring_visit_keeps_to_its_window() {
+    let solution = solve(problem(vec![tagged("late", 30., "non-recurring")], (0., 100.), (50., 100.), false));
 
     assert!(service_start(&solution, "late") >= 50.);
 }
 
 #[test]
 fn overflow_waits_for_the_own_window_when_the_visit_fits_it() {
-    // Serving at once in the other window would be shorter than waiting for 50.
+    // Serving at once in the non-recurring window would be shorter than waiting for 50.
     let solution = solve(problem(vec![tagged("a", 1., "recurring")], (50., 70.), (0., 100.), true));
 
     assert!(solution.unassigned.is_none());
@@ -105,7 +105,7 @@ fn overflow_never_wins_on_cost_alone() {
     // ending at 45. A → B → O is longer and keeps B inside. The overflow objective ranks above
     // cost, so the longer tour wins.
     let mut problem = problem(
-        vec![tagged("a", 10., "recurring"), tagged("o", 15., "other"), tagged("b", 20., "recurring")],
+        vec![tagged("a", 10., "recurring"), tagged("o", 15., "non-recurring"), tagged("b", 20., "recurring")],
         (0., 45.),
         (0., 200.),
         true,

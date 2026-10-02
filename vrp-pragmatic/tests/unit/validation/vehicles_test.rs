@@ -233,8 +233,8 @@ fn can_validate_job_times_impl(job_times: Option<(Option<Float>, Option<Float>)>
     assert_eq!(result.err().map(|err| err.code), expected);
 }
 
-parameterized_test! {can_validate_visit_windows, (recurring, other, tag, expected), {
-    can_validate_visit_windows_impl(recurring, other, tag, expected);
+parameterized_test! {can_validate_visit_windows, (recurring, non_recurring, tag, expected), {
+    can_validate_visit_windows_impl(recurring, non_recurring, tag, expected);
 }}
 
 can_validate_visit_windows! {
@@ -243,12 +243,12 @@ can_validate_visit_windows! {
     case03_empty: (Some((100., 100.)), None, None, Some("E1310")),
     case04_outside_shift: (Some((0., 2000.)), None, None, Some("E1310")),
     case05_unknown_tag: (None, None, Some("weekly"), Some("E1310")),
-    case06_other_tag: (None, Some((100., 800.)), Some("other"), None),
+    case06_non_recurring_tag: (None, Some((100., 800.)), Some("non-recurring"), None),
 }
 
 fn can_validate_visit_windows_impl(
     recurring: Option<(Float, Float)>,
-    other: Option<(Float, Float)>,
+    non_recurring: Option<(Float, Float)>,
     tag: Option<&str>,
     expected: Option<&str>,
 ) {
@@ -266,7 +266,7 @@ fn can_validate_visit_windows_impl(
                 shifts: vec![VehicleShift {
                     visit_windows: Some(VisitWindowsJson {
                         recurring: recurring.map(window),
-                        other: other.map(window),
+                        non_recurring: non_recurring.map(window),
                         overflow: None,
                     }),
                     ..create_default_vehicle_shift()
@@ -291,7 +291,7 @@ fn can_reject_a_malformed_visit_window_without_panicking() {
                 shifts: vec![VehicleShift {
                     visit_windows: Some(VisitWindowsJson {
                         recurring: Some(VisitWindowJson { earliest: "08:45".to_string(), latest: format_time(400.) }),
-                        other: None,
+                        non_recurring: None,
                         overflow: None,
                     }),
                     ..create_default_vehicle_shift()

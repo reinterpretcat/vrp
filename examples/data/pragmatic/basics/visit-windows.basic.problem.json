@@ -22,7 +22,7 @@
         "visitWindow": "recurring"
       },
       {
-        "id": "otherVisit",
+        "id": "nonRecurringVisit",
         "deliveries": [
           {
             "places": [
@@ -39,7 +39,7 @@
             ]
           }
         ],
-        "visitWindow": "other"
+        "visitWindow": "non-recurring"
       },
       {
         "id": "bookedVisit",
@@ -104,7 +104,7 @@
                 "earliest": "2019-07-04T08:45:00Z",
                 "latest": "2019-07-04T15:00:00Z"
               },
-              "other": {
+              "nonRecurring": {
                 "earliest": "2019-07-04T08:45:00Z",
                 "latest": "2019-07-04T19:00:00Z"
               },

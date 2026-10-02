@@ -7,7 +7,7 @@ use crate::models::solution::Activity;
 fn windows() -> VisitWindows {
     VisitWindows {
         recurring: Some(VisitWindow { earliest: 0., latest: 20. }),
-        other: Some(VisitWindow { earliest: 0., latest: 100. }),
+        non_recurring: Some(VisitWindow { earliest: 0., latest: 100. }),
         overflow: true,
     }
 }
@@ -56,7 +56,7 @@ fn counts_recurring_visits_outside_their_window() {
         vec![
             visit(Some(VisitWindowKind::Recurring), 5., 15.),
             visit(Some(VisitWindowKind::Recurring), 50., 60.),
-            visit(Some(VisitWindowKind::Other), 70., 80.),
+            visit(Some(VisitWindowKind::NonRecurring), 70., 80.),
             visit(None, 90., 100.),
         ],
     );
@@ -89,5 +89,5 @@ fn estimates_one_for_a_recurring_visit_that_would_overflow() {
     };
 
     assert_eq!(estimate(VisitWindowKind::Recurring), 1.);
-    assert_eq!(estimate(VisitWindowKind::Other), 0.);
+    assert_eq!(estimate(VisitWindowKind::NonRecurring), 0.);
 }

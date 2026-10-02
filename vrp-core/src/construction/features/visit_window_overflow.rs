@@ -1,7 +1,7 @@
 //! Counts recurring visits served outside the recurring window of their shift.
 //!
 //! With overflow on, the visit-window activity cost lets a recurring visit use the hours of the
-//! other visits. This objective, placed directly after minimizing unassigned jobs, makes that the
+//! non-recurring visits. This objective, placed directly after minimizing unassigned jobs, makes that the
 //! last resort: a solution only pays for an overflowed visit by placing a visit it otherwise could
 //! not, never to save distance or cost.
 

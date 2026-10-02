@@ -211,7 +211,7 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     };
                     dimens.set_visit_windows(VisitWindows {
                         recurring: windows.recurring.as_ref().map(window),
-                        other: windows.other.as_ref().map(window),
+                        non_recurring: windows.non_recurring.as_ref().map(window),
                         overflow: windows.overflow.unwrap_or(false),
                     });
                 }

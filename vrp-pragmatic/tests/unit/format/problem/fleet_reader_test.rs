@@ -246,7 +246,7 @@ fn reads_visit_windows_and_the_job_tag() {
             end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
             visit_windows: Some(VisitWindowsJson {
                 recurring: Some(VisitWindowJson { earliest: format_time(100.), latest: format_time(400.) }),
-                other: Some(VisitWindowJson { earliest: format_time(100.), latest: format_time(800.) }),
+                non_recurring: Some(VisitWindowJson { earliest: format_time(100.), latest: format_time(800.) }),
                 overflow: Some(true),
             }),
             ..create_default_vehicle_shift()
@@ -272,7 +272,7 @@ fn reads_visit_windows_and_the_job_tag() {
     let windows = problem.fleet.vehicles[0].dimens.get_visit_windows().expect("windows");
     assert_eq!(windows.recurring.as_ref().unwrap().earliest, 100.);
     assert_eq!(windows.recurring.as_ref().unwrap().latest, 400.);
-    assert_eq!(windows.other.as_ref().unwrap().latest, 800.);
+    assert_eq!(windows.non_recurring.as_ref().unwrap().latest, 800.);
     assert!(windows.overflow);
 
     let kind_of = |id: &str| {

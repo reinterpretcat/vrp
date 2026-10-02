@@ -9,7 +9,7 @@ use vrp_core::prelude::GenericResult;
 
 /// Checks that every tagged stop lies inside the visit window its shift gives it: service starts at
 /// or after the window's start and the stop is departed at or before its end. With overflow, a
-/// recurring stop may lie anywhere in its own window or the other one.
+/// recurring stop may lie anywhere in its own window or the non-recurring one.
 pub fn check_visit_windows(context: &CheckerContext) -> Result<(), Vec<GenericError>> {
     check_tours(context).map_err(|error| vec![error])
 }
@@ -24,7 +24,7 @@ fn check_tours(context: &CheckerContext) -> GenericResult<()> {
         };
         let windows = VisitWindows {
             recurring: windows.recurring.as_ref().map(window),
-            other: windows.other.as_ref().map(window),
+            non_recurring: windows.non_recurring.as_ref().map(window),
             overflow: windows.overflow.unwrap_or(false),
         };
 
@@ -36,7 +36,7 @@ fn check_tours(context: &CheckerContext) -> GenericResult<()> {
                 let Some(job) = context.get_job_by_id(&activity.job_id) else { return Ok(()) };
                 let kind = match job.visit_window.as_deref() {
                     Some("recurring") => VisitWindowKind::Recurring,
-                    Some("other") => VisitWindowKind::Other,
+                    Some("non-recurring") => VisitWindowKind::NonRecurring,
                     _ => return Ok(()),
                 };
                 let Some((earliest, latest)) = windows.bounds_for(&kind) else { return Ok(()) };

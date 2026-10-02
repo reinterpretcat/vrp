@@ -12,7 +12,7 @@ fn window(earliest: f64, latest: f64) -> VisitWindowJson {
 fn check(
     tag: &str,
     recurring: (f64, f64),
-    other: Option<(f64, f64)>,
+    non_recurring: Option<(f64, f64)>,
     overflow: bool,
     arrival: f64,
     departure: f64,
@@ -30,7 +30,7 @@ fn check(
                 shifts: vec![VehicleShift {
                     visit_windows: Some(VisitWindowsJson {
                         recurring: Some(window(recurring.0, recurring.1)),
-                        other: other.map(|(earliest, latest)| window(earliest, latest)),
+                        non_recurring: non_recurring.map(|(earliest, latest)| window(earliest, latest)),
                         overflow: Some(overflow),
                     }),
                     ..create_default_vehicle_shift()
@@ -81,11 +81,11 @@ fn rejects_a_recurring_stop_served_before_its_window() {
 }
 
 #[test]
-fn accepts_overflow_inside_the_other_window() {
+fn accepts_overflow_inside_the_non_recurring_window() {
     assert!(check("recurring", (100., 400.), Some((100., 800.)), true, 600., 630.).is_ok());
 }
 
 #[test]
-fn rejects_an_other_stop_outside_the_other_window() {
-    assert!(check("other", (100., 400.), Some((100., 800.)), false, 790., 820.).is_err());
+fn rejects_a_non_recurring_stop_outside_its_window() {
+    assert!(check("non-recurring", (100., 400.), Some((100., 800.)), false, 790., 820.).is_err());
 }

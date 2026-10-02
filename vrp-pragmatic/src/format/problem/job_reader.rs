@@ -178,7 +178,7 @@ fn read_required_jobs(
         // every task of a multi job carries it, not only the multi job itself.
         let visit_window_kind = match job.visit_window.as_deref() {
             Some("recurring") => Some(VisitWindowKind::Recurring),
-            Some("other") => Some(VisitWindowKind::Other),
+            Some("non-recurring") => Some(VisitWindowKind::NonRecurring),
             _ => None,
         };
         let singles = singles

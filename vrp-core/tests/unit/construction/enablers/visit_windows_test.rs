@@ -5,12 +5,16 @@ use crate::models::common::TimeWindow;
 use crate::models::problem::{JobIdDimension, SimpleActivityCost, Single, VisitWindow, VisitWindowKindDimension};
 use rosomaxa::prelude::UnwrapValue;
 
-fn route(recurring: Option<(Timestamp, Timestamp)>, other: Option<(Timestamp, Timestamp)>, overflow: bool) -> Route {
+fn route(
+    recurring: Option<(Timestamp, Timestamp)>,
+    non_recurring: Option<(Timestamp, Timestamp)>,
+    overflow: bool,
+) -> Route {
     let window = |(earliest, latest): (Timestamp, Timestamp)| VisitWindow { earliest, latest };
     let mut vehicle = test_vehicle_with_id("v1");
     vehicle.dimens.set_visit_windows(VisitWindows {
         recurring: recurring.map(window),
-        other: other.map(window),
+        non_recurring: non_recurring.map(window),
         overflow,
     });
 
@@ -65,7 +69,7 @@ fn refuses_a_recurring_visit_that_ends_after_its_window() {
 }
 
 #[test]
-fn overflow_lets_a_recurring_visit_use_the_other_window() {
+fn overflow_lets_a_recurring_visit_use_the_non_recurring_window() {
     let departure = cost().estimate_departure(
         &route(Some((100., 400.)), Some((100., 800.)), true),
         &activity(Some(VisitWindowKind::Recurring), (0., 1000.), 30.),
@@ -76,7 +80,7 @@ fn overflow_lets_a_recurring_visit_use_the_other_window() {
 }
 
 #[test]
-fn overflow_without_other_window_is_no_overflow() {
+fn overflow_without_non_recurring_window_is_no_overflow() {
     let departure = cost().estimate_departure(
         &route(Some((100., 400.)), None, true),
         &activity(Some(VisitWindowKind::Recurring), (0., 1000.), 30.),
@@ -87,11 +91,13 @@ fn overflow_without_other_window_is_no_overflow() {
 }
 
 #[test]
-fn an_other_visit_keeps_to_the_other_window() {
+fn a_non_recurring_visit_keeps_to_its_window() {
     let route = route(Some((100., 400.)), Some((100., 800.)), false);
 
-    let inside = cost().estimate_departure(&route, &activity(Some(VisitWindowKind::Other), (0., 1000.), 30.), 600.);
-    let after = cost().estimate_departure(&route, &activity(Some(VisitWindowKind::Other), (0., 1000.), 30.), 790.);
+    let inside =
+        cost().estimate_departure(&route, &activity(Some(VisitWindowKind::NonRecurring), (0., 1000.), 30.), 600.);
+    let after =
+        cost().estimate_departure(&route, &activity(Some(VisitWindowKind::NonRecurring), (0., 1000.), 30.), 790.);
 
     assert_eq!(inside.unwrap_value(), 630.);
     assert!(matches!(after, ControlFlow::Break(_)));

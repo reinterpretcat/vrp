@@ -8,8 +8,8 @@ use crate::models::common::{Dimensions, Timestamp};
 pub enum VisitWindowKind {
     /// A recurring visit with no preferred time.
     Recurring,
-    /// Every other visit with no preferred time.
-    Other,
+    /// Every non-recurring visit with no preferred time.
+    NonRecurring,
 }
 
 /// A window a visit lies entirely inside: service starts at or after `earliest` and the visit is
@@ -27,16 +27,16 @@ pub struct VisitWindow {
 pub struct VisitWindows {
     /// The window recurring visits keep to.
     pub recurring: Option<VisitWindow>,
-    /// The window every other tagged visit keeps to.
-    pub other: Option<VisitWindow>,
-    /// Whether a recurring visit may use the other window when it does not fit its own.
+    /// The window non-recurring visits keep to.
+    pub non_recurring: Option<VisitWindow>,
+    /// Whether a recurring visit may use the non-recurring window when it does not fit its own.
     pub overflow: bool,
 }
 
 impl VisitWindows {
     /// The window a job of `kind` keeps to on this shift, and the one it may fall back to when it
-    /// does not fit: the other window for a recurring job with overflow, nothing otherwise.
-    /// Overflow without an other window is no overflow.
+    /// does not fit: the non-recurring window for a recurring job with overflow, nothing otherwise.
+    /// Overflow without an non-recurring window is no overflow.
     pub fn windows_for(
         &self,
         kind: &VisitWindowKind,
@@ -44,21 +44,20 @@ impl VisitWindows {
         let bounds = |window: &VisitWindow| (window.earliest, window.latest);
 
         match kind {
-            VisitWindowKind::Other => self.other.as_ref().map(|other| (bounds(other), None)),
-            VisitWindowKind::Recurring => self
-                .recurring
-                .as_ref()
-                .map(|recurring| (bounds(recurring), self.other.as_ref().filter(|_| self.overflow).map(bounds))),
+            VisitWindowKind::NonRecurring => self.non_recurring.as_ref().map(|window| (bounds(window), None)),
+            VisitWindowKind::Recurring => self.recurring.as_ref().map(|recurring| {
+                (bounds(recurring), self.non_recurring.as_ref().filter(|_| self.overflow).map(bounds))
+            }),
         }
     }
 
     /// Everything a job of `kind` may lie in on this shift: with overflow, a recurring job may lie
-    /// anywhere from the earlier start to the later end of both windows. Overflow without an other
+    /// anywhere from the earlier start to the later end of both windows. Overflow without a non-recurring
     /// window is no overflow.
     pub fn bounds_for(&self, kind: &VisitWindowKind) -> Option<(Timestamp, Timestamp)> {
         match kind {
-            VisitWindowKind::Other => self.other.as_ref().map(|w| (w.earliest, w.latest)),
-            VisitWindowKind::Recurring => match (&self.recurring, &self.other, self.overflow) {
+            VisitWindowKind::NonRecurring => self.non_recurring.as_ref().map(|w| (w.earliest, w.latest)),
+            VisitWindowKind::Recurring => match (&self.recurring, &self.non_recurring, self.overflow) {
                 (Some(r), Some(o), true) => Some((r.earliest.min(o.earliest), r.latest.max(o.latest))),
                 (Some(r), _, _) => Some((r.earliest, r.latest)),
                 (None, _, _) => None,

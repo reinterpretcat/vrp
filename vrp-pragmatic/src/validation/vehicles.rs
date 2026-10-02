@@ -287,7 +287,7 @@ fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), Form
         Box::new(|_, shift, shift_time| {
             let Some(windows) = shift.visit_windows.as_ref() else { return true };
 
-            [&windows.recurring, &windows.other].into_iter().flatten().all(|window| {
+            [&windows.recurring, &windows.non_recurring].into_iter().flatten().all(|window| {
                 // `parse_time` unwraps: a bound that is not a timestamp is an E1310, not a panic.
                 match (parse_time_safe(&window.earliest), parse_time_safe(&window.latest)) {
                     (Ok(earliest), Ok(latest)) => {
@@ -304,7 +304,7 @@ fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), Form
 
     let job_ids = ctx
         .jobs()
-        .filter(|job| job.visit_window.as_deref().is_some_and(|tag| tag != "recurring" && tag != "other"))
+        .filter(|job| job.visit_window.as_deref().is_some_and(|tag| tag != "recurring" && tag != "non-recurring"))
         .map(|job| job.id.clone())
         .collect::<Vec<_>>();
 
@@ -315,7 +315,7 @@ fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), Form
             "E1310".to_string(),
             "invalid visit windows".to_string(),
             format!(
-                "ensure every visit window is a pair of timestamps, earliest before latest, inside the shift, and every job's visit window is 'recurring' or 'other', vehicle type ids: '{}', job ids: '{}'",
+                "ensure every visit window is a pair of timestamps, earliest before latest, inside the shift, and every job's visit window is 'recurring' or 'non-recurring', vehicle type ids: '{}', job ids: '{}'",
                 type_ids.join(", "),
                 job_ids.join(", ")
             ),

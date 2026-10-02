@@ -73,7 +73,7 @@
           ],
           "activities": [
             {
-              "jobId": "otherVisit",
+              "jobId": "nonRecurringVisit",
               "type": "delivery"
             }
           ]
