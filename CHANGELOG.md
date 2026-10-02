@@ -19,6 +19,9 @@ are already published. So, I stick to it for now.
 
 ### Added
 
+* add per-shift visit windows for recurring and other visits (`shift.visitWindows`, `job.visitWindow`), validated
+  by `E1310` and held by the checker, and the `minimize-visit-window-overflow` objective, placed right after
+  `minimize-unassigned` when a shift allows overflow
 * add an experimental objective
 * add naive implementation of LKH local search
 
