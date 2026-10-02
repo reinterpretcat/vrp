@@ -42,6 +42,7 @@
         * [Multi day plan](examples/pragmatic/basics/multi-day.md)
         * [Vehicle break](examples/pragmatic/basics/break.md)
         * [Job time constraints](examples/pragmatic/basics/job-times.md)
+        * [Visit windows](examples/pragmatic/basics/visit-windows.md)
         * [Multiple trips](examples/pragmatic/basics/reload.md)
         * [Recharge stations](examples/pragmatic/basics/recharge.md)
         * [Relations](examples/pragmatic/basics/relations.md)

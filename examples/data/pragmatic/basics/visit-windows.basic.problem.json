@@ -1,0 +1,126 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "recurringVisit",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.52599,
+                  "lng": 13.45413
+                },
+                "duration": 1800.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "visitWindow": "recurring"
+      },
+      {
+        "id": "otherVisit",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5225,
+                  "lng": 13.4095
+                },
+                "duration": 1800.0
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "visitWindow": "other"
+      },
+      {
+        "id": "bookedVisit",
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5165,
+                  "lng": 13.3808
+                },
+                "duration": 1800.0,
+                "times": [
+                  [
+                    "2019-07-04T16:30:00Z",
+                    "2019-07-04T17:00:00Z"
+                  ]
+                ]
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1"
+        ],
+        "profile": {
+          "matrix": "normal_car"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T08:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "end": {
+              "latest": "2019-07-04T20:00:00Z",
+              "location": {
+                "lat": 52.5316,
+                "lng": 13.3884
+              }
+            },
+            "visitWindows": {
+              "recurring": {
+                "earliest": "2019-07-04T08:45:00Z",
+                "latest": "2019-07-04T15:00:00Z"
+              },
+              "other": {
+                "earliest": "2019-07-04T08:45:00Z",
+                "latest": "2019-07-04T19:00:00Z"
+              },
+              "overflow": false
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car"
+      }
+    ]
+  }
+}

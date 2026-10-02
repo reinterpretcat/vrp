@@ -1,0 +1,141 @@
+{
+  "statistic": {
+    "cost": 168.696506,
+    "distance": 11357,
+    "duration": 30051,
+    "times": {
+      "driving": 1137,
+      "serving": 5400,
+      "waiting": 23514,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T08:00:00Z",
+            "departure": "2019-07-04T08:42:05Z"
+          },
+          "distance": 0,
+          "load": [
+            3
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.52599,
+            "lng": 13.45413
+          },
+          "time": {
+            "arrival": "2019-07-04T08:49:35Z",
+            "departure": "2019-07-04T09:19:35Z"
+          },
+          "distance": 4495,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "recurringVisit",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5225,
+            "lng": 13.4095
+          },
+          "time": {
+            "arrival": "2019-07-04T09:24:40Z",
+            "departure": "2019-07-04T09:54:40Z"
+          },
+          "distance": 7543,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "otherVisit",
+              "type": "delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5165,
+            "lng": 13.3808
+          },
+          "time": {
+            "arrival": "2019-07-04T09:58:06Z",
+            "departure": "2019-07-04T17:00:00Z"
+          },
+          "distance": 9599,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "bookedVisit",
+              "type": "delivery",
+              "time": {
+                "start": "2019-07-04T16:30:00Z",
+                "end": "2019-07-04T17:00:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5316,
+            "lng": 13.3884
+          },
+          "time": {
+            "arrival": "2019-07-04T17:02:56Z",
+            "departure": "2019-07-04T17:02:56Z"
+          },
+          "distance": 11357,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 168.696506,
+        "distance": 11357,
+        "duration": 30051,
+        "times": {
+          "driving": 1137,
+          "serving": 5400,
+          "waiting": 23514,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ]
+}

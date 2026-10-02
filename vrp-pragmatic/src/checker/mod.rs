@@ -81,6 +81,7 @@ impl CheckerContext {
             .chain(check_limits(self).err())
             .chain(check_skills(self).err())
             .chain(check_job_times(self).err())
+            .chain(check_visit_windows(self).err())
             .flatten()
             .fold((HashSet::new(), Vec::default()), |(mut used, mut errors), error| {
                 if !used.contains(&error) {
@@ -486,3 +487,6 @@ use crate::checker::skills::check_skills;
 
 mod job_times;
 use crate::checker::job_times::check_job_times;
+
+mod visit_windows;
+use crate::checker::visit_windows::check_visit_windows;
