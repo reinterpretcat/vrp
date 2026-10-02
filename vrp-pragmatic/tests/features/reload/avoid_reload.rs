@@ -37,6 +37,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
                     }]),
                     recharges: None,
                     job_times: None,
+                    visit_windows: None,
                     regular_duration: None,
                 }],
                 capacity: vec![2],

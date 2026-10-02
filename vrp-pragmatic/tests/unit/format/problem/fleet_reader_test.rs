@@ -6,6 +6,7 @@ use std::sync::Arc;
 use vrp_core::models::common::{Distance, Profile as CoreProfile, TimeWindow, Timestamp};
 use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
 use vrp_core::models::problem::{DriverIdDimension, OvertimeRateDimension, RegularDurationDimension, TravelTime};
+use vrp_core::models::problem::{JobIdDimension, VisitWindowKind, VisitWindowKindDimension, VisitWindowsDimension};
 use vrp_core::models::solution::Route;
 
 fn matrix(profile: Option<&str>, timestamp: Option<Float>, fill_value: i64, size: usize) -> Matrix {
@@ -179,11 +180,7 @@ fn reads_driver_id_into_dimens() {
     let matrix = matrix(Some("car"), None, 1, 4);
 
     let problem = Problem {
-        plan: Plan {
-            jobs: vec![create_delivery_job("job1", (1., 1.))],
-            relations: None,
-            clustering: None,
-        },
+        plan: Plan { jobs: vec![create_delivery_job("job1", (1., 1.))], relations: None, clustering: None },
         fleet: Fleet {
             vehicles: vec![create_vehicle_with_driver_id("my_vehicle", vec![10], "drv-1")],
             profiles: create_default_matrix_profiles(),
@@ -237,4 +234,55 @@ fn reads_overtime_rate_and_regular_duration_into_dimens() {
 
     assert_eq!(vehicles[1].dimens.get_overtime_rate(), Some(&0.02));
     assert_eq!(vehicles[1].dimens.get_regular_duration(), Some(&21600.0));
+}
+
+#[test]
+fn reads_visit_windows_and_the_job_tag() {
+    let matrix = matrix(Some("car"), None, 1, 9);
+
+    let vehicle = VehicleType {
+        shifts: vec![VehicleShift {
+            start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
+            end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
+            visit_windows: Some(VisitWindowsJson {
+                recurring: Some(VisitWindowJson { earliest: format_time(100.), latest: format_time(400.) }),
+                other: Some(VisitWindowJson { earliest: format_time(100.), latest: format_time(800.) }),
+                overflow: Some(true),
+            }),
+            ..create_default_vehicle_shift()
+        }],
+        ..create_default_vehicle_type()
+    };
+
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                Job { visit_window: Some("recurring".to_string()), ..create_delivery_job("job1", (1., 1.)) },
+                create_delivery_job("job2", (1., 0.)),
+            ],
+            relations: None,
+            clustering: None,
+        },
+        fleet: Fleet { vehicles: vec![vehicle], profiles: create_default_matrix_profiles(), resources: None },
+        objectives: None,
+    };
+
+    let problem = (problem, vec![matrix]).read_pragmatic().unwrap();
+
+    let windows = problem.fleet.vehicles[0].dimens.get_visit_windows().expect("windows");
+    assert_eq!(windows.recurring.as_ref().unwrap().earliest, 100.);
+    assert_eq!(windows.recurring.as_ref().unwrap().latest, 400.);
+    assert_eq!(windows.other.as_ref().unwrap().latest, 800.);
+    assert!(windows.overflow);
+
+    let kind_of = |id: &str| {
+        problem
+            .jobs
+            .all()
+            .iter()
+            .find(|job| job.dimens().get_job_id().map(String::as_str) == Some(id))
+            .and_then(|job| job.to_single().dimens.get_visit_window_kind().cloned())
+    };
+    assert_eq!(kind_of("job1"), Some(VisitWindowKind::Recurring));
+    assert_eq!(kind_of("job2"), None);
 }

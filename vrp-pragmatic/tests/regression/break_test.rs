@@ -145,6 +145,7 @@ fn can_handle_properly_invalid_break_removal() {
                         reloads: None,
                         recharges: None,
                         job_times: None,
+                        visit_windows: None,
                         regular_duration: None,
                     }],
                     capacity: vec![5],

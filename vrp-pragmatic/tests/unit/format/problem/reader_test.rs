@@ -169,6 +169,7 @@ fn can_read_complex_problem() {
                     reloads: None,
                     recharges: None,
                     job_times: None,
+                    visit_windows: None,
                     regular_duration: None,
                 }],
                 capacity: vec![10, 1],

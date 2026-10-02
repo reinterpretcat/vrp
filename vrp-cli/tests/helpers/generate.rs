@@ -14,6 +14,7 @@ pub fn create_empty_job() -> Job {
         group: None,
         compatibility: None,
         vehicle_group: None,
+        visit_window: None,
     }
 }
 
@@ -47,6 +48,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
             reloads: None,
             recharges: None,
             job_times: None,
+            visit_windows: None,
             regular_duration: None,
         }],
         capacity: vec![10],

@@ -204,6 +204,18 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     dimens.set_job_time_constraints(core_job_times);
                 }
 
+                if let Some(windows) = shift.visit_windows.as_ref() {
+                    let window = |window: &VisitWindowJson| VisitWindow {
+                        earliest: parse_time(&window.earliest),
+                        latest: parse_time(&window.latest),
+                    };
+                    dimens.set_visit_windows(VisitWindows {
+                        recurring: windows.recurring.as_ref().map(window),
+                        other: windows.other.as_ref().map(window),
+                        overflow: windows.overflow.unwrap_or(false),
+                    });
+                }
+
                 vehicles.push(Arc::new(Vehicle {
                     profile: profile.clone(),
                     costs: costs.clone(),

@@ -133,6 +133,11 @@ pub struct Job {
     /// A vehicle group: jobs sharing this value are served by one vehicle across its shifts.
     #[serde(rename = "vehicleGroup", skip_serializing_if = "Option::is_none")]
     pub vehicle_group: Option<String>,
+
+    /// Which of a shift's visit windows the job keeps to: `recurring` or `other`. A job without
+    /// one is bound only by its own time windows and the shift's job times.
+    #[serde(rename = "visitWindow", skip_serializing_if = "Option::is_none")]
+    pub visit_window: Option<String>,
 }
 
 // region Clustering
@@ -328,6 +333,33 @@ pub struct JobTimeConstraints {
     pub latest_last: Option<String>,
 }
 
+/// A window a tagged visit lies entirely inside: service starts at or after `earliest`, the visit is
+/// departed at or before `latest`.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VisitWindowJson {
+    /// Earliest service start (RFC3339 format).
+    pub earliest: String,
+    /// Latest departure (RFC3339 format).
+    pub latest: String,
+}
+
+/// The windows a shift's tagged visits keep to: one for recurring visits, one for every other
+/// visit, and whether a recurring visit may use the other window when it does not fit its own.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VisitWindowsJson {
+    /// The window jobs tagged `recurring` keep to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recurring: Option<VisitWindowJson>,
+    /// The window jobs tagged `other` keep to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub other: Option<VisitWindowJson>,
+    /// Whether a recurring job may lie in the other window instead. Off when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overflow: Option<bool>,
+}
+
 /// Specifies vehicle shift.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -355,6 +387,10 @@ pub struct VehicleShift {
     /// Time constraints for the first and last jobs in this shift.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub job_times: Option<JobTimeConstraints>,
+
+    /// Windows the shift's tagged visits keep to, on top of the job times.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visit_windows: Option<VisitWindowsJson>,
 
     /// The duration this shift is paid at the regular rate, in seconds. Time
     /// beyond it is overtime. No overtime when omitted.

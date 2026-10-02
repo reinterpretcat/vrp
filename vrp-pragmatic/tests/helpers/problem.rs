@@ -27,6 +27,7 @@ pub fn create_job(id: &str) -> Job {
         group: None,
         compatibility: None,
         vehicle_group: None,
+        visit_window: None,
     }
 }
 
@@ -243,6 +244,7 @@ pub fn create_default_open_vehicle_shift() -> VehicleShift {
         reloads: None,
         recharges: None,
         job_times: None,
+        visit_windows: None,
         regular_duration: None,
     }
 }
@@ -255,6 +257,7 @@ pub fn create_default_vehicle_shift_with_locations(start: (f64, f64), end: (f64,
         reloads: None,
         recharges: None,
         job_times: None,
+        visit_windows: None,
         regular_duration: None,
     }
 }
@@ -295,10 +298,7 @@ pub fn create_vehicle_with_capacity(id: &str, capacity: Vec<i32>) -> VehicleType
 }
 
 pub fn create_vehicle_with_driver_id(id: &str, capacity: Vec<i32>, driver_id: &str) -> VehicleType {
-    VehicleType {
-        driver_id: Some(driver_id.to_string()),
-        ..create_vehicle_with_capacity(id, capacity)
-    }
+    VehicleType { driver_id: Some(driver_id.to_string()), ..create_vehicle_with_capacity(id, capacity) }
 }
 
 pub fn create_default_fleet() -> Fleet {

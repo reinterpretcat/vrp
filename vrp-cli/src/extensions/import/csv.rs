@@ -101,6 +101,7 @@ mod actual {
                 group: None,
                 compatibility: None,
                 vehicle_group: None,
+                visit_window: None,
             })
             .collect();
 
@@ -130,6 +131,7 @@ mod actual {
                         reloads: None,
                         recharges: None,
                         job_times: None,
+                        visit_windows: None,
                         regular_duration: None,
                     }],
                     capacity: vec![vehicle.capacity],

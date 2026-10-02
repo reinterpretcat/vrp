@@ -32,6 +32,7 @@ fn can_serve_multi_job_and_delivery_with_reload() {
                     }]),
                     recharges: None,
                     job_times: None,
+                    visit_windows: None,
                     regular_duration: None,
                 }],
                 capacity: vec![2],

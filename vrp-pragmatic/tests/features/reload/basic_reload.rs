@@ -45,6 +45,7 @@ fn can_use_vehicle_with_two_tours_and_two_jobs_impl(jobs: Vec<Job>, unassigned: 
                     }]),
                     recharges: None,
                     job_times: None,
+                    visit_windows: None,
                     regular_duration: None,
                 }],
                 capacity: vec![1],

@@ -94,6 +94,7 @@ prop_compose! {
             group,
             compatibility,
             vehicle_group: None,
+            visit_window: None,
         }
     }
 }
@@ -142,6 +143,7 @@ prop_compose! {
             group,
             compatibility,
             vehicle_group: None,
+            visit_window: None,
         }
     }
 }

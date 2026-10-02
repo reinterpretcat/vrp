@@ -24,6 +24,7 @@ fn create_named_vehicle_with_job_time_constraints(
                 earliest_first: earliest_first.map(format_time),
                 latest_last: latest_last.map(format_time),
             }),
+            visit_windows: None,
             regular_duration: None,
         }],
         ..create_default_vehicle_type()
@@ -45,6 +46,7 @@ fn create_open_route_vehicle_with_job_time_constraints(
                 earliest_first: earliest_first.map(format_time),
                 latest_last: latest_last.map(format_time),
             }),
+            visit_windows: None,
             regular_duration: None,
         }],
         ..create_default_vehicle_type()
@@ -191,6 +193,7 @@ fn can_keep_the_wait_a_late_departure_cannot_absorb() {
                     reloads: None,
                     recharges: None,
                     job_times: Some(JobTimeConstraints { earliest_first: Some(format_time(10.)), latest_last: None }),
+                    visit_windows: None,
                     regular_duration: None,
                 }],
                 ..create_default_vehicle_type()
@@ -430,6 +433,7 @@ fn can_work_with_depot_to_depot_span() {
                     reloads: None,
                     recharges: None,
                     job_times: Some(JobTimeConstraints { earliest_first: Some(format_time(10.)), latest_last: None }),
+                    visit_windows: None,
                     regular_duration: None,
                 }],
                 costs: VehicleCosts {

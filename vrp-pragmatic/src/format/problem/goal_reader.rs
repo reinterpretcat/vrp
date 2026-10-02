@@ -15,7 +15,7 @@ use vrp_core::construction::features::*;
 // disambiguating import — same reasoning as the `Location`/`Job` aliases below.
 use vrp_core::construction::features::TerritoryProximity as CoreTerritoryProximity;
 use vrp_core::construction::heuristics::InsertionContext;
-use vrp_core::models::common::{Demand, Location as CoreLocation, LoadOps, MultiDimLoad, SingleDimLoad};
+use vrp_core::models::common::{Demand, LoadOps, Location as CoreLocation, MultiDimLoad, SingleDimLoad};
 use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost, driver_key};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
@@ -597,12 +597,9 @@ fn compute_period_reference(metric: &BalancePeriodMetric, blocks: &ProblemBlocks
                 CoreJob::Multi(multi) => multi.jobs.len() as Float,
             })
             .sum(),
-        BalancePeriodMetric::ProductionValue => blocks
-            .jobs
-            .all()
-            .iter()
-            .map(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
-            .sum(),
+        BalancePeriodMetric::ProductionValue => {
+            blocks.jobs.all().iter().map(|job| job.dimens().get_production_value().copied().unwrap_or(0.)).sum()
+        }
         // Service time is the one metric whose ideal total is simply its actual total: it does not
         // depend on the plan at all.
         BalancePeriodMetric::Service => blocks
@@ -611,9 +608,7 @@ fn compute_period_reference(metric: &BalancePeriodMetric, blocks: &ProblemBlocks
             .iter()
             .map(|job| match job {
                 CoreJob::Single(single) => single.places.first().map(|p| p.duration).unwrap_or(0.),
-                CoreJob::Multi(multi) => {
-                    multi.jobs.iter().filter_map(|s| s.places.first().map(|p| p.duration)).sum()
-                }
+                CoreJob::Multi(multi) => multi.jobs.iter().filter_map(|s| s.places.first().map(|p| p.duration)).sum(),
             })
             .sum(),
         BalancePeriodMetric::Distance => {
@@ -990,6 +985,7 @@ mod tests {
                         reloads: None,
                         recharges: None,
                         job_times: None,
+                        visit_windows: None,
                         regular_duration: None,
                     }],
                     capacity: vec![1],
