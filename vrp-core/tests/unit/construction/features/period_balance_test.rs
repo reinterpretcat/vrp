@@ -119,8 +119,7 @@ fn fitness_is_standard_deviation_of_per_shift_ratios() {
 
     let route_g0 = build_route_with_jobs(create_actor_at(0), 2);
     let route_g100 = build_route_with_jobs(create_actor_at(100), 2);
-    let insertion_ctx =
-        TestInsertionContextBuilder::default().with_routes(vec![route_g0, route_g100]).build();
+    let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_g0, route_g100]).build();
 
     let fitness = objective.fitness(&insertion_ctx);
 

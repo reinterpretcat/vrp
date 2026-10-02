@@ -50,8 +50,7 @@ impl LocalOperator for TerritoryRelocate {
         let problem = &insertion_ctx.problem;
         let random = insertion_ctx.environment.random.clone();
         let route_jobs = get_route_jobs(&insertion_ctx.solution);
-        let route_driver: Vec<&str> =
-            insertion_ctx.solution.routes.iter().map(|rc| driver_of(rc.route())).collect();
+        let route_driver: Vec<&str> = insertion_ctx.solution.routes.iter().map(|rc| driver_of(rc.route())).collect();
 
         // Score assigned jobs by how strongly their neighbourhood pulls them onto another driver.
         let mut candidates: Vec<(f64, Job, String)> = Vec::new(); // (score, job, home_driver)

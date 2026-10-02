@@ -569,12 +569,9 @@ impl TerritoryShared {
             Some(TerritoryBalance::Service) => self.service_share(job),
             Some(TerritoryBalance::ProductionValue) => (self.job_value_fn)(job),
             // The per-job ESTIMATE, not the measurement: see [`Self::job_travel_estimate`].
-            Some(TerritoryBalance::Distance) | Some(TerritoryBalance::Duration) => job
-                .dimens()
-                .get_job_id()
-                .and_then(|id| self.job_travel_estimate.get(id))
-                .copied()
-                .unwrap_or(0.0),
+            Some(TerritoryBalance::Distance) | Some(TerritoryBalance::Duration) => {
+                job.dimens().get_job_id().and_then(|id| self.job_travel_estimate.get(id)).copied().unwrap_or(0.0)
+            }
         }
     }
 
@@ -851,9 +848,7 @@ impl TerritoryShared {
 
         match job {
             Job::Single(single) => single.places.first().map(|place| place.duration).unwrap_or(0.0),
-            Job::Multi(multi) => {
-                multi.jobs.iter().filter_map(|s| s.places.first().map(|place| place.duration)).sum()
-            }
+            Job::Multi(multi) => multi.jobs.iter().filter_map(|s| s.places.first().map(|place| place.duration)).sum(),
         }
     }
 
@@ -966,9 +961,7 @@ impl TerritoryShared {
             | Some(TerritoryBalance::ProductionValue)
             | Some(TerritoryBalance::Service) => route_ctx.route().tour.jobs().map(|j| self.job_metric(j)).sum(),
             Some(TerritoryBalance::Distance) => route_ctx.state().get_total_distance().copied().unwrap_or(0.0),
-            Some(TerritoryBalance::Duration) => {
-                route_ctx.state().get_paid_working_duration().copied().unwrap_or(0.0)
-            }
+            Some(TerritoryBalance::Duration) => route_ctx.state().get_paid_working_duration().copied().unwrap_or(0.0),
         }
     }
 
@@ -1184,12 +1177,7 @@ impl TerritoryShared {
     ///
     /// The detour is what `estimate_leg` already computes for the transport feature, so this
     /// prices an insertion with the same arithmetic the plan is costed by.
-    fn push_marginal(
-        &self,
-        route_ctx: &RouteContext,
-        activity_ctx: &ActivityContext,
-        avg_load: Float,
-    ) -> Cost {
+    fn push_marginal(&self, route_ctx: &RouteContext, activity_ctx: &ActivityContext, avg_load: Float) -> Cost {
         if self.balance.is_none() {
             return 0.0;
         }
@@ -1329,12 +1317,8 @@ impl FeatureObjective for TerritoryObjective {
             // PUSH is not: what an insertion adds to a route's load is the detour it causes, and
             // that is only knowable once the position is.
             MoveContext::Activity { solution_ctx, route_ctx, activity_ctx } => {
-                let avg_load = solution_ctx
-                    .state
-                    .get_territory_avg_load()
-                    .copied()
-                    .unwrap_or(self.shared.avg_metric)
-                    .max(1e-9);
+                let avg_load =
+                    solution_ctx.state.get_territory_avg_load().copied().unwrap_or(self.shared.avg_metric).max(1e-9);
 
                 self.shared.push_marginal(route_ctx, activity_ctx, avg_load)
             }
@@ -1429,6 +1413,10 @@ impl TerritoryState {
         // the gain is calibrated against are unmoved.
         let jobs: usize = solution_ctx.routes.iter().map(|route_ctx| route_ctx.route().tour.job_count()).sum();
         let load: Float = solution_ctx.routes.iter().map(|route_ctx| self.shared.route_load(route_ctx)).sum();
-        solution_ctx.state.set_territory_avg_load(if jobs == 0 { self.shared.avg_metric } else { (load / jobs as Float).max(1e-9) });
+        solution_ctx.state.set_territory_avg_load(if jobs == 0 {
+            self.shared.avg_metric
+        } else {
+            (load / jobs as Float).max(1e-9)
+        });
     }
 }

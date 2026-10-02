@@ -660,7 +660,6 @@ fn can_place_wide_offset_break_on_transit_leg_with_consistent_times() {
     assert!((offset - 40.0).abs() <= 1.0, "break offset from tour departure should be near 40, got {offset}\n{debug}");
 }
 
-
 #[test]
 fn can_skip_required_break_when_it_starts_at_tour_end_boundary() {
     let problem = Problem {
@@ -1354,7 +1353,13 @@ fn validate_tour_schedule_only(tour: &Tour) {
 fn break_start(tour: &Tour) -> f64 {
     let intervals = collect_activity_intervals(tour);
     let breaks: Vec<_> = intervals.iter().filter(|(_, _, t, _)| t == "break").collect();
-    assert_eq!(breaks.len(), 1, "probe expects exactly 1 break, got {}\ntour: {}", breaks.len(), format_tour_debug(tour));
+    assert_eq!(
+        breaks.len(),
+        1,
+        "probe expects exactly 1 break, got {}\ntour: {}",
+        breaks.len(),
+        format_tour_debug(tour)
+    );
     breaks[0].0
 }
 
@@ -1552,7 +1557,13 @@ fn probe_mixed_window_and_offset_both_placed_correctly() {
     let departure = parse_time(&tour.stops[0].schedule().departure);
     let intervals = collect_activity_intervals(tour);
     let breaks: Vec<f64> = intervals.iter().filter(|(_, _, t, _)| t == "break").map(|(s, _, _, _)| *s).collect();
-    assert_eq!(breaks.len(), 2, "expected 2 breaks (1 window + 1 offset), got {}\ntour: {}", breaks.len(), format_tour_debug(tour));
+    assert_eq!(
+        breaks.len(),
+        2,
+        "expected 2 breaks (1 window + 1 offset), got {}\ntour: {}",
+        breaks.len(),
+        format_tour_debug(tour)
+    );
 
     // Window break expected at absolute 50; Offset break expected at departure+80.
     let win_target = 50.0;

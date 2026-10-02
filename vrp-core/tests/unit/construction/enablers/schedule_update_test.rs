@@ -1,11 +1,11 @@
 use super::*;
+use crate::construction::enablers::PaidWorkingDurationTourState;
 use crate::construction::enablers::{
     DynamicActivityCost, DynamicTransportCost, ReservedTimeSpan, TotalDistanceTourState, TotalDurationTourState,
 };
 use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::common::{Location, Schedule, TimeInterval, TimeOffset, TimeSpan, TimeWindow, Timestamp};
-use crate::construction::enablers::PaidWorkingDurationTourState;
 use crate::models::problem::{RouteCostSpan, RouteCostSpanDimension, VehicleDetail, VehiclePlace};
 use std::sync::Arc;
 
@@ -174,7 +174,7 @@ fn can_handle_single_job_route_with_all_spans() {
     let test_cases = vec![
         // Distance is the whole route (0->10 + 10->0 = 20) for every span; only the paid
         // duration differs.
-        (Some(RouteCostSpan::DepotToDepot), 20., 40.), // duration 40-0=40
+        (Some(RouteCostSpan::DepotToDepot), 20., 40.),   // duration 40-0=40
         (Some(RouteCostSpan::DepotToLastJob), 20., 20.), // duration 20-0=20
         (Some(RouteCostSpan::FirstJobToDepot), 20., 20.), // duration 40-20=20
         (Some(RouteCostSpan::FirstJobToLastJob), 20., 0.), // one job: first and last coincide

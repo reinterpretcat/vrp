@@ -1,11 +1,9 @@
+use crate::construction::enablers::{PaidWorkingDurationTourState, TotalDistanceTourState, TotalDurationTourState};
 use crate::construction::features::territory::{
     TerritoryFitnessSolutionState, TerritoryRouteQuotaTourState, TerritoryShared,
 };
 use crate::construction::features::{
     TerritoryBalance, TerritoryFeatureBuilder, TerritoryFitnessData, TerritoryProximity,
-};
-use crate::construction::enablers::{
-    PaidWorkingDurationTourState, TotalDistanceTourState, TotalDurationTourState,
 };
 use crate::construction::heuristics::{ActivityContext, InsertionContext, MoveContext, RouteContext, RouteState};
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
@@ -690,8 +688,7 @@ fn push_marginal_sheds_boundary_jobs_not_deep_ones() {
     let anchor_stop = ActivityBuilder::with_location(1).job(None).build();
     let estimate = |job: &Arc<Single>, location: usize| {
         let target = ActivityBuilder::with_location(location).job(Some(job.clone())).build();
-        let activity_ctx =
-            ActivityContext { index: 1, prev: &anchor_stop, target: &target, next: Some(&anchor_stop) };
+        let activity_ctx = ActivityContext { index: 1, prev: &anchor_stop, target: &target, next: Some(&anchor_stop) };
         objective.estimate(&MoveContext::activity(&ictx.solution, &ictx.solution.routes[0], &activity_ctx))
     };
 
@@ -811,8 +808,7 @@ fn push_marginal_fires_when_one_shift_of_several_is_over_its_share() {
     let anchor_stop = ActivityBuilder::with_location(45).job(None).build();
     let target = ActivityBuilder::with_location(45).job(Some(singles[5].clone())).build();
     let activity_ctx = ActivityContext { index: 1, prev: &anchor_stop, target: &target, next: Some(&anchor_stop) };
-    let estimate =
-        objective.estimate(&MoveContext::activity(&ictx.solution, &ictx.solution.routes[0], &activity_ctx));
+    let estimate = objective.estimate(&MoveContext::activity(&ictx.solution, &ictx.solution.routes[0], &activity_ctx));
 
     assert!(estimate > 0.0, "the route is over ITS share of the quota, so the marginal must fire");
 }
@@ -1233,7 +1229,11 @@ fn a_deficit_costs_nothing_until_it_is_weighed() {
         symmetric > one_sided,
         "weighing the deficit must add d1's shortfall to the bill: {symmetric} was not above {one_sided}"
     );
-    assert_eq!(push_at(0.5), one_sided + (symmetric - one_sided) / 2.0, "the weight must scale the deficit side linearly");
+    assert_eq!(
+        push_at(0.5),
+        one_sided + (symmetric - one_sided) / 2.0,
+        "the weight must scale the deficit side linearly"
+    );
 }
 
 // endregion
@@ -1244,10 +1244,9 @@ fn a_deficit_costs_nothing_until_it_is_weighed() {
 /// paid span with the idle taken out, which is the part of it an assignment actually decides.
 #[test]
 fn route_load_measures_the_route_for_travel_targets() {
-    for (balance, worked, distance, expected) in [
-        (TerritoryBalance::Duration, 777.0, 999.0, 777.0),
-        (TerritoryBalance::Distance, 777.0, 999.0, 999.0),
-    ] {
+    for (balance, worked, distance, expected) in
+        [(TerritoryBalance::Duration, 777.0, 999.0, 777.0), (TerritoryBalance::Distance, 777.0, 999.0, 999.0)]
+    {
         let fixture = shared_over(&[("d0", 0, 1000.0)], &[5, 95], Some(balance), HashMap::new());
         let mut route_ctx = route_with_jobs(
             fixture.actors[0].clone(),
@@ -1476,7 +1475,6 @@ fn the_duration_estimate_carries_service_time_as_well_as_travel() {
     // Round trip 0 -> 5 -> 0 is 10; the visit itself is 600.
     assert_eq!(shared.job_metric(&job), 610.0);
 }
-
 
 /// `Service` levels time spent at customers and nothing else — no travel in the load, none in the
 /// estimate. It is the metric with no feedback: moving a job cannot change how long it takes.

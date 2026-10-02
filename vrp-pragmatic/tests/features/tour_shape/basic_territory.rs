@@ -4,10 +4,10 @@
 //! meaningful (non-trivial) balance/territory tolerances -- see the module doc comment on each
 //! helper for what would make the assertion fail if the objective regressed.
 
+use crate::format::CoordIndex;
 use crate::format::problem::Objective::*;
 use crate::format::problem::*;
 use crate::format::solution::{Solution, Tour};
-use crate::format::CoordIndex;
 use crate::helpers::*;
 use std::collections::HashMap;
 use vrp_core::prelude::Float;
@@ -73,7 +73,7 @@ fn territory_objective_with_quota_and_weights(
         proximity,
         balance: Some(balance),
         balance_tolerance: 0.0,
-deficit_weight: 0.0,
+        deficit_weight: 0.0,
         anchors,
         weights,
         allow_idle_drivers: false,
@@ -102,10 +102,8 @@ fn problem_two_drivers_shared_start(metric: BalancePeriodMetric) -> TerritoryFix
     // (offset-from-anchor, production value) per job, per driver. driver0's cluster is smaller (2
     // jobs) than driver1's (4 jobs); per-job values are drawn from the same 1-3 scale on both
     // sides so the imbalance comes from genuine cluster composition, not a rigged value multiplier.
-    let clusters: [&[((f64, f64), Float)]; 2] = [
-        &[((-2., 0.), 2.), ((0., 3.), 3.)],
-        &[((-2., 0.), 3.), ((0., 3.), 3.), ((2., -2.), 2.), ((3., 1.), 2.)],
-    ];
+    let clusters: [&[((f64, f64), Float)]; 2] =
+        [&[((-2., 0.), 2.), ((0., 3.), 3.)], &[((-2., 0.), 3.), ((0., 3.), 3.), ((2., -2.), 2.), ((3., 1.), 2.)]];
 
     let mut home_vehicle = HashMap::new();
     let mut job_value = HashMap::new();
@@ -145,12 +143,7 @@ fn problem_two_drivers_shared_start(metric: BalancePeriodMetric) -> TerritoryFix
         MinimizeCost,
     ]);
 
-    TerritoryFixture {
-        problem: Problem { plan, fleet, objectives },
-        home_vehicle,
-        job_value,
-        vehicle_ids,
-    }
+    TerritoryFixture { problem: Problem { plan, fleet, objectives }, home_vehicle, job_value, vehicle_ids }
 }
 
 /// `cluster_sizes.len()` drivers sharing a start at the origin, anchors laid out on a circle
@@ -220,12 +213,7 @@ fn problem_grid(cluster_sizes: &[usize], metric: BalancePeriodMetric) -> Territo
         MinimizeCost,
     ]);
 
-    TerritoryFixture {
-        problem: Problem { plan, fleet, objectives },
-        home_vehicle,
-        job_value,
-        vehicle_ids,
-    }
+    TerritoryFixture { problem: Problem { plan, fleet, objectives }, home_vehicle, job_value, vehicle_ids }
 }
 
 /// Two drivers anchored at (-30,0) and (30,0) sharing a start at the origin, with six jobs placed on
@@ -322,7 +310,6 @@ fn activity_counts_per_tour(solution: &Solution, vehicle_ids: &[String]) -> Vec<
         .map(|vid| solution.tours.iter().find(|t| &t.vehicle_id == vid).map(|t| tour_job_ids(t).count()).unwrap_or(0))
         .collect()
 }
-
 
 /// Per-tour totals of `metric`, indexed against the full vehicle roster like
 /// `activity_counts_per_tour`. `Distance`/`Duration` read the tour's OWN travel, because that is
@@ -457,7 +444,11 @@ fn territory_balances_for_each_metric() {
         let fixture = problem_two_drivers_shared_start(metric.clone());
         let solution = solve(fixture.problem.clone(), SMALL_GENERATIONS);
 
-        assert!(solution.unassigned.is_none(), "metric {metric:?}: unexpected unassigned jobs: {:?}", solution.unassigned);
+        assert!(
+            solution.unassigned.is_none(),
+            "metric {metric:?}: unexpected unassigned jobs: {:?}",
+            solution.unassigned
+        );
 
         let totals = per_tour_metric_totals(&solution, &fixture.vehicle_ids, &metric, &fixture.job_value);
         let cv = coefficient_of_variation(&totals);

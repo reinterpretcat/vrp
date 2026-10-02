@@ -175,7 +175,8 @@ impl VehicleDistanceShared {
 
             let dist_assigned = self.round_trip(profile, assigned_start, job_loc);
 
-            let dist_nearest = self.find_nearest_compatible_vehicle_dist(job_loc, &job, profile).unwrap_or(dist_assigned);
+            let dist_nearest =
+                self.find_nearest_compatible_vehicle_dist(job_loc, &job, profile).unwrap_or(dist_assigned);
 
             let penalty = (dist_assigned - dist_nearest).max(0.0);
             total_penalty += penalty;
@@ -184,12 +185,7 @@ impl VehicleDistanceShared {
         total_penalty
     }
 
-    fn find_nearest_compatible_vehicle_dist(
-        &self,
-        job_loc: Location,
-        job: &Job,
-        profile: &Profile,
-    ) -> Option<Float> {
+    fn find_nearest_compatible_vehicle_dist(&self, job_loc: Location, job: &Job, profile: &Profile) -> Option<Float> {
         self.actors
             .iter()
             .filter(|actor| (self.compatibility_fn)(job, actor))
@@ -271,7 +267,6 @@ impl VehicleDistanceState {
         let penalty = self.shared.compute_route_penalty(route_ctx);
         route_ctx.state_mut().set_vehicle_distance_route_data(RouteVehicleDistanceData { penalty });
     }
-
 }
 
 impl FeatureState for VehicleDistanceState {

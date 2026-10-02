@@ -118,8 +118,7 @@ impl GoalContextBuilder {
         let alternative_goals = self.alternative_goals;
         let states = self.features.iter().filter_map(|feature| feature.state.clone()).collect();
         let constraints = self.features.iter().filter_map(|feature| feature.constraint.clone()).collect();
-        let objective_names =
-            self.features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.clone()).collect();
+        let objective_names = self.features.iter().filter(|f| f.objective.is_some()).map(|f| f.name.clone()).collect();
 
         Ok(GoalContext { goal, alternative_goals, constraints, states, objective_names })
     }
