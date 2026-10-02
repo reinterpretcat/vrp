@@ -737,6 +737,10 @@ pub enum Objective {
     /// compared to the nearest compatible vehicle in the fleet.
     MinimizeVehicleDistance,
 
+    /// An objective to minimize recurring visits served outside the recurring window of their
+    /// shift. Placed directly after minimizing unassigned jobs, it makes overflow a last resort.
+    MinimizeVisitWindowOverflow,
+
     /// An objective that builds balanced, capacity-aware territories around a per-driver anchor.
     Territory {
         /// Proximity metric defining the territory.

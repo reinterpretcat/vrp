@@ -79,6 +79,9 @@ pub use self::transport::*;
 mod vehicle_shifts;
 pub use self::vehicle_shifts::*;
 
+mod visit_window_overflow;
+pub use self::visit_window_overflow::*;
+
 mod work_balance;
 pub use self::work_balance::{
     create_activity_balanced_feature, create_distance_balanced_feature, create_duration_balanced_feature,

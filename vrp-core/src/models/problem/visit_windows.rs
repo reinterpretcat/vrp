@@ -34,9 +34,27 @@ pub struct VisitWindows {
 }
 
 impl VisitWindows {
-    /// The window a job of `kind` may lie in on this shift. With overflow, a recurring job may lie
-    /// anywhere from the earlier start to the later end of both windows; the overflow objective
-    /// counts it when it leaves its own. Overflow without an other window is no overflow.
+    /// The window a job of `kind` keeps to on this shift, and the one it may fall back to when it
+    /// does not fit: the other window for a recurring job with overflow, nothing otherwise.
+    /// Overflow without an other window is no overflow.
+    pub fn windows_for(
+        &self,
+        kind: &VisitWindowKind,
+    ) -> Option<((Timestamp, Timestamp), Option<(Timestamp, Timestamp)>)> {
+        let bounds = |window: &VisitWindow| (window.earliest, window.latest);
+
+        match kind {
+            VisitWindowKind::Other => self.other.as_ref().map(|other| (bounds(other), None)),
+            VisitWindowKind::Recurring => self
+                .recurring
+                .as_ref()
+                .map(|recurring| (bounds(recurring), self.other.as_ref().filter(|_| self.overflow).map(bounds))),
+        }
+    }
+
+    /// Everything a job of `kind` may lie in on this shift: with overflow, a recurring job may lie
+    /// anywhere from the earlier start to the later end of both windows. Overflow without an other
+    /// window is no overflow.
     pub fn bounds_for(&self, kind: &VisitWindowKind) -> Option<(Timestamp, Timestamp)> {
         match kind {
             VisitWindowKind::Other => self.other.as_ref().map(|w| (w.earliest, w.latest)),

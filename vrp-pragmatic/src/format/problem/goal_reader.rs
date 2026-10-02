@@ -335,6 +335,11 @@ fn get_objective_feature_layer(
             .set_jobs(blocks.jobs.clone())
             .set_compatibility_fn(territory_compatibility_fn())
             .build(),
+        Objective::MinimizeVisitWindowOverflow => create_visit_window_overflow_feature(
+            "min_visit_window_overflow",
+            blocks.transport.clone(),
+            blocks.activity.clone(),
+        ),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
         Objective::Territory {
             proximity,
@@ -460,6 +465,19 @@ fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Ob
     } else {
         let mut objectives =
             vec![Objective::MinimizeUnassigned { breaks: Some(1.) }, Objective::MinimizeTours, Objective::MinimizeCost];
+
+        // overflow is only ever worth placing a visit that would otherwise stay unassigned, so
+        // it ranks right after unassigned jobs and before every cost.
+        let has_overflow = api_problem
+            .fleet
+            .vehicles
+            .iter()
+            .flat_map(|vehicle| vehicle.shifts.iter())
+            .any(|shift| shift.visit_windows.as_ref().and_then(|windows| windows.overflow) == Some(true));
+
+        if has_overflow {
+            objectives.insert(1, Objective::MinimizeVisitWindowOverflow);
+        }
 
         if props.has_value {
             objectives.insert(0, Objective::MaximizeValue { breaks: None })

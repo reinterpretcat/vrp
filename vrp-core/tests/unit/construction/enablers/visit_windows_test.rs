@@ -163,3 +163,21 @@ fn reports_the_service_start_the_window_forces() {
 
     assert_eq!(service_start, 100.);
 }
+
+#[test]
+fn overflow_waits_for_the_own_window_when_the_visit_fits_it() {
+    let route = route(Some((50., 70.)), Some((0., 100.)), true);
+    let activity = activity(Some(VisitWindowKind::Recurring), (0., 1000.), 10.);
+
+    assert_eq!(cost().estimate_departure(&route, &activity, 1.).unwrap_value(), 60.);
+    assert_eq!(cost().estimate_service_start(&route, &activity, 1.), 50.);
+}
+
+#[test]
+fn overflow_serves_at_once_when_the_own_window_has_passed() {
+    let route = route(Some((50., 70.)), Some((0., 100.)), true);
+    let activity = activity(Some(VisitWindowKind::Recurring), (0., 1000.), 10.);
+
+    assert_eq!(cost().estimate_departure(&route, &activity, 65.).unwrap_value(), 75.);
+    assert_eq!(cost().estimate_service_start(&route, &activity, 65.), 65.);
+}
