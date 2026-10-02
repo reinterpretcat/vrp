@@ -457,6 +457,12 @@ You can fix the error by defining a small value (e.g. 0.0000001) for duration or
 `invalid job times in vehicle shift` error is returned when a vehicle shift's `jobTimes` cannot be satisfied by any
 plan: `earliestFirst` is not before `latestLast`, or either bound falls outside the shift's own start and end times.
 
+#### E1310
+
+`invalid visit windows` error is returned when a vehicle shift's `visitWindows` cannot be used: a window's `earliest`
+or `latest` is not a timestamp, `earliest` is not before `latest`, or the window falls outside the shift's own start and
+end times. It is also returned when a job's `visitWindow` is anything other than `recurring` or `other`.
+
 ### E15xx: Routing profiles
 
 These errors are related to routing locations and `fleet.profiles` property definitions.

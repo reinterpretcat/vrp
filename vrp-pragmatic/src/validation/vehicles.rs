@@ -278,6 +278,51 @@ fn check_e1309_vehicle_job_times(ctx: &ValidationContext) -> Result<(), FormatEr
     }
 }
 
+/// Checks that every visit window of a shift parses, runs forwards and lies inside the shift, and
+/// that every job's visit window tag names a window kind. A window outside its shift would bound
+/// visits by hours the vehicle is not working; an unknown tag would silently leave a job unbound.
+fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(|_, shift, shift_time| {
+            let Some(windows) = shift.visit_windows.as_ref() else { return true };
+
+            [&windows.recurring, &windows.other].into_iter().flatten().all(|window| {
+                // `parse_time` unwraps: a bound that is not a timestamp is an E1310, not a panic.
+                match (parse_time_safe(&window.earliest), parse_time_safe(&window.latest)) {
+                    (Ok(earliest), Ok(latest)) => {
+                        earliest < latest
+                            && shift_time
+                                .as_ref()
+                                .is_none_or(|shift_time| shift_time.contains(earliest) && shift_time.contains(latest))
+                    }
+                    _ => false,
+                }
+            })
+        }),
+    );
+
+    let job_ids = ctx
+        .jobs()
+        .filter(|job| job.visit_window.as_deref().is_some_and(|tag| tag != "recurring" && tag != "other"))
+        .map(|job| job.id.clone())
+        .collect::<Vec<_>>();
+
+    if type_ids.is_empty() && job_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1310".to_string(),
+            "invalid visit windows".to_string(),
+            format!(
+                "ensure every visit window is a pair of timestamps, earliest before latest, inside the shift, and every job's visit window is 'recurring' or 'other', vehicle type ids: '{}', job ids: '{}'",
+                type_ids.join(", "),
+                job_ids.join(", ")
+            ),
+        ))
+    }
+}
+
 type CheckShiftFn = Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>;
 
 fn get_invalid_type_ids(ctx: &ValidationContext, check_shift_fn: CheckShiftFn) -> Vec<String> {
@@ -321,6 +366,7 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1306_vehicle_has_no_zero_costs(ctx),
         check_e1308_vehicle_reload_resources(ctx),
         check_e1309_vehicle_job_times(ctx),
+        check_e1310_vehicle_visit_windows(ctx),
     ])
     .map_err(From::from)
 }
