@@ -463,6 +463,12 @@ plan: `earliestFirst` is not before `latestLast`, or either bound falls outside 
 or `latest` is not a timestamp, `earliest` is not before `latest`, or the window falls outside the shift's own start and
 end times. It is also returned when a job's `visitWindow` is anything other than `recurring` or `non-recurring`.
 
+#### E1311
+
+`invalid regular hours` error is returned when a vehicle shift's `regularHours` cannot be used: `earliest` or `latest`
+is not a timestamp, `earliest` is not before `latest`, or the hours fall outside the shift's own start and end times. It
+is also returned when a vehicle type sets `costs.offHours` but none of its shifts states `regularHours`.
+
 ### E15xx: Routing profiles
 
 These errors are related to routing locations and `fleet.profiles` property definitions.

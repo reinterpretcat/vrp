@@ -22,6 +22,9 @@ are already published. So, I stick to it for now.
 * add per-shift visit windows for recurring and non-recurring visits (`shift.visitWindows`, `job.visitWindow`), validated
   by `E1310` and held by the checker, and the `minimize-visit-window-overflow` objective, placed right after
   `minimize-unassigned` when a shift allows overflow
+* add per-shift regular hours (`shift.regularHours`) and an off-hours rate (`costs.offHours`): the time of the paid
+  span (`costs.span`) outside the regular hours is charged at the off-hours rate on top of the time cost, inside
+  `minimize-cost` like the overtime premium; validated by `E1311`, reported per tour as `statistic.times.offHours`
 * add an experimental objective
 * add naive implementation of LKH local search
 

@@ -6,11 +6,13 @@ use crate::format::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
-use vrp_core::construction::enablers::{ReservedTimesIndex, get_route_duration, get_route_intervals};
-use vrp_core::construction::features::{JobDemandDimension, get_overtime_premium};
+use vrp_core::construction::enablers::{ReservedTimesIndex, get_paid_span, get_route_duration, get_route_intervals};
+use vrp_core::construction::features::{JobDemandDimension, get_off_hours_premium, get_overtime_premium};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{JobIdDimension, JobTimeConstraintsDimension, Multi, TravelTime, VehicleIdDimension};
+use vrp_core::models::problem::{
+    JobIdDimension, JobTimeConstraintsDimension, Multi, RegularHoursDimension, TravelTime, VehicleIdDimension,
+};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::prelude::Float;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
@@ -272,6 +274,7 @@ fn create_tour(
                             break_time: leg.statistic.times.break_time + (if is_break { serving as i64 } else { 0 }),
                             commuting: leg.statistic.times.commuting + commuting as i64,
                             parking: leg.statistic.times.parking + parking as i64,
+                            off_hours: leg.statistic.times.off_hours,
                         },
                     },
                     load: Some(load),
@@ -289,6 +292,13 @@ fn create_tour(
     // its shift is paid on - the same figure the objective reads off the tour state - and not of
     // `leg.statistic`, which is always the round trip.
     leg.statistic.cost += vehicle.costs.fixed + get_overtime_premium(actor, get_route_duration(route));
+
+    // the off-hours premium the search priced on where the paid span lies, for the same reason; the
+    // seconds it was charged on are reported beside the other times.
+    if let (Some(span), Some(hours)) = (get_paid_span(route), vehicle.dimens.get_regular_hours().copied()) {
+        leg.statistic.cost += get_off_hours_premium(actor, span);
+        leg.statistic.times.off_hours = ((hours.earliest - span.0).max(0.) + (span.1 - hours.latest).max(0.)) as i64;
+    }
     tour.statistic = leg.statistic;
 
     insert_reserved_times_as_breaks(route, &mut tour, reserved_times_index);

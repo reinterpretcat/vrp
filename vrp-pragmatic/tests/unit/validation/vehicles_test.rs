@@ -307,3 +307,62 @@ fn can_reject_a_malformed_visit_window_without_panicking() {
 
     assert_eq!(result.err().map(|err| err.code), Some("E1310".to_string()));
 }
+
+parameterized_test! {can_validate_regular_hours, (hours, off_hours, expected), {
+    can_validate_regular_hours_impl(hours, off_hours, expected);
+}}
+
+can_validate_regular_hours! {
+    case01_valid: (Some((100., 400.)), Some(0.02), None),
+    case02_backwards: (Some((400., 100.)), Some(0.02), Some("E1311")),
+    case03_empty: (Some((100., 100.)), None, Some("E1311")),
+    case04_outside_shift: (Some((0., 2000.)), Some(0.02), Some("E1311")),
+    case05_rate_without_hours: (None, Some(0.02), Some("E1311")),
+    case06_hours_without_rate: (Some((100., 400.)), None, None),
+    case07_neither: (None, None, None),
+}
+
+fn can_validate_regular_hours_impl(hours: Option<(Float, Float)>, off_hours: Option<Float>, expected: Option<&str>) {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                costs: VehicleCosts { off_hours, ..create_default_vehicle_costs() },
+                shifts: vec![VehicleShift {
+                    regular_hours: hours.map(|(earliest, latest)| RegularHoursJson {
+                        earliest: format_time(earliest),
+                        latest: format_time(latest),
+                    }),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1311_vehicle_regular_hours(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), expected.map(str::to_string));
+}
+
+#[test]
+fn can_reject_malformed_regular_hours_without_panicking() {
+    let problem = Problem {
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    regular_hours: Some(RegularHoursJson { earliest: "08:30".to_string(), latest: format_time(400.) }),
+                    ..create_default_vehicle_shift()
+                }],
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+
+    let result = check_e1311_vehicle_regular_hours(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.err().map(|err| err.code), Some("E1311".to_string()));
+}

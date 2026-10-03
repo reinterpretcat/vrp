@@ -323,6 +323,48 @@ fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), Form
     }
 }
 
+fn check_e1311_vehicle_regular_hours(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let invalid_hours = get_invalid_type_ids(
+        ctx,
+        Box::new(|_, shift, shift_time| {
+            let Some(hours) = shift.regular_hours.as_ref() else { return true };
+
+            // `parse_time` unwraps: a bound that is not a timestamp is an E1311, not a panic.
+            match (parse_time_safe(&hours.earliest), parse_time_safe(&hours.latest)) {
+                (Ok(earliest), Ok(latest)) => {
+                    earliest < latest
+                        && shift_time
+                            .as_ref()
+                            .is_none_or(|shift_time| shift_time.contains(earliest) && shift_time.contains(latest))
+                }
+                _ => false,
+            }
+        }),
+    );
+
+    // a rate with no regular hours on any shift of the type can never apply: a mistake, not a no-op.
+    let rate_without_hours = ctx
+        .vehicles()
+        .filter(|vehicle| vehicle.costs.off_hours.is_some())
+        .filter(|vehicle| vehicle.shifts.iter().all(|shift| shift.regular_hours.is_none()))
+        .map(|vehicle| vehicle.type_id.clone());
+
+    let type_ids = invalid_hours.into_iter().chain(rate_without_hours).collect::<Vec<_>>();
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1311".to_string(),
+            "invalid regular hours".to_string(),
+            format!(
+                "ensure regular hours are a pair of timestamps, earliest before latest, inside the shift, and an off-hours rate is only set on a vehicle type with regular hours, vehicle type ids: '{}'",
+                type_ids.join(", ")
+            ),
+        ))
+    }
+}
+
 type CheckShiftFn = Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>;
 
 fn get_invalid_type_ids(ctx: &ValidationContext, check_shift_fn: CheckShiftFn) -> Vec<String> {
@@ -367,6 +409,7 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1308_vehicle_reload_resources(ctx),
         check_e1309_vehicle_job_times(ctx),
         check_e1310_vehicle_visit_windows(ctx),
+        check_e1311_vehicle_regular_hours(ctx),
     ])
     .map_err(From::from)
 }
