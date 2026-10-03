@@ -39,6 +39,9 @@ are already published. So, I stick to it for now.
 * report a visit held back by its shift's visit window as served from the window's start: the solution writer read the
   service start off the job's own window and the appointment bounds only, so the tour claimed service on arrival, the
   checker could not match the activity to its job and read a second visit at the same stop as served before its window
+* do not lengthen a visit by a required break that only touches it: a break taken at the stop right as the visit ends
+  was added to the visit's own time, and the checker, which reads a zero-length overlap as none, could not match the
+  visit to its job
 
 
 ## [1.25.0] 2024-11-10

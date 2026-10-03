@@ -319,3 +319,36 @@ fn can_handle_required_break_with_infeasible_sequence_relation() {
     assert_eq!(solution.unassigned.as_ref().map(|u| u.len()), Some(1));
     assert_eq!(solution.unassigned.as_ref().and_then(|u| u.first()).map(|j| j.job_id.as_str()), Some("0"));
 }
+
+#[test]
+fn a_break_starting_as_a_visit_ends_does_not_lengthen_the_visit() {
+    // job1 is served 5–7 and the break may start from 6 to 7, so it is taken at the stop, right
+    // after the visit: the two only touch. The visit must still read 5–7, or the checker cannot
+    // match it to its job.
+    let is_open = false;
+    let problem = create_problem(
+        vec![create_delivery_job_with_duration("job1", (5., 0.), 2.), create_delivery_job("job2", (10., 0.))],
+        VehicleBreak::Required {
+            time: VehicleRequiredBreakTime::ExactTime { earliest: format_time(6.), latest: format_time(7.) },
+            duration: 3.,
+        },
+        is_open,
+    );
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    let job1 = solution.tours[0]
+        .stops
+        .iter()
+        .flat_map(|stop| stop.activities().iter().map(move |activity| (stop, activity)))
+        .find(|(_, activity)| activity.job_id == "job1")
+        .map(|(stop, activity)| {
+            activity.time.as_ref().map_or_else(
+                || (parse_time(&stop.schedule().arrival), parse_time(&stop.schedule().departure)),
+                |time| (parse_time(&time.start), parse_time(&time.end)),
+            )
+        })
+        .expect("job1 is served");
+    assert_eq!(job1, (5., 7.));
+}

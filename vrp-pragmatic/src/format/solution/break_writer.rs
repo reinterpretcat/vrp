@@ -161,7 +161,10 @@ fn insert_break(
         if let Some(time) = &mut activity.time {
             let start = parse_time(&time.start);
             let end = parse_time(&time.end);
-            let overlap = TimeWindow::new(start, end).overlapping(reserved_tw);
+            // a break that only touches the activity, starting as it ends, does not lengthen it: the
+            // checker's `get_extra_time` reads a zero-length overlap the same way
+            let overlap =
+                TimeWindow::new(start, end).overlapping(reserved_tw).filter(|overlap| overlap.start != overlap.end);
 
             if let Some(overlap) = overlap {
                 let extra_time = reserved_tw.end - overlap.end + overlap.duration();
