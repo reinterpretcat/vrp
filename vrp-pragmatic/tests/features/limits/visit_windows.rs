@@ -3,21 +3,30 @@ use crate::format::solution::*;
 use crate::helpers::*;
 use crate::{format_time, parse_time};
 
-fn window(earliest: f64, latest: f64) -> VisitWindowJson {
-    VisitWindowJson { earliest: format_time(earliest), latest: format_time(latest) }
+fn window(earliest: f64, latest: f64, fallback: Option<&str>) -> VisitWindowJson {
+    VisitWindowJson {
+        earliest: format_time(earliest),
+        latest: format_time(latest),
+        fallback: fallback.map(str::to_string),
+        bridge: false,
+    }
 }
 
-fn problem(jobs: Vec<Job>, recurring: (f64, f64), non_recurring: (f64, f64), overflow: bool) -> Problem {
+/// One shift with an `own` window that falls back to a `fallback` window when `overflow` is on.
+fn problem(jobs: Vec<Job>, own: (f64, f64), fallback: (f64, f64), overflow: bool) -> Problem {
     Problem {
         plan: Plan { jobs, ..create_empty_plan() },
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    visit_windows: Some(VisitWindowsJson {
-                        recurring: Some(window(recurring.0, recurring.1)),
-                        non_recurring: Some(window(non_recurring.0, non_recurring.1)),
-                        overflow: Some(overflow),
-                    }),
+                    visit_windows: Some(
+                        [
+                            ("own".to_string(), window(own.0, own.1, overflow.then_some("fallback"))),
+                            ("fallback".to_string(), window(fallback.0, fallback.1, None)),
+                        ]
+                        .into_iter()
+                        .collect(),
+                    ),
                     ..create_default_vehicle_shift()
                 }],
                 ..create_default_vehicle_type()
@@ -48,13 +57,9 @@ fn solve(problem: Problem) -> Solution {
 }
 
 #[test]
-fn without_overflow_a_late_recurring_visit_stays_unassigned() {
-    let solution = solve(problem(
-        vec![tagged("near", 1., "recurring"), tagged("far", 30., "recurring")],
-        (0., 20.),
-        (0., 100.),
-        false,
-    ));
+fn without_fallback_a_late_visit_stays_unassigned() {
+    let solution =
+        solve(problem(vec![tagged("near", 1., "own"), tagged("far", 30., "own")], (0., 20.), (0., 100.), false));
 
     let unassigned = solution.unassigned.expect("far does not fit the recurring window");
     assert_eq!(unassigned.len(), 1);
@@ -62,21 +67,17 @@ fn without_overflow_a_late_recurring_visit_stays_unassigned() {
 }
 
 #[test]
-fn with_overflow_the_late_recurring_visit_is_planned() {
-    let solution = solve(problem(
-        vec![tagged("near", 1., "recurring"), tagged("far", 30., "recurring")],
-        (0., 20.),
-        (0., 100.),
-        true,
-    ));
+fn with_fallback_the_late_visit_is_planned() {
+    let solution =
+        solve(problem(vec![tagged("near", 1., "own"), tagged("far", 30., "own")], (0., 20.), (0., 100.), true));
 
     assert!(solution.unassigned.is_none(), "overflow places far in the non-recurring window");
     assert!(service_start(&solution, "near") + 10. <= 20.);
 }
 
 #[test]
-fn a_non_recurring_visit_keeps_to_its_window() {
-    let solution = solve(problem(vec![tagged("late", 30., "non-recurring")], (0., 100.), (50., 100.), false));
+fn a_visit_tagged_with_the_fallback_keeps_to_it() {
+    let solution = solve(problem(vec![tagged("late", 30., "fallback")], (0., 100.), (50., 100.), false));
 
     assert!(service_start(&solution, "late") >= 50.);
 }
@@ -84,7 +85,7 @@ fn a_non_recurring_visit_keeps_to_its_window() {
 #[test]
 fn overflow_waits_for_the_own_window_when_the_visit_fits_it() {
     // Serving at once in the non-recurring window would be shorter than waiting for 50.
-    let solution = solve(problem(vec![tagged("a", 1., "recurring")], (50., 70.), (0., 100.), true));
+    let solution = solve(problem(vec![tagged("a", 1., "own")], (50., 70.), (0., 100.), true));
 
     assert!(solution.unassigned.is_none());
     assert!(service_start(&solution, "a") >= 50.);
@@ -105,7 +106,7 @@ fn overflow_never_wins_on_cost_alone() {
     // ending at 45. A → B → O is longer and keeps B inside. The overflow objective ranks above
     // cost, so the longer tour wins.
     let mut problem = problem(
-        vec![tagged("a", 10., "recurring"), tagged("o", 15., "non-recurring"), tagged("b", 20., "recurring")],
+        vec![tagged("a", 10., "own"), tagged("o", 15., "fallback"), tagged("b", 20., "own")],
         (0., 45.),
         (0., 200.),
         true,
@@ -128,7 +129,7 @@ fn a_visit_held_back_by_its_window_mid_tour_reports_the_wait() {
     // service began at 50, or the checker cannot match the activity to its job and reads the
     // visit as served before its window.
     let solution = solve(problem(
-        vec![create_delivery_job_with_times("early", (1., 0.), vec![(0, 5)], 10.), tagged("held", 2., "recurring")],
+        vec![create_delivery_job_with_times("early", (1., 0.), vec![(0, 5)], 10.), tagged("held", 2., "own")],
         (50., 70.),
         (0., 100.),
         false,

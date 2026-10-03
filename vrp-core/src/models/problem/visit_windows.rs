@@ -1,75 +1,51 @@
 //! Per-shift windows a tagged visit has to lie in, and the tag a visit carries.
 
 use crate::models::common::{Dimensions, Timestamp};
+use std::collections::HashMap;
 
-/// Which of a shift's visit windows a job keeps to. A job without one is fixed: its own time
-/// window and the shift's job times bind it, no visit window does.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum VisitWindowKind {
-    /// A recurring visit with no preferred time.
-    Recurring,
-    /// Every non-recurring visit with no preferred time.
-    NonRecurring,
-}
-
-/// A window a visit lies entirely inside: service starts at or after `earliest` and the visit is
-/// departed at or before `latest`.
+/// A named window a tagged visit lies entirely inside: service starts at or after `earliest` and
+/// the visit is departed at or before `latest`.
 #[derive(Clone, Debug)]
 pub struct VisitWindow {
     /// Earliest service start.
     pub earliest: Timestamp,
     /// Latest departure.
     pub latest: Timestamp,
+    /// The window a visit may use instead when it does not fit this one. Need not contain it.
+    pub fallback: Option<String>,
+    /// Whether the window reaches out to the untagged visits on the visit's route.
+    pub bridge: bool,
 }
 
-/// The visit windows of one shift.
-#[derive(Clone, Debug)]
+/// The named visit windows of one shift. A job names the window it keeps to with its tag; a job
+/// without a tag is fixed: its own time window and the shift's job times bind it, no visit window does.
+#[derive(Clone, Debug, Default)]
 pub struct VisitWindows {
-    /// The window recurring visits keep to.
-    pub recurring: Option<VisitWindow>,
-    /// The window non-recurring visits keep to.
-    pub non_recurring: Option<VisitWindow>,
-    /// Whether a recurring visit may use the non-recurring window when it does not fit its own.
-    pub overflow: bool,
+    /// The windows by name.
+    pub windows: HashMap<String, VisitWindow>,
 }
 
 impl VisitWindows {
-    /// The window a job of `kind` keeps to on this shift, and the one it may fall back to when it
-    /// does not fit: the non-recurring window for a recurring job with overflow, nothing otherwise.
-    /// Overflow without an non-recurring window is no overflow.
-    pub fn windows_for(
-        &self,
-        kind: &VisitWindowKind,
-    ) -> Option<((Timestamp, Timestamp), Option<(Timestamp, Timestamp)>)> {
-        let bounds = |window: &VisitWindow| (window.earliest, window.latest);
+    /// The window `tag` names and its fallback chain, own window first. The chain stops at a name
+    /// the shift does not have and never visits a window twice.
+    pub fn chain(&self, tag: &str) -> Vec<(&str, &VisitWindow)> {
+        let mut chain: Vec<(&str, &VisitWindow)> = Vec::new();
+        let mut next = Some(tag);
 
-        match kind {
-            VisitWindowKind::NonRecurring => self.non_recurring.as_ref().map(|window| (bounds(window), None)),
-            VisitWindowKind::Recurring => self.recurring.as_ref().map(|recurring| {
-                (bounds(recurring), self.non_recurring.as_ref().filter(|_| self.overflow).map(bounds))
-            }),
+        while let Some(name) = next {
+            let Some((key, window)) = self.windows.get_key_value(name) else { break };
+
+            if chain.iter().any(|(seen, _)| *seen == key.as_str()) {
+                break;
+            }
+
+            chain.push((key.as_str(), window));
+            next = window.fallback.as_deref();
         }
-    }
 
-    /// Everything a job of `kind` may lie in on this shift: with overflow, a recurring job may lie
-    /// anywhere from the earlier start to the later end of both windows. Overflow without a non-recurring
-    /// window is no overflow.
-    pub fn bounds_for(&self, kind: &VisitWindowKind) -> Option<(Timestamp, Timestamp)> {
-        match kind {
-            VisitWindowKind::NonRecurring => self.non_recurring.as_ref().map(|w| (w.earliest, w.latest)),
-            VisitWindowKind::Recurring => match (&self.recurring, &self.non_recurring, self.overflow) {
-                (Some(r), Some(o), true) => Some((r.earliest.min(o.earliest), r.latest.max(o.latest))),
-                (Some(r), _, _) => Some((r.earliest, r.latest)),
-                (None, _, _) => None,
-            },
-        }
-    }
-
-    /// True when a recurring visit served from `start` to `end` lies outside its own window.
-    pub fn is_overflow(&self, start: Timestamp, end: Timestamp) -> bool {
-        self.recurring.as_ref().is_some_and(|r| start < r.earliest || end > r.latest)
+        chain
     }
 }
 
 custom_dimension!(pub VisitWindows typeof VisitWindows);
-custom_dimension!(pub VisitWindowKind typeof VisitWindowKind);
+custom_dimension!(pub VisitWindowTag typeof String);

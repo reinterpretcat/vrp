@@ -468,12 +468,9 @@ fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Ob
 
         // overflow is only ever worth placing a visit that would otherwise stay unassigned, so
         // it ranks right after unassigned jobs and before every cost.
-        let has_overflow = api_problem
-            .fleet
-            .vehicles
-            .iter()
-            .flat_map(|vehicle| vehicle.shifts.iter())
-            .any(|shift| shift.visit_windows.as_ref().and_then(|windows| windows.overflow) == Some(true));
+        let has_overflow = api_problem.fleet.vehicles.iter().flat_map(|vehicle| vehicle.shifts.iter()).any(|shift| {
+            shift.visit_windows.as_ref().is_some_and(|windows| windows.values().any(|window| window.fallback.is_some()))
+        });
 
         if has_overflow {
             objectives.insert(1, Objective::MinimizeVisitWindowOverflow);

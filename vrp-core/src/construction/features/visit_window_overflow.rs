@@ -1,7 +1,7 @@
-//! Counts recurring visits served outside the recurring window of their shift.
+//! Counts tagged visits served outside their own window, in one of its fallbacks.
 //!
-//! With overflow on, the visit-window activity cost lets a recurring visit use the hours of the
-//! non-recurring visits. This objective, placed directly after minimizing unassigned jobs, makes that the
+//! The visit-window activity cost lets a visit use its window's fallback chain when it does not fit
+//! its own window. This objective, placed directly after minimizing unassigned jobs, makes that the
 //! last resort: a solution only pays for an overflowed visit by placing a visit it otherwise could
 //! not, never to save distance or cost.
 
@@ -13,7 +13,7 @@ use super::*;
 use crate::models::solution::Activity;
 use std::ops::ControlFlow;
 
-/// Creates a feature whose objective counts recurring visits outside their own window.
+/// Creates a feature whose objective counts tagged visits outside their own window.
 pub fn create_visit_window_overflow_feature(
     name: &str,
     transport: Arc<dyn TransportCost>,
@@ -30,14 +30,20 @@ struct VisitWindowOverflowObjective {
     activity: Arc<dyn ActivityCost>,
 }
 
-fn is_recurring(activity: &Activity) -> bool {
-    activity.job.as_ref().and_then(|job| job.dimens.get_visit_window_kind()) == Some(&VisitWindowKind::Recurring)
+/// The own window of a tagged visit on its shift, when the shift has that window.
+fn own_window<'a>(windows: &'a VisitWindows, activity: &Activity) -> Option<&'a VisitWindow> {
+    let tag = activity.job.as_ref().and_then(|job| job.dimens.get_visit_window_tag())?;
+
+    windows.windows.get(tag)
 }
 
 /// Service start is read back from the departure: the schedule keeps arrival and departure, and
 /// the window or the job's own time window may have held service back past the arrival.
 fn overflows(windows: &VisitWindows, activity: &Activity, departure: Timestamp) -> bool {
-    windows.is_overflow(departure - activity.place.duration, departure)
+    own_window(windows, activity).is_some_and(|own| {
+        let start = departure - activity.place.duration;
+        start < own.earliest || departure > own.latest
+    })
 }
 
 impl FeatureObjective for VisitWindowOverflowObjective {
@@ -54,7 +60,6 @@ impl FeatureObjective for VisitWindowOverflowObjective {
                         .route()
                         .tour
                         .all_activities()
-                        .filter(|activity| is_recurring(activity))
                         .filter(|activity| overflows(windows, activity, activity.schedule.departure))
                         .count() as Cost,
                 )
@@ -70,7 +75,7 @@ impl FeatureObjective for VisitWindowOverflowObjective {
         let route = route_ctx.route();
 
         let Some(windows) = route.actor.vehicle.dimens.get_visit_windows() else { return Cost::default() };
-        if !is_recurring(target) {
+        if own_window(windows, target).is_none() {
             return Cost::default();
         }
 

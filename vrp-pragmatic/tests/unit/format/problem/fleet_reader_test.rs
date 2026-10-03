@@ -2,6 +2,7 @@ use super::create_transport_costs;
 use crate::format::problem::*;
 use crate::format_time;
 use crate::helpers::*;
+use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::models::common::{Distance, Profile as CoreProfile, TimeWindow, Timestamp};
 use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
@@ -9,7 +10,7 @@ use vrp_core::models::problem::{
     DriverIdDimension, OffHoursRateDimension, OvertimeRateDimension, RegularDurationDimension, RegularHoursDimension,
     TravelTime,
 };
-use vrp_core::models::problem::{JobIdDimension, VisitWindowKind, VisitWindowKindDimension, VisitWindowsDimension};
+use vrp_core::models::problem::{JobIdDimension, VisitWindowTagDimension, VisitWindowsDimension};
 use vrp_core::models::solution::Route;
 
 fn matrix(profile: Option<&str>, timestamp: Option<Float>, fill_value: i64, size: usize) -> Matrix {
@@ -240,18 +241,23 @@ fn reads_overtime_rate_and_regular_duration_into_dimens() {
 }
 
 #[test]
-fn reads_visit_windows_and_the_job_tag() {
+fn reads_named_visit_windows_with_fallback_and_bridge() {
     let matrix = matrix(Some("car"), None, 1, 9);
+    let window = |earliest: f64, latest: f64, fallback: Option<&str>, bridge: bool| VisitWindowJson {
+        earliest: format_time(earliest),
+        latest: format_time(latest),
+        fallback: fallback.map(str::to_string),
+        bridge,
+    };
 
     let vehicle = VehicleType {
         shifts: vec![VehicleShift {
             start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
             end: Some(ShiftEnd { earliest: None, latest: format_time(1000.), location: (0., 0.).to_loc() }),
-            visit_windows: Some(VisitWindowsJson {
-                recurring: Some(VisitWindowJson { earliest: format_time(100.), latest: format_time(400.) }),
-                non_recurring: Some(VisitWindowJson { earliest: format_time(100.), latest: format_time(800.) }),
-                overflow: Some(true),
-            }),
+            visit_windows: Some(HashMap::from([
+                ("working".to_string(), window(0., 900., None, false)),
+                ("regular".to_string(), window(100., 400., Some("working"), true)),
+            ])),
             ..create_default_vehicle_shift()
         }],
         ..create_default_vehicle_type()
@@ -260,7 +266,7 @@ fn reads_visit_windows_and_the_job_tag() {
     let problem = Problem {
         plan: Plan {
             jobs: vec![
-                Job { visit_window: Some("recurring".to_string()), ..create_delivery_job("job1", (1., 1.)) },
+                Job { visit_window: Some("regular".to_string()), ..create_delivery_job("job1", (1., 1.)) },
                 create_delivery_job("job2", (1., 0.)),
             ],
             relations: None,
@@ -273,21 +279,30 @@ fn reads_visit_windows_and_the_job_tag() {
     let problem = (problem, vec![matrix]).read_pragmatic().unwrap();
 
     let windows = problem.fleet.vehicles[0].dimens.get_visit_windows().expect("windows");
-    assert_eq!(windows.recurring.as_ref().unwrap().earliest, 100.);
-    assert_eq!(windows.recurring.as_ref().unwrap().latest, 400.);
-    assert_eq!(windows.non_recurring.as_ref().unwrap().latest, 800.);
-    assert!(windows.overflow);
+    let chain = windows.chain("regular").into_iter().map(|(name, _)| name).collect::<Vec<_>>();
+    assert_eq!(chain, vec!["regular", "working"]);
+    assert!(windows.windows["regular"].bridge);
+    assert_eq!(windows.windows["regular"].earliest, 100.);
+    assert_eq!(windows.windows["working"].latest, 900.);
 
-    let kind_of = |id: &str| {
+    let tag_of = |id: &str| {
         problem
             .jobs
             .all()
             .iter()
             .find(|job| job.dimens().get_job_id().map(String::as_str) == Some(id))
-            .and_then(|job| job.to_single().dimens.get_visit_window_kind().cloned())
+            .and_then(|job| job.to_single().dimens.get_visit_window_tag().cloned())
     };
-    assert_eq!(kind_of("job1"), Some(VisitWindowKind::Recurring));
-    assert_eq!(kind_of("job2"), None);
+    assert_eq!(tag_of("job1"), Some("regular".to_string()));
+    assert_eq!(tag_of("job2"), None);
+}
+
+#[test]
+fn refuses_the_old_visit_windows_shape() {
+    let shift = r#"{"start":{"earliest":"1970-01-01T00:00:00Z","location":{"lat":0,"lng":0}},
+        "visitWindows":{"recurring":{"earliest":"1970-01-01T00:00:00Z","latest":"1970-01-01T00:01:00Z"},"overflow":true}}"#;
+
+    assert!(serde_json::from_str::<VehicleShift>(shift).is_err(), "overflow is not a named window");
 }
 
 #[test]

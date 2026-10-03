@@ -15,7 +15,7 @@ use vrp_core::{
     models::common::*,
     models::problem::{
         Actor, Fleet, Job, JobIdDimension, Jobs, Multi, Place, Single, TransportCost, VehicleIdDimension,
-        VisitWindowKind, VisitWindowKindDimension,
+        VisitWindowTagDimension,
     },
     models::{Lock, LockDetail, LockOrder, LockPosition},
 };
@@ -176,16 +176,11 @@ fn read_required_jobs(
 
         // the cost that keeps a visit in its window reads the tag from the activity's single, so
         // every task of a multi job carries it, not only the multi job itself.
-        let visit_window_kind = match job.visit_window.as_deref() {
-            Some("recurring") => Some(VisitWindowKind::Recurring),
-            Some("non-recurring") => Some(VisitWindowKind::NonRecurring),
-            _ => None,
-        };
         let singles = singles
             .into_iter()
             .map(|mut single| {
-                if let Some(kind) = visit_window_kind.clone() {
-                    single.dimens.set_visit_window_kind(kind);
+                if let Some(tag) = job.visit_window.as_ref() {
+                    single.dimens.set_visit_window_tag(tag.clone());
                 }
                 single
             })

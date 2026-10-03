@@ -134,7 +134,7 @@ pub struct Job {
     #[serde(rename = "vehicleGroup", skip_serializing_if = "Option::is_none")]
     pub vehicle_group: Option<String>,
 
-    /// Which of a shift's visit windows the job keeps to: `recurring` or `non-recurring`. A job without
+    /// The name of the shift's visit window the job keeps to. A job without
     /// one is bound only by its own time windows and the shift's job times.
     #[serde(rename = "visitWindow", skip_serializing_if = "Option::is_none")]
     pub visit_window: Option<String>,
@@ -338,8 +338,8 @@ pub struct JobTimeConstraints {
     pub latest_last: Option<String>,
 }
 
-/// A window a tagged visit lies entirely inside: service starts at or after `earliest`, the visit is
-/// departed at or before `latest`.
+/// A named window a tagged visit lies entirely inside: service starts at or after `earliest`, the
+/// visit is departed at or before `latest`.
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VisitWindowJson {
@@ -347,22 +347,18 @@ pub struct VisitWindowJson {
     pub earliest: String,
     /// Latest departure (RFC3339 format).
     pub latest: String,
+    /// The name of the window a visit may use instead when it would otherwise stay unassigned.
+    /// It need not contain this one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fallback: Option<String>,
+    /// Whether the window reaches out to the untagged visits on the visit's route: from the earlier
+    /// of its start and their earliest window start to the later of its end and their latest window end.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub bridge: bool,
 }
 
-/// The windows a shift's tagged visits keep to: one for recurring visits, one for non-recurring
-/// visits, and whether a recurring visit may use the non-recurring window when it does not fit its own.
-#[derive(Clone, Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct VisitWindowsJson {
-    /// The window jobs tagged `recurring` keep to.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub recurring: Option<VisitWindowJson>,
-    /// The window jobs tagged `non-recurring` keep to.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub non_recurring: Option<VisitWindowJson>,
-    /// Whether a recurring job may lie in the non-recurring window instead. Off when omitted.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub overflow: Option<bool>,
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 /// Specifies vehicle shift.
@@ -395,7 +391,7 @@ pub struct VehicleShift {
 
     /// Windows the shift's tagged visits keep to, on top of the job times.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub visit_windows: Option<VisitWindowsJson>,
+    pub visit_windows: Option<std::collections::HashMap<String, VisitWindowJson>>,
 
     /// The duration this shift is paid at the regular rate, in seconds. Time
     /// beyond it is overtime. No overtime when omitted.

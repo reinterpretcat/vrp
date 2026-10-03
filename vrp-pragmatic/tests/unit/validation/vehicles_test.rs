@@ -233,29 +233,38 @@ fn can_validate_job_times_impl(job_times: Option<(Option<Float>, Option<Float>)>
     assert_eq!(result.err().map(|err| err.code), expected);
 }
 
-parameterized_test! {can_validate_visit_windows, (recurring, non_recurring, tag, expected), {
-    can_validate_visit_windows_impl(recurring, non_recurring, tag, expected);
+type WindowCase = (&'static str, (Float, Float), Option<&'static str>);
+
+parameterized_test! {can_validate_visit_windows, (windows, tag, expected), {
+    can_validate_visit_windows_impl(windows, tag, expected);
 }}
 
 can_validate_visit_windows! {
-    case01_valid: (Some((100., 400.)), Some((100., 800.)), Some("recurring"), None),
-    case02_backwards: (Some((400., 100.)), None, None, Some("E1310")),
-    case03_empty: (Some((100., 100.)), None, None, Some("E1310")),
-    case04_outside_shift: (Some((0., 2000.)), None, None, Some("E1310")),
-    case05_unknown_tag: (None, None, Some("weekly"), Some("E1310")),
-    case06_non_recurring_tag: (None, Some((100., 800.)), Some("non-recurring"), None),
+    case01_valid: (vec![("regular", (100., 400.), Some("working")), ("working", (0., 800.), None)], Some("regular"), None),
+    case02_backwards: (vec![("regular", (400., 100.), None)], None, Some("E1310")),
+    case03_empty: (vec![("regular", (100., 100.), None)], None, Some("E1310")),
+    case04_outside_shift: (vec![("regular", (0., 2000.), None)], None, Some("E1310")),
+    case05_unknown_fallback: (vec![("regular", (100., 400.), Some("nope"))], None, Some("E1310")),
+    case06_fallback_cycle: (vec![("a", (100., 400.), Some("b")), ("b", (100., 400.), Some("a"))], None, Some("E1310")),
+    case07_unknown_tag: (vec![("regular", (100., 400.), None)], Some("recurring"), Some("E1310")),
+    case08_fallback_need_not_contain_its_window: (vec![("morning", (100., 200.), Some("evening")), ("evening", (300., 400.), None)], Some("morning"), None),
 }
 
-fn can_validate_visit_windows_impl(
-    recurring: Option<(Float, Float)>,
-    non_recurring: Option<(Float, Float)>,
-    tag: Option<&str>,
-    expected: Option<&str>,
-) {
-    let window = |(earliest, latest): (Float, Float)| VisitWindowJson {
-        earliest: format_time(earliest),
-        latest: format_time(latest),
-    };
+fn can_validate_visit_windows_impl(windows: Vec<WindowCase>, tag: Option<&str>, expected: Option<&str>) {
+    let windows = windows
+        .into_iter()
+        .map(|(name, (earliest, latest), fallback)| {
+            (
+                name.to_string(),
+                VisitWindowJson {
+                    earliest: format_time(earliest),
+                    latest: format_time(latest),
+                    fallback: fallback.map(str::to_string),
+                    bridge: false,
+                },
+            )
+        })
+        .collect();
     let problem = Problem {
         plan: Plan {
             jobs: vec![Job { visit_window: tag.map(str::to_string), ..create_delivery_job("job1", (1., 0.)) }],
@@ -263,14 +272,7 @@ fn can_validate_visit_windows_impl(
         },
         fleet: Fleet {
             vehicles: vec![VehicleType {
-                shifts: vec![VehicleShift {
-                    visit_windows: Some(VisitWindowsJson {
-                        recurring: recurring.map(window),
-                        non_recurring: non_recurring.map(window),
-                        overflow: None,
-                    }),
-                    ..create_default_vehicle_shift()
-                }],
+                shifts: vec![VehicleShift { visit_windows: Some(windows), ..create_default_vehicle_shift() }],
                 ..create_default_vehicle_type()
             }],
             ..create_default_fleet()
@@ -289,11 +291,15 @@ fn can_reject_a_malformed_visit_window_without_panicking() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![VehicleShift {
-                    visit_windows: Some(VisitWindowsJson {
-                        recurring: Some(VisitWindowJson { earliest: "08:45".to_string(), latest: format_time(400.) }),
-                        non_recurring: None,
-                        overflow: None,
-                    }),
+                    visit_windows: Some(std::collections::HashMap::from([(
+                        "regular".to_string(),
+                        VisitWindowJson {
+                            earliest: "08:45".to_string(),
+                            latest: format_time(400.),
+                            fallback: None,
+                            bridge: false,
+                        },
+                    )])),
                     ..create_default_vehicle_shift()
                 }],
                 ..create_default_vehicle_type()

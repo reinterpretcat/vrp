@@ -278,16 +278,18 @@ fn check_e1309_vehicle_job_times(ctx: &ValidationContext) -> Result<(), FormatEr
     }
 }
 
-/// Checks that every visit window of a shift parses, runs forwards and lies inside the shift, and
-/// that every job's visit window tag names a window kind. A window outside its shift would bound
-/// visits by hours the vehicle is not working; an unknown tag would silently leave a job unbound.
+/// Checks that every named visit window of a shift parses, runs forwards and lies inside the shift,
+/// that its fallback names another window of the shift without a cycle, and that every job's tag
+/// names a window of every shift that has windows. A window outside its shift would bound visits by
+/// hours the vehicle is not working; an unknown tag would silently leave a job unbound. A fallback
+/// need not contain the window it backs: how windows relate is the caller's business.
 fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = get_invalid_type_ids(
         ctx,
         Box::new(|_, shift, shift_time| {
             let Some(windows) = shift.visit_windows.as_ref() else { return true };
 
-            [&windows.recurring, &windows.non_recurring].into_iter().flatten().all(|window| {
+            let is_valid_window = |window: &VisitWindowJson| {
                 // `parse_time` unwraps: a bound that is not a timestamp is an E1310, not a panic.
                 match (parse_time_safe(&window.earliest), parse_time_safe(&window.latest)) {
                     (Ok(earliest), Ok(latest)) => {
@@ -298,13 +300,43 @@ fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), Form
                     }
                     _ => false,
                 }
-            })
+            };
+
+            let has_valid_fallback = |name: &String| {
+                let mut seen = HashSet::new();
+                let mut next = Some(name);
+
+                while let Some(current) = next {
+                    if !seen.insert(current) {
+                        return false;
+                    }
+
+                    match windows.get(current) {
+                        Some(window) => next = window.fallback.as_ref(),
+                        None => return false,
+                    }
+                }
+
+                true
+            };
+
+            windows.iter().all(|(name, window)| is_valid_window(window) && has_valid_fallback(name))
         }),
     );
 
     let job_ids = ctx
         .jobs()
-        .filter(|job| job.visit_window.as_deref().is_some_and(|tag| tag != "recurring" && tag != "non-recurring"))
+        .filter(|job| {
+            job.visit_window.as_deref().is_some_and(|tag| {
+                ctx.problem
+                    .fleet
+                    .vehicles
+                    .iter()
+                    .flat_map(|vehicle| vehicle.shifts.iter())
+                    .filter_map(|shift| shift.visit_windows.as_ref())
+                    .any(|windows| !windows.contains_key(tag))
+            })
+        })
         .map(|job| job.id.clone())
         .collect::<Vec<_>>();
 
@@ -315,7 +347,7 @@ fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), Form
             "E1310".to_string(),
             "invalid visit windows".to_string(),
             format!(
-                "ensure every visit window is a pair of timestamps, earliest before latest, inside the shift, and every job's visit window is 'recurring' or 'non-recurring', vehicle type ids: '{}', job ids: '{}'",
+                "ensure every named visit window is a pair of timestamps inside the shift, its fallback names another window without a cycle, and every job's visitWindow names a window of the shifts, vehicle type ids: '{}', job ids: '{}'",
                 type_ids.join(", "),
                 job_ids.join(", ")
             ),

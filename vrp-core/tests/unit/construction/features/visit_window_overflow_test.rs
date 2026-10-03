@@ -4,27 +4,34 @@ use crate::helpers::models::problem::*;
 use crate::helpers::models::solution::*;
 use crate::models::solution::Activity;
 
+/// An `own` window 0–20 that falls back to a `fallback` window 0–100.
 fn windows() -> VisitWindows {
     VisitWindows {
-        recurring: Some(VisitWindow { earliest: 0., latest: 20. }),
-        non_recurring: Some(VisitWindow { earliest: 0., latest: 100. }),
-        overflow: true,
+        windows: [
+            (
+                "own".to_string(),
+                VisitWindow { earliest: 0., latest: 20., fallback: Some("fallback".to_string()), bridge: false },
+            ),
+            ("fallback".to_string(), VisitWindow { earliest: 0., latest: 100., fallback: None, bridge: false }),
+        ]
+        .into_iter()
+        .collect(),
     }
 }
 
-fn single(kind: Option<VisitWindowKind>) -> Arc<Single> {
+fn single(tag: Option<&str>) -> Arc<Single> {
     let mut builder = TestSingleBuilder::default();
     builder.duration(10.);
-    if let Some(kind) = kind {
-        builder.dimens_mut().set_visit_window_kind(kind);
+    if let Some(tag) = tag {
+        builder.dimens_mut().set_visit_window_tag(tag.to_string());
     }
     builder.build_shared()
 }
 
-fn visit(kind: Option<VisitWindowKind>, arrival: Timestamp, departure: Timestamp) -> Activity {
+fn visit(tag: Option<&str>, arrival: Timestamp, departure: Timestamp) -> Activity {
     ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(0., 1000.), 10.)
         .schedule(Schedule::new(arrival, departure))
-        .job(Some(single(kind)))
+        .job(Some(single(tag)))
         .build()
 }
 
@@ -50,13 +57,13 @@ fn feature() -> Feature {
 }
 
 #[test]
-fn counts_recurring_visits_outside_their_window() {
+fn counts_visits_outside_their_own_window() {
     let route = route_with(
         Some(windows()),
         vec![
-            visit(Some(VisitWindowKind::Recurring), 5., 15.),
-            visit(Some(VisitWindowKind::Recurring), 50., 60.),
-            visit(Some(VisitWindowKind::NonRecurring), 70., 80.),
+            visit(Some("own"), 5., 15.),
+            visit(Some("own"), 50., 60.),
+            visit(Some("fallback"), 70., 80.),
             visit(None, 90., 100.),
         ],
     );
@@ -67,27 +74,27 @@ fn counts_recurring_visits_outside_their_window() {
 
 #[test]
 fn counts_nothing_on_a_shift_without_windows() {
-    let route = route_with(None, vec![visit(Some(VisitWindowKind::Recurring), 50., 60.)]);
+    let route = route_with(None, vec![visit(Some("own"), 50., 60.)]);
     let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route]).build();
 
     assert_eq!(feature().objective.unwrap().fitness(&insertion_ctx), 0.);
 }
 
 #[test]
-fn estimates_one_for_a_recurring_visit_that_would_overflow() {
+fn estimates_one_for_a_visit_that_would_overflow() {
     let route = route_with(Some(windows()), vec![visit(None, 40., 50.)]);
     let objective = feature().objective.unwrap();
     let prev = route.route().tour.get(1).unwrap();
 
     let solution_ctx = TestInsertionContextBuilder::default().build().solution;
-    let estimate = |kind: VisitWindowKind| {
+    let estimate = |tag: &str| {
         let target = ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(0., 1000.), 10.)
-            .job(Some(single(Some(kind))))
+            .job(Some(single(Some(tag))))
             .build();
         let activity_ctx = ActivityContext { index: 1, prev, target: &target, next: None };
         objective.estimate(&MoveContext::activity(&solution_ctx, &route, &activity_ctx))
     };
 
-    assert_eq!(estimate(VisitWindowKind::Recurring), 1.);
-    assert_eq!(estimate(VisitWindowKind::NonRecurring), 0.);
+    assert_eq!(estimate("own"), 1.);
+    assert_eq!(estimate("fallback"), 0.);
 }

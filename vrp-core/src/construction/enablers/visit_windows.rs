@@ -4,9 +4,7 @@ mod visit_windows_test;
 
 use super::IsAppointmentFn;
 use crate::models::common::*;
-use crate::models::problem::{
-    ActivityCost, VisitWindowKind, VisitWindowKindDimension, VisitWindows, VisitWindowsDimension,
-};
+use crate::models::problem::{ActivityCost, VisitWindowTagDimension, VisitWindows, VisitWindowsDimension};
 use crate::models::solution::{Activity, Route};
 use std::ops::ControlFlow;
 use std::sync::Arc;
@@ -41,14 +39,22 @@ impl VisitWindowsActivityCost {
         Self { inner, is_visit }
     }
 
-    /// The vehicle lookup comes first: it is cheap and constant per route, and a shift without
-    /// windows leaves through it before the job is looked at.
-    fn windows(&self, route: &Route, activity: &Activity) -> Option<(Window, Option<Window>)> {
+    /// The windows a visit may lie in on this route: the window its tag names, then that window's
+    /// fallback chain. The vehicle lookup comes first: it is cheap and constant per route, and a shift
+    /// without windows leaves through it before the job is looked at.
+    fn windows(&self, route: &Route, activity: &Activity) -> Option<Vec<Window>> {
         let windows: &VisitWindows = route.actor.vehicle.dimens.get_visit_windows()?;
         let single = activity.job.as_ref()?;
-        let kind: &VisitWindowKind = single.dimens.get_visit_window_kind()?;
+        let tag: &String = single.dimens.get_visit_window_tag()?;
 
-        if (self.is_visit)(single) { windows.windows_for(kind) } else { None }
+        if !(self.is_visit)(single) {
+            return None;
+        }
+
+        let chain =
+            windows.chain(tag).into_iter().map(|(_, window)| (window.earliest, window.latest)).collect::<Vec<_>>();
+
+        (!chain.is_empty()).then_some(chain)
     }
 
     /// Serves the visit inside `window` from `arrival`: held back to its start, refused when it
@@ -69,16 +75,17 @@ impl VisitWindowsActivityCost {
         }
     }
 
-    /// The window the visit is served in from `arrival`: its own when it fits there, the fallback
-    /// otherwise. A visit that could wait for its own window waits, so overflow never serves a
-    /// recurring visit early just because the non-recurring hours open sooner.
+    /// The window the visit is served in from `arrival`: the first of its chain it fits, its own
+    /// window first. A visit that could wait for its own window waits, so a fallback never serves a
+    /// visit early just because it opens sooner. A visit that fits none is measured against the last.
     fn chosen(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Option<Window> {
-        let (own, fallback) = self.windows(route, activity)?;
+        let chain = self.windows(route, activity)?;
 
-        match (self.serve_in(route, activity, arrival, own), fallback) {
-            (ControlFlow::Break(_), Some(fallback)) => Some(fallback),
-            _ => Some(own),
-        }
+        chain
+            .iter()
+            .copied()
+            .find(|&window| matches!(self.serve_in(route, activity, arrival, window), ControlFlow::Continue(_)))
+            .or_else(|| chain.last().copied())
     }
 }
 
@@ -106,10 +113,9 @@ impl ActivityCost for VisitWindowsActivityCost {
         activity: &Activity,
         departure: Timestamp,
     ) -> ControlFlow<Timestamp, Timestamp> {
-        // the latest the visit may be departed from at all: the later end of its own window and
-        // its fallback.
-        let departure = self.windows(route, activity).map_or(departure, |((_, own), fallback)| {
-            departure.min(fallback.map_or(own, |(_, fallback)| own.max(fallback)))
+        // the latest the visit may be departed from at all: the latest end along its chain.
+        let departure = self.windows(route, activity).map_or(departure, |chain| {
+            departure.min(chain.iter().map(|&(_, latest)| latest).fold(Timestamp::MIN, Timestamp::max))
         });
 
         self.inner.estimate_arrival(route, activity, departure)
