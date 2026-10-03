@@ -1,9 +1,10 @@
+use crate::format::is_stop;
 use crate::format::problem::*;
 use crate::format::solution::solution_writer::create_tour;
 use crate::format::solution::*;
 use crate::helpers::*;
 use std::sync::Arc;
-use vrp_core::construction::enablers::ReservedTimeSpan;
+use vrp_core::construction::enablers::{JobTimeBoundsActivityCost, ReservedTimeSpan};
 use vrp_core::models::common::{TimeSpan, TimeWindow};
 use vrp_core::models::examples::create_example_problem;
 
@@ -237,6 +238,9 @@ fn create_fleet_with_appointment_bound(earliest_first: Float) -> DomainFleet {
 fn does_not_hold_a_break_back_to_the_appointment_bound() {
     let (mut problem, mut coord_index) = create_test_problem_and_coord_index();
     problem.fleet = Arc::new(create_fleet_with_appointment_bound(50.));
+    // wired as `problem_reader` wires a shift with appointment bounds: the writer asks this cost
+    // when service began
+    problem.activity = Arc::new(JobTimeBoundsActivityCost::new(problem.activity.clone(), Arc::new(is_stop)));
     coord_index.add(&Location::Reference { index: 1 });
     coord_index.add(&Location::Reference { index: 2 });
 

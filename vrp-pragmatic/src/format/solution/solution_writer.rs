@@ -10,9 +10,7 @@ use vrp_core::construction::enablers::{ReservedTimesIndex, get_paid_span, get_ro
 use vrp_core::construction::features::{JobDemandDimension, get_off_hours_premium, get_overtime_premium};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{
-    JobIdDimension, JobTimeConstraintsDimension, Multi, RegularHoursDimension, TravelTime, VehicleIdDimension,
-};
+use vrp_core::models::problem::{JobIdDimension, Multi, RegularHoursDimension, TravelTime, VehicleIdDimension};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::prelude::Float;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
@@ -184,12 +182,11 @@ fn create_tour(
                     };
 
                 let activity_arrival = parking + act.schedule.arrival + commute.forward.duration;
-                // the shift's appointment bounds hold service back exactly as `JobTimeBoundsActivityCost`
-                // does while the schedule is built. Without them here the tour would report the vehicle
-                // serving on arrival, and the waiting the bound caused would go unaccounted for.
-                let service_start = activity_arrival.max(act.place.time.start);
-                let service_start =
-                    get_earliest_first(route, act).map_or(service_start, |earliest| service_start.max(earliest));
+                // asked of the activity cost that built the schedule, so whatever held service back
+                // there — the job's own window, the shift's appointment bounds, its visit windows —
+                // holds it back here too. Without that the tour would report the vehicle serving on
+                // arrival, and the waiting would go unaccounted for.
+                let service_start = problem.activity.estimate_service_start(route, act, activity_arrival);
                 let waiting = service_start - activity_arrival;
                 let serving = act.place.duration - parking;
                 let service_end = service_start + serving;
@@ -333,25 +330,6 @@ fn create_tour(
 
 fn format_schedule(schedule: &DomainSchedule) -> ApiSchedule {
     ApiSchedule { arrival: format_time(schedule.arrival), departure: format_time(schedule.departure) }
-}
-
-/// Returns the lower appointment bound the activity is held back by, if its shift declares one.
-///
-/// Gated on `is_stop`, exactly as the wiring in `problem_reader` gates `JobTimeBoundsActivityCost`:
-/// the two sides have to answer "is this an appointment?" the same way, or the tour reports a wait
-/// the solver never took.
-fn get_earliest_first(route: &Route, activity: &Activity) -> Option<Timestamp> {
-    let single = activity.job.as_ref()?;
-
-    // A break, a reload and a recharge are jobs on the tour that the bounds do not govern, so the
-    // bound never moves their service start. A break cannot reach one in any case today, because
-    // `OptionalBreakConstraint` refuses a break as a tour's first activity and whatever appointment
-    // precedes it has already started at the bound.
-    if !is_stop(single) {
-        return None;
-    }
-
-    route.actor.vehicle.dimens.get_job_time_constraints().and_then(|bounds| bounds.earliest_first)
 }
 
 fn calculate_load(current: MultiDimLoad, act: &Activity) -> MultiDimLoad {

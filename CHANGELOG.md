@@ -36,6 +36,9 @@ are already published. So, I stick to it for now.
 * make the minimum tour size objective react to redistribution: its penalty is squared per route instead of a plain
   sum of deficits, and its route estimate reports the marginal penalty change instead of a constant, so under-sized
   tours are actually consolidated
+* report a visit held back by its shift's visit window as served from the window's start: the solution writer read the
+  service start off the job's own window and the appointment bounds only, so the tour claimed service on arrival, the
+  checker could not match the activity to its job and read a second visit at the same stop as served before its window
 
 
 ## [1.25.0] 2024-11-10

@@ -120,3 +120,29 @@ fn overflow_never_wins_on_cost_alone() {
     assert!(solution.unassigned.is_none());
     assert!(service_start(&solution, "b") + 10. <= 45., "b overflowed to save distance");
 }
+
+#[test]
+fn a_visit_held_back_by_its_window_mid_tour_reports_the_wait() {
+    // "early" has to be served by 5, so the tour is under way long before the recurring window
+    // opens at 50: the vehicle reaches "held" around 12 and waits there. The tour has to say
+    // service began at 50, or the checker cannot match the activity to its job and reads the
+    // visit as served before its window.
+    let solution = solve(problem(
+        vec![create_delivery_job_with_times("early", (1., 0.), vec![(0, 5)], 10.), tagged("held", 2., "recurring")],
+        (50., 70.),
+        (0., 100.),
+        false,
+    ));
+
+    assert!(solution.unassigned.is_none());
+    let held = solution
+        .tours
+        .iter()
+        .flat_map(|tour| tour.stops.iter())
+        .flat_map(|stop| stop.activities().iter())
+        .find(|activity| activity.job_id == "held")
+        .expect("held is planned");
+    let time = held.time.as_ref().expect("a held visit keeps its own service time");
+    assert_eq!(parse_time(&time.start), 50.);
+    assert_eq!(parse_time(&time.end), 60.);
+}
