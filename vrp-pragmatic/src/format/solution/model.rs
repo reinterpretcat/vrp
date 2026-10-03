@@ -27,7 +27,7 @@ pub struct Timing {
     #[serde(default = "i64::default")]
     pub parking: i64,
     /// Time of the paid span outside the shift's regular hours. Omitted when there is none.
-    #[serde(default = "i64::default", skip_serializing_if = "is_zero")]
+    #[serde(rename = "offHours", default = "i64::default", skip_serializing_if = "is_zero")]
     pub off_hours: i64,
 }
 

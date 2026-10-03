@@ -48,6 +48,8 @@ fn can_split_a_tour_that_would_run_past_the_regular_hours() {
     assert_eq!(solution.tours.len(), 2, "the work must be spread over both shifts: {solution:?}");
     assert_eq!(solution.statistic.cost, 460., "the premium must be reported in the cost: {solution:?}");
     assert_eq!(solution.statistic.times.off_hours, 4, "the time outside the regular hours must be reported");
+    let written = serde_json::to_value(&solution.statistic.times).expect("times serialize");
+    assert_eq!(written["offHours"], 4, "the solution format is camelCase: {written}");
 }
 
 #[test]
