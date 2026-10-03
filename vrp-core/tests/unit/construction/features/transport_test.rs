@@ -411,3 +411,160 @@ mod overtime {
         assert_eq!(with_overtime - without_overtime, expected);
     }
 }
+
+mod off_hours {
+    use super::*;
+    use crate::construction::enablers::get_paid_span;
+    use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+    use crate::models::problem::{
+        OffHoursRateDimension, RegularHours, RegularHoursDimension, RouteCostSpan, RouteCostSpanDimension,
+    };
+    use crate::models::solution::Route;
+
+    const HOUR: Timestamp = 3600.;
+    /// Twice the vehicle's `per_driving_time` (1 in `DEFAULT_VEHICLE_COSTS`), so the premium is 1 per second.
+    const OFF_HOURS_RATE: Cost = 2.;
+    const PREMIUM: Cost = OFF_HOURS_RATE - DEFAULT_VEHICLE_COSTS.per_driving_time;
+
+    /// Regular hours 08:30 - 17:30.
+    fn regular() -> RegularHours {
+        RegularHours { earliest: 8.5 * HOUR, latest: 17.5 * HOUR }
+    }
+
+    fn create_fleet(hours: Option<RegularHours>, rate: Option<Cost>, span: Option<RouteCostSpan>) -> Fleet {
+        let mut vehicle_builder = TestVehicleBuilder::default();
+        vehicle_builder.id("v1");
+
+        if let Some(hours) = hours {
+            vehicle_builder.dimens_mut().set_regular_hours(hours);
+        }
+        if let Some(rate) = rate {
+            vehicle_builder.dimens_mut().set_off_hours_rate(rate);
+        }
+        if let Some(span) = span {
+            vehicle_builder.dimens_mut().set_route_cost_span(span);
+        }
+
+        FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle_builder.build()).build()
+    }
+
+    fn at(location: Location, arrival: Timestamp, departure: Timestamp) -> Activity {
+        ActivityBuilder::with_location(location).schedule(Schedule::new(arrival, departure)).job(None).build()
+    }
+
+    /// Leaves home at `leave`, serves one job from `first` to `last`, is home at `home`.
+    fn create_route(fleet: &Fleet, leave: Timestamp, first: Timestamp, last: Timestamp, home: Timestamp) -> Route {
+        let job = ActivityBuilder::with_location(10)
+            .schedule(Schedule::new(first, last))
+            .job(Some(TestSingleBuilder::default().build_shared()))
+            .build();
+
+        RouteBuilder::default()
+            .with_vehicle(fleet, "v1")
+            .with_start(at(0, leave, leave))
+            .with_end(at(0, home, home))
+            .add_activities(vec![job])
+            .build()
+    }
+
+    fn premium(leave: Timestamp, home: Timestamp, hours: Option<RegularHours>, rate: Option<Cost>) -> Cost {
+        let fleet = create_fleet(hours, rate, None);
+        let route = create_route(&fleet, leave, leave + 600., home - 600., home);
+
+        get_off_hours_premium(route.actor.as_ref(), get_paid_span(&route).unwrap())
+    }
+
+    parameterized_test! {can_price_the_time_outside_the_regular_hours, (leave, home, expected), {
+        assert_eq!(premium(leave, home, Some(regular()), Some(OFF_HOURS_RATE)), expected);
+    }}
+
+    can_price_the_time_outside_the_regular_hours! {
+        case01_inside: (9. * HOUR, 17. * HOUR, 0.),
+        case02_early: (7.5 * HOUR, 17. * HOUR, PREMIUM * HOUR),
+        case03_both_sides: (8. * HOUR, 18.5 * HOUR, PREMIUM * (0.5 * HOUR + HOUR)),
+        case04_exactly_the_regular_hours: (8.5 * HOUR, 17.5 * HOUR, 0.),
+    }
+
+    #[test]
+    fn charges_nothing_without_regular_hours_or_rate_or_below_the_regular_rate() {
+        assert_eq!(premium(6. * HOUR, 20. * HOUR, None, Some(OFF_HOURS_RATE)), 0.);
+        assert_eq!(premium(6. * HOUR, 20. * HOUR, Some(regular()), None), 0.);
+        assert_eq!(premium(6. * HOUR, 20. * HOUR, Some(regular()), Some(0.5)), 0.);
+    }
+
+    parameterized_test! {measures_the_paid_span, (span, expected), {
+        let fleet = create_fleet(Some(regular()), Some(OFF_HOURS_RATE), Some(span));
+        // Leaves 07:30, first visit 08:30, last visit ends 17:00, home 18:00.
+        let route = create_route(&fleet, 7.5 * HOUR, 8.5 * HOUR, 17. * HOUR, 18. * HOUR);
+
+        assert_eq!(get_off_hours_premium(route.actor.as_ref(), get_paid_span(&route).unwrap()), expected);
+    }}
+
+    measures_the_paid_span! {
+        case01_depot_to_depot: (RouteCostSpan::DepotToDepot, PREMIUM * (HOUR + 0.5 * HOUR)),
+        case02_depot_to_last_job: (RouteCostSpan::DepotToLastJob, PREMIUM * HOUR),
+        case03_first_job_to_depot: (RouteCostSpan::FirstJobToDepot, PREMIUM * 0.5 * HOUR),
+        case04_first_job_to_last_job: (RouteCostSpan::FirstJobToLastJob, 0.),
+    }
+
+    fn create_feature() -> Feature {
+        TransportFeatureBuilder::new("transport")
+            .set_violation_code(VIOLATION_CODE)
+            .set_transport_cost(TestTransportCost::new_shared())
+            .set_activity_cost(TestActivityCost::new_shared())
+            .build_minimize_cost()
+            .unwrap()
+    }
+
+    fn fitness(rate: Option<Cost>) -> Cost {
+        let fleet = create_fleet(Some(regular()), rate, None);
+        let route_ctx = RouteContextBuilder::default()
+            .with_route(create_route(&fleet, 7.5 * HOUR, 8.5 * HOUR, 17. * HOUR, 17.5 * HOUR))
+            .build();
+        let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route_ctx]).build();
+
+        create_feature().objective.unwrap().fitness(&insertion_ctx)
+    }
+
+    /// Estimates inserting a visit 100 units out between the last job and home: it pushes the end of
+    /// the tour back by 200 seconds, as in the overtime estimate.
+    fn estimate(rate: Option<Cost>, home: Timestamp) -> Cost {
+        let fleet = create_fleet(Some(regular()), rate, None);
+        let job = ActivityBuilder::with_location(0)
+            .schedule(Schedule::new(9. * HOUR, home))
+            .job(Some(TestSingleBuilder::default().build_shared()))
+            .build();
+        let route = RouteBuilder::default()
+            .with_vehicle(&fleet, "v1")
+            .with_start(at(0, 9. * HOUR, 9. * HOUR))
+            .with_end(at(0, home, home))
+            .add_activities(vec![job])
+            .build();
+        let route_ctx = RouteContextBuilder::default().with_route(route).build();
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let target = ActivityBuilder::with_location(100).build();
+        let activity_ctx = ActivityContext {
+            index: 1,
+            prev: route_ctx.route().tour.get(1).unwrap(),
+            target: &target,
+            next: route_ctx.route().tour.get(2),
+        };
+
+        create_feature().objective.unwrap().estimate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx))
+    }
+
+    parameterized_test! {estimates_what_an_insertion_adds_after_the_regular_hours, (home, expected), {
+        assert_eq!(estimate(Some(OFF_HOURS_RATE), home) - estimate(None, home), expected);
+    }}
+
+    estimates_what_an_insertion_adds_after_the_regular_hours! {
+        case01_pushed_past_the_end: (17.5 * HOUR - 100., PREMIUM * 100.),
+        case02_kept_inside: (17. * HOUR, 0.),
+        case03_already_past_the_end: (18. * HOUR, PREMIUM * 200.),
+    }
+
+    #[test]
+    fn adds_the_premium_to_the_cost_of_the_solution() {
+        assert_eq!(fitness(Some(OFF_HOURS_RATE)) - fitness(None), PREMIUM * HOUR);
+    }
+}

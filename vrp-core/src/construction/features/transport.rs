@@ -9,7 +9,9 @@ use std::ops::ControlFlow;
 use super::*;
 use crate::construction::enablers::*;
 use crate::models::common::Timestamp;
-use crate::models::problem::{ActivityCost, Single, TransportCost, TravelTime};
+use crate::models::problem::{
+    ActivityCost, OffHoursRateDimension, RegularHoursDimension, Single, TransportCost, TravelTime,
+};
 use crate::models::solution::Activity;
 use rosomaxa::utils::UnwrapValue;
 
@@ -402,6 +404,26 @@ pub fn get_overtime_premium(actor: &Actor, duration: Duration) -> Cost {
     premium * (duration - regular).max(0.)
 }
 
+/// What a tour owes for the time its paid span lies outside the shift's regular hours: the
+/// difference between the off-hours rate and the regular one, on every second before the regular
+/// hours start and after they end.
+///
+/// Built like [`get_overtime_premium`], against the same regular rate and with the same clamp: a
+/// shift without regular hours or without a rate owes nothing, and a rate below the regular one
+/// never pays the solver to work off hours. It adds to overtime where both apply.
+pub fn get_off_hours_premium(actor: &Actor, (from, to): (Timestamp, Timestamp)) -> Cost {
+    let dimens = &actor.vehicle.dimens;
+
+    let (Some(hours), Some(rate)) = (dimens.get_regular_hours().copied(), dimens.get_off_hours_rate().copied()) else {
+        return Cost::default();
+    };
+
+    let premium = (rate - actor.vehicle.costs.per_driving_time).max(0.);
+    let outside = (hours.earliest - from).max(0.) + (to - hours.latest).max(0.);
+
+    premium * outside
+}
+
 /// What an insertion which grows the tour by `change_duration` adds to the premium it already owes.
 ///
 /// NOTE the new duration is projected as the tour's total plus the change, the same cheap
@@ -422,6 +444,30 @@ fn get_overtime_premium_delta(route_ctx: &RouteContext, change_duration: Duratio
     let new_duration = old_duration + change_duration;
 
     get_overtime_premium(actor, new_duration) - get_overtime_premium(actor, old_duration)
+}
+
+/// What an insertion which pushes the end of the tour back by `change_duration` adds to the off-hours
+/// premium: the same tail-side projection as the overtime delta. A start that moves with it (a later
+/// departure) is left to `fitness`, as it is for overtime.
+fn get_off_hours_premium_delta(route_ctx: &RouteContext, change_duration: Duration) -> Cost {
+    let route = route_ctx.route();
+
+    // most problems state no regular hours: answered on one dimension lookup.
+    if route.actor.vehicle.dimens.get_regular_hours().is_none() {
+        return Cost::default();
+    }
+
+    let Some((from, to)) = get_paid_span(route) else {
+        return Cost::default();
+    };
+
+    get_off_hours_premium(route.actor.as_ref(), (from, to + change_duration))
+        - get_off_hours_premium(route.actor.as_ref(), (from, to))
+}
+
+/// Both premiums an insertion that grows the tour by `change_duration` adds on top of the time cost.
+fn get_time_premium_delta(route_ctx: &RouteContext, change_duration: Duration) -> Cost {
+    get_overtime_premium_delta(route_ctx, change_duration) + get_off_hours_premium_delta(route_ctx, change_duration)
 }
 
 struct CostObjective {
@@ -460,11 +506,11 @@ impl CostObjective {
 
         // no jobs yet or open vrp: nothing is displaced, so the whole new leg is what the tour grows by.
         if !route_ctx.route().tour.has_jobs() {
-            return new_costs + get_overtime_premium_delta(route_ctx, dep_time_tail - prev.schedule.departure);
+            return new_costs + get_time_premium_delta(route_ctx, dep_time_tail - prev.schedule.departure);
         }
 
         let Some(next) = next else {
-            return new_costs + get_overtime_premium_delta(route_ctx, dep_time_tail - prev.schedule.departure);
+            return new_costs + get_time_premium_delta(route_ctx, dep_time_tail - prev.schedule.departure);
         };
 
         let waiting_time = route_ctx.state().get_waiting_time_at(activity_ctx.index + 1).copied().unwrap_or_default();
@@ -477,7 +523,7 @@ impl CostObjective {
 
         let old_costs = tp_cost_old + act_cost_old + waiting_cost;
 
-        new_costs - old_costs + get_overtime_premium_delta(route_ctx, dep_time_tail - dep_time_old)
+        new_costs - old_costs + get_time_premium_delta(route_ctx, dep_time_tail - dep_time_old)
     }
 
     fn analyze_route_leg(
@@ -508,7 +554,11 @@ impl FeatureObjective for CostObjective {
         insertion_ctx.solution.routes.iter().fold(base, |acc, route_ctx| {
             let duration = route_ctx.state().get_total_duration().copied().unwrap_or(0.);
 
-            acc + get_overtime_premium(route_ctx.route().actor.as_ref(), duration)
+            let actor = route_ctx.route().actor.as_ref();
+            let off_hours =
+                get_paid_span(route_ctx.route()).map_or(Cost::default(), |span| get_off_hours_premium(actor, span));
+
+            acc + get_overtime_premium(actor, duration) + off_hours
         })
     }
 

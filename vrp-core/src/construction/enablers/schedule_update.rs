@@ -242,6 +242,32 @@ pub fn get_route_duration(route: &Route) -> Duration {
     calculate_route_duration(route, cost_span, route.tour.total(), start, end)
 }
 
+/// When the route's paid span starts and ends: the same activities [`get_route_duration`] measures
+/// over, by the vehicle's `RouteCostSpan`. `None` for a route without a start and an end, and for a
+/// span that runs from or to a job on a route without one.
+///
+/// The off-hours premium asks this rather than the duration, because what it prices is where the
+/// span lies on the clock, not how long it runs.
+pub fn get_paid_span(route: &Route) -> Option<(Timestamp, Timestamp)> {
+    let (start, end) = (route.tour.start()?, route.tour.end()?);
+    let total = route.tour.total();
+
+    match route.actor.vehicle.dimens.get_route_cost_span().copied().unwrap_or_default() {
+        RouteCostSpan::DepotToDepot => Some((start.schedule.departure, end.schedule.departure)),
+        RouteCostSpan::DepotToLastJob => {
+            let last = route.tour.get(get_last_job_idx(route, total)?)?;
+            Some((start.schedule.departure, last.schedule.departure))
+        }
+        RouteCostSpan::FirstJobToDepot => {
+            has_jobs(route, total).then(|| (route.tour.get(1).unwrap().schedule.arrival, end.schedule.departure))
+        }
+        RouteCostSpan::FirstJobToLastJob => {
+            let last = route.tour.get(get_last_job_idx(route, total)?)?;
+            Some((route.tour.get(1)?.schedule.arrival, last.schedule.departure))
+        }
+    }
+}
+
 fn update_statistics(route_ctx: &mut RouteContext, transport: &dyn TransportCost) {
     let (route, state) = route_ctx.as_mut();
 
