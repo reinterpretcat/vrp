@@ -48,6 +48,7 @@ fn can_check_load_impl(stop_loads: Vec<i32>, expected_result: Result<(), Vec<Gen
                     job_times: None,
                     visit_windows: None,
                     regular_duration: None,
+                    regular_hours: None,
                 }],
                 capacity: vec![5],
                 ..create_default_vehicle_type()

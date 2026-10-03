@@ -142,7 +142,14 @@ fn can_read_complex_problem() {
                 type_id: "my_vehicle".to_string(),
                 vehicle_ids: vec!["my_vehicle_1".to_string(), "my_vehicle_2".to_string()],
                 profile: create_default_vehicle_profile(),
-                costs: VehicleCosts { fixed: Some(100.), distance: 1., time: 2., overtime: None, span: None },
+                costs: VehicleCosts {
+                    fixed: Some(100.),
+                    distance: 1.,
+                    time: 2.,
+                    overtime: None,
+                    off_hours: None,
+                    span: None,
+                },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
                         earliest: "1970-01-01T00:00:00Z".to_string(),
@@ -171,6 +178,7 @@ fn can_read_complex_problem() {
                     job_times: None,
                     visit_windows: None,
                     regular_duration: None,
+                    regular_hours: None,
                 }],
                 capacity: vec![10, 1],
                 skills: Some(vec!["unique1".to_string(), "unique2".to_string()]),

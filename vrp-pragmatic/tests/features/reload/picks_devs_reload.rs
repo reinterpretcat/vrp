@@ -30,6 +30,7 @@ fn can_use_vehicle_with_pickups_and_deliveries() {
                     job_times: None,
                     visit_windows: None,
                     regular_duration: None,
+                    regular_hours: None,
                 }],
                 capacity: vec![1],
                 ..create_default_vehicle_type()

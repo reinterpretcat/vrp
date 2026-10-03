@@ -122,7 +122,14 @@ fn can_handle_properly_invalid_break_removal() {
                     type_id: "vehicle1".to_string(),
                     vehicle_ids: vec!["vehicle1_1".to_string()],
                     profile: VehicleProfile { matrix: "car".to_string(), scale: None },
-                    costs: VehicleCosts { fixed: Some(20.), distance: 0.002, time: 0.003, overtime: None, span: None },
+                    costs: VehicleCosts {
+                        fixed: Some(20.),
+                        distance: 0.002,
+                        time: 0.003,
+                        overtime: None,
+                        off_hours: None,
+                        span: None,
+                    },
                     shifts: vec![VehicleShift {
                         start: ShiftStart {
                             earliest: "2020-07-04T09:00:00Z".to_string(),
@@ -147,6 +154,7 @@ fn can_handle_properly_invalid_break_removal() {
                         job_times: None,
                         visit_windows: None,
                         regular_duration: None,
+                        regular_hours: None,
                     }],
                     capacity: vec![5],
                     skills: None,

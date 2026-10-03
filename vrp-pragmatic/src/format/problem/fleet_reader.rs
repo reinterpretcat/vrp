@@ -156,6 +156,17 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
                     dimens.set_regular_duration(regular_duration);
                 }
 
+                if let Some(rate) = vehicle.costs.off_hours {
+                    dimens.set_off_hours_rate(rate);
+                }
+
+                if let Some(hours) = shift.regular_hours.as_ref() {
+                    dimens.set_regular_hours(vrp_core::models::problem::RegularHours {
+                        earliest: parse_time(&hours.earliest),
+                        latest: parse_time(&hours.latest),
+                    });
+                }
+
                 if let Some(driver_id) = vehicle.driver_id.as_ref() {
                     dimens.set_driver_id(driver_id.clone());
                 }

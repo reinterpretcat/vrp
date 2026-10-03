@@ -5,7 +5,10 @@ use crate::helpers::*;
 use std::sync::Arc;
 use vrp_core::models::common::{Distance, Profile as CoreProfile, TimeWindow, Timestamp};
 use vrp_core::models::problem::{Actor, ActorDetail, Vehicle};
-use vrp_core::models::problem::{DriverIdDimension, OvertimeRateDimension, RegularDurationDimension, TravelTime};
+use vrp_core::models::problem::{
+    DriverIdDimension, OffHoursRateDimension, OvertimeRateDimension, RegularDurationDimension, RegularHoursDimension,
+    TravelTime,
+};
 use vrp_core::models::problem::{JobIdDimension, VisitWindowKind, VisitWindowKindDimension, VisitWindowsDimension};
 use vrp_core::models::solution::Route;
 
@@ -285,4 +288,42 @@ fn reads_visit_windows_and_the_job_tag() {
     };
     assert_eq!(kind_of("job1"), Some(VisitWindowKind::Recurring));
     assert_eq!(kind_of("job2"), None);
+}
+
+#[test]
+fn reads_off_hours_rate_and_regular_hours_into_dimens() {
+    let matrix = matrix(Some("car"), None, 1, 4);
+
+    let vehicle = VehicleType {
+        costs: VehicleCosts { off_hours: Some(0.03), ..create_default_vehicle_costs() },
+        shifts: vec![
+            VehicleShift {
+                start: ShiftStart { earliest: format_time(0.), latest: None, location: (0., 0.).to_loc() },
+                end: Some(ShiftEnd { earliest: None, latest: format_time(99.), location: (0., 0.).to_loc() }),
+                regular_hours: Some(RegularHoursJson { earliest: format_time(10.), latest: format_time(90.) }),
+                ..create_default_vehicle_shift()
+            },
+            VehicleShift {
+                start: ShiftStart { earliest: format_time(100.), latest: None, location: (0., 0.).to_loc() },
+                end: Some(ShiftEnd { earliest: None, latest: format_time(200.), location: (0., 0.).to_loc() }),
+                ..create_default_vehicle_shift()
+            },
+        ],
+        ..create_default_vehicle_type()
+    };
+
+    let problem = Problem {
+        plan: Plan { jobs: vec![create_delivery_job("job1", (1., 1.))], relations: None, clustering: None },
+        fleet: Fleet { vehicles: vec![vehicle], profiles: create_default_matrix_profiles(), resources: None },
+        objectives: None,
+    };
+
+    let problem = (problem, vec![matrix]).read_pragmatic().unwrap();
+
+    let vehicles = &problem.fleet.vehicles;
+    let hours = vehicles[0].dimens.get_regular_hours().copied().unwrap();
+    assert_eq!((hours.earliest, hours.latest), (10., 90.));
+    assert_eq!(vehicles[0].dimens.get_off_hours_rate(), Some(&0.03));
+    assert!(vehicles[1].dimens.get_regular_hours().is_none());
+    assert_eq!(vehicles[1].dimens.get_off_hours_rate(), Some(&0.03));
 }

@@ -102,6 +102,7 @@ mod single {
                         job_times: None,
                         visit_windows: None,
                         regular_duration: None,
+                        regular_hours: None,
                     }],
                     capacity: vec![5],
                     skills: None,

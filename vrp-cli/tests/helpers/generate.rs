@@ -36,7 +36,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
         driver_id: None,
         vehicle_ids: vec!["vehicle_1".to_string()],
         profile: VehicleProfile { matrix: "car".to_string(), scale: None },
-        costs: VehicleCosts { fixed: None, distance: 1., time: 0., overtime: None, span: None },
+        costs: VehicleCosts { fixed: None, distance: 1., time: 0., overtime: None, off_hours: None, span: None },
         shifts: vec![VehicleShift {
             start: ShiftStart {
                 earliest: "2020-05-01T09:00:00.00Z".to_string(),
@@ -50,6 +50,7 @@ pub fn create_test_vehicle_type() -> VehicleType {
             job_times: None,
             visit_windows: None,
             regular_duration: None,
+            regular_hours: None,
         }],
         capacity: vec![10],
         skills: None,

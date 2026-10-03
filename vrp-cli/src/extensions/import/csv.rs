@@ -119,7 +119,14 @@ mod actual {
                     driver_id: None,
                     vehicle_ids: (1..=vehicle.amount).map(|seq| format!("{}_{}", vehicle.profile, seq)).collect(),
                     profile: VehicleProfile { matrix: vehicle.profile, scale: None },
-                    costs: VehicleCosts { fixed: Some(25.), distance: 0.0002, time: 0.005, overtime: None, span: None },
+                    costs: VehicleCosts {
+                        fixed: Some(25.),
+                        distance: 0.0002,
+                        time: 0.005,
+                        overtime: None,
+                        off_hours: None,
+                        span: None,
+                    },
                     shifts: vec![VehicleShift {
                         start: ShiftStart {
                             earliest: vehicle.tw_start,
@@ -133,6 +140,7 @@ mod actual {
                         job_times: None,
                         visit_windows: None,
                         regular_duration: None,
+                        regular_hours: None,
                     }],
                     capacity: vec![vehicle.capacity],
                     skills: None,

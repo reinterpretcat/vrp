@@ -39,6 +39,7 @@ fn can_serve_multi_job_and_delivery_in_one_tour_avoiding_reload_impl(generations
                     job_times: None,
                     visit_windows: None,
                     regular_duration: None,
+                    regular_hours: None,
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()

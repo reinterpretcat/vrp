@@ -26,6 +26,7 @@ fn create_named_vehicle_with_job_time_constraints(
             }),
             visit_windows: None,
             regular_duration: None,
+            regular_hours: None,
         }],
         ..create_default_vehicle_type()
     }
@@ -48,6 +49,7 @@ fn create_open_route_vehicle_with_job_time_constraints(
             }),
             visit_windows: None,
             regular_duration: None,
+            regular_hours: None,
         }],
         ..create_default_vehicle_type()
     }
@@ -195,6 +197,7 @@ fn can_keep_the_wait_a_late_departure_cannot_absorb() {
                     job_times: Some(JobTimeConstraints { earliest_first: Some(format_time(10.)), latest_last: None }),
                     visit_windows: None,
                     regular_duration: None,
+                    regular_hours: None,
                 }],
                 ..create_default_vehicle_type()
             }],
@@ -435,12 +438,14 @@ fn can_work_with_depot_to_depot_span() {
                     job_times: Some(JobTimeConstraints { earliest_first: Some(format_time(10.)), latest_last: None }),
                     visit_windows: None,
                     regular_duration: None,
+                    regular_hours: None,
                 }],
                 costs: VehicleCosts {
                     fixed: Some(10.),
                     distance: 1.,
                     time: 1.,
                     overtime: None,
+                    off_hours: None,
                     span: Some(RouteCostSpan::DepotToDepot), // Explicit depot-to-depot
                 },
                 ..create_default_vehicle_type()

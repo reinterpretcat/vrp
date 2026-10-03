@@ -51,6 +51,23 @@ custom_dimension!(pub OvertimeRate typeof Float);
 // vehicle type, because two shifts of the same type can run different lengths.
 custom_dimension!(pub RegularDuration typeof Float);
 
+/// When a shift normally works. The time of its paid span outside these hours is charged at the
+/// off-hours rate on top of the regular time cost; inside them nothing changes.
+#[derive(Clone, Copy, Debug)]
+pub struct RegularHours {
+    /// When the regular hours start.
+    pub earliest: Timestamp,
+    /// When the regular hours end.
+    pub latest: Timestamp,
+}
+
+// The shift's regular hours. Set per shift, because two shifts of one type can keep different hours.
+custom_dimension!(pub RegularHours typeof RegularHours);
+
+// Cost per time unit of the paid span outside the shift's regular hours, shared by every shift of the
+// vehicle type like the overtime rate.
+custom_dimension!(pub OffHoursRate typeof Float);
+
 /// Represents operating costs for driver and vehicle.
 #[derive(Clone, Debug)]
 pub struct Costs {

@@ -25,6 +25,7 @@ fn create_later_vehicle_shift_with_locations(offset: Float, start: (f64, f64), e
         job_times: None,
         visit_windows: None,
         regular_duration: None,
+        regular_hours: None,
     }
 }
 

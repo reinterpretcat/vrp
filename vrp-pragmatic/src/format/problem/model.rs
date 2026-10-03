@@ -280,6 +280,11 @@ pub struct VehicleCosts {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub overtime: Option<Float>,
 
+    /// Cost per time unit of the paid span (see `span`) outside the shift's regular hours. No
+    /// premium when omitted; a rate below the time cost charges nothing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub off_hours: Option<Float>,
+
     /// Specifies which portion of the route to include in cost calculations.
     /// Defaults to depot-to-depot for full round trip costs.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -396,6 +401,21 @@ pub struct VehicleShift {
     /// beyond it is overtime. No overtime when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub regular_duration: Option<Float>,
+
+    /// When the shift normally works. The paid span outside them is charged at the vehicle's
+    /// off-hours rate. No premium when omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub regular_hours: Option<RegularHoursJson>,
+}
+
+/// When a shift normally works, in RFC3339.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegularHoursJson {
+    /// When the regular hours start.
+    pub earliest: String,
+    /// When the regular hours end.
+    pub latest: String,
 }
 
 /// Specifies a place where vehicle can load or unload cargo.

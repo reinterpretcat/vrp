@@ -114,7 +114,7 @@ prop_compose! {
           recharges,
           job_times: None,
           visit_windows: None,
-          regular_duration: None,
+          regular_duration: None, regular_hours: None,
         }
     }
 }

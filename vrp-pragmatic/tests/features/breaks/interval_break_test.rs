@@ -120,6 +120,7 @@ fn can_assign_interval_break_with_reload() {
                     job_times: None,
                     visit_windows: None,
                     regular_duration: None,
+                    regular_hours: None,
                 }],
                 capacity: vec![2],
                 ..create_default_vehicle_type()

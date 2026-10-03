@@ -85,8 +85,8 @@ pub fn default_job_prototype() -> impl Strategy<Value = Job> {
 
 pub fn default_costs_prototype() -> impl Strategy<Value = VehicleCosts> {
     from_costs(vec![
-        VehicleCosts { fixed: Some(20.), distance: 0.0020, time: 0.003, overtime: None, span: None },
-        VehicleCosts { fixed: Some(30.), distance: 0.0015, time: 0.005, overtime: None, span: None },
+        VehicleCosts { fixed: Some(20.), distance: 0.0020, time: 0.003, overtime: None, off_hours: None, span: None },
+        VehicleCosts { fixed: Some(30.), distance: 0.0015, time: 0.005, overtime: None, off_hours: None, span: None },
     ])
 }
 
