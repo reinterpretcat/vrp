@@ -47,13 +47,19 @@ fn route_with(windows: Option<VisitWindows>, activities: Vec<Activity>) -> Route
         .build()
 }
 
-fn feature() -> Feature {
+fn feature_measuring(measure: OverflowMeasure) -> Feature {
     create_visit_window_overflow_feature(
         "overflow",
+        measure,
         TestTransportCost::new_shared(),
         Arc::new(SimpleActivityCost::default()),
+        Arc::new(|_: &Single| true),
     )
     .unwrap()
+}
+
+fn feature() -> Feature {
+    feature_measuring(OverflowMeasure::Visits)
 }
 
 #[test]
@@ -97,4 +103,32 @@ fn estimates_one_for_a_visit_that_would_overflow() {
 
     assert_eq!(estimate("own"), 1.);
     assert_eq!(estimate("fallback"), 0.);
+}
+
+#[test]
+fn sums_the_time_outside_the_own_window() {
+    // own window 0–20: one visit served 15–25 lies 5 outside, one served 50–60 lies 10 outside.
+    let route = route_with(Some(windows()), vec![visit(Some("own"), 15., 25.), visit(Some("own"), 50., 60.)]);
+    let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route]).build();
+
+    assert_eq!(feature_measuring(OverflowMeasure::Minutes).objective.unwrap().fitness(&insertion_ctx), 15.);
+}
+
+#[test]
+fn a_bridged_gap_is_not_overflow() {
+    // own window 50–100, bridged; an untagged visit with window 20–30 is on the route, so a visit
+    // served 31–41 lies inside.
+    let bridged = VisitWindows {
+        windows: [("own".to_string(), VisitWindow { earliest: 50., latest: 100., fallback: None, bridge: true })]
+            .into_iter()
+            .collect(),
+    };
+    let fixed = ActivityBuilder::with_location_tw_and_duration(1, TimeWindow::new(20., 30.), 5.)
+        .schedule(Schedule::new(20., 25.))
+        .job(Some(single(None)))
+        .build();
+    let route = route_with(Some(bridged), vec![fixed, visit(Some("own"), 31., 41.)]);
+    let insertion_ctx = TestInsertionContextBuilder::default().with_routes(vec![route]).build();
+
+    assert_eq!(feature_measuring(OverflowMeasure::Minutes).objective.unwrap().fitness(&insertion_ctx), 0.);
 }

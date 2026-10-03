@@ -10,24 +10,39 @@
 mod visit_window_overflow_test;
 
 use super::*;
-use crate::models::solution::Activity;
+use crate::construction::enablers::{IsAppointmentFn, own_window_on};
+use crate::models::solution::{Activity, Route};
 use std::ops::ControlFlow;
 
-/// Creates a feature whose objective counts tagged visits outside their own window.
+/// What the overflow objective measures for a visit outside its own window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OverflowMeasure {
+    /// One per visit outside its own window.
+    Visits,
+    /// The service time that lies outside its own window.
+    Minutes,
+}
+
+/// Creates a feature whose objective measures tagged visits outside their own window, the own window
+/// bridged on its route.
 pub fn create_visit_window_overflow_feature(
     name: &str,
+    measure: OverflowMeasure,
     transport: Arc<dyn TransportCost>,
     activity: Arc<dyn ActivityCost>,
+    is_visit: IsAppointmentFn,
 ) -> GenericResult<Feature> {
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(VisitWindowOverflowObjective { transport, activity })
+        .with_objective(VisitWindowOverflowObjective { measure, transport, activity, is_visit })
         .build()
 }
 
 struct VisitWindowOverflowObjective {
+    measure: OverflowMeasure,
     transport: Arc<dyn TransportCost>,
     activity: Arc<dyn ActivityCost>,
+    is_visit: IsAppointmentFn,
 }
 
 /// The own window of a tagged visit on its shift, when the shift has that window.
@@ -37,13 +52,22 @@ fn own_window<'a>(windows: &'a VisitWindows, activity: &Activity) -> Option<&'a 
     windows.windows.get(tag)
 }
 
-/// Service start is read back from the departure: the schedule keeps arrival and departure, and
-/// the window or the job's own time window may have held service back past the arrival.
-fn overflows(windows: &VisitWindows, activity: &Activity, departure: Timestamp) -> bool {
-    own_window(windows, activity).is_some_and(|own| {
+impl VisitWindowOverflowObjective {
+    /// How far a visit departing at `departure` lies outside its own window on `route`. Service start
+    /// is read back from the departure: the schedule keeps arrival and departure, and the window or
+    /// the job's own time window may have held service back past the arrival.
+    fn overflow(&self, route: &Route, windows: &VisitWindows, activity: &Activity, departure: Timestamp) -> Cost {
+        let Some(own) = own_window(windows, activity) else { return Cost::default() };
+        let (earliest, latest) = own_window_on(route, own, &self.is_visit);
         let start = departure - activity.place.duration;
-        start < own.earliest || departure > own.latest
-    })
+        let outside = ((earliest - start).max(0.) + (departure - latest).max(0.)).min(departure - start);
+
+        match self.measure {
+            OverflowMeasure::Visits if start < earliest || departure > latest => 1.,
+            OverflowMeasure::Visits => Cost::default(),
+            OverflowMeasure::Minutes => outside,
+        }
+    }
 }
 
 impl FeatureObjective for VisitWindowOverflowObjective {
@@ -55,13 +79,14 @@ impl FeatureObjective for VisitWindowOverflowObjective {
             .filter_map(|route_ctx| {
                 let windows = route_ctx.route().actor.vehicle.dimens.get_visit_windows()?;
 
+                let route = route_ctx.route();
+
                 Some(
-                    route_ctx
-                        .route()
+                    route
                         .tour
                         .all_activities()
-                        .filter(|activity| overflows(windows, activity, activity.schedule.departure))
-                        .count() as Cost,
+                        .map(|activity| self.overflow(route, windows, activity, activity.schedule.departure))
+                        .sum::<Cost>(),
                 )
             })
             .sum()
@@ -91,6 +116,6 @@ impl FeatureObjective for VisitWindowOverflowObjective {
             ControlFlow::Continue(departure) | ControlFlow::Break(departure) => departure,
         };
 
-        if overflows(windows, target, departure) { 1. } else { Cost::default() }
+        self.overflow(route, windows, target, departure)
     }
 }

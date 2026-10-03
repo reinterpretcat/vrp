@@ -19,9 +19,7 @@ are already published. So, I stick to it for now.
 
 ### Added
 
-* add per-shift visit windows for recurring and non-recurring visits (`shift.visitWindows`, `job.visitWindow`), validated
-  by `E1310` and held by the checker, and the `minimize-visit-window-overflow` objective, placed right after
-  `minimize-unassigned` when a shift allows overflow
+* add per-shift named visit windows (`shift.visitWindows`, a map of `{ earliest, latest, fallback?, bridge? }`; `job.visitWindow` names one), validated by `E1310` and held by the checker: a visit uses its window's `fallback` chain only when it does not fit, and a `bridge` window reaches out to the route's untagged visits, returning the visits a ruin strands for reinsertion; and the `minimize-visit-window-overflow` objective, measuring `visits` or `minutes` outside the own window, placed right after `minimize-unassigned` when a shift window has a fallback
 * add per-shift regular hours (`shift.regularHours`) and an off-hours rate (`costs.offHours`): the time of the paid
   span (`costs.span`) outside the regular hours is charged at the off-hours rate on top of the time cost, inside
   `minimize-cost` like the overtime premium; validated by `E1311`, reported per tour as `statistic.times.offHours`

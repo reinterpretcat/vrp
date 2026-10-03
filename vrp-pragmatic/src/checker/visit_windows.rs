@@ -35,6 +35,32 @@ fn check_tours(context: &CheckerContext) -> GenericResult<()> {
                 .collect(),
         };
 
+        // the window bounds of the tour's untagged visits: a bridged own window reaches out to them,
+        // as `own_window_on` does while the tour is built.
+        let fixed_bounds = tour
+            .stops
+            .iter()
+            .flat_map(|stop| stop.activities().iter().map(move |activity| (stop, activity)))
+            .filter(|(_, activity)| is_stop_activity(activity))
+            .filter_map(|(stop, activity)| {
+                let job = context.get_job_by_id(&activity.job_id)?;
+                if job.visit_window.is_some() {
+                    return None;
+                }
+                let served = context.get_activity_time(stop, activity);
+                let times = match_job_task(&activity.activity_type, job, |tasks| tasks.first())
+                    .and_then(|task| task.places.first())
+                    .and_then(|place| place.times.clone())?;
+
+                times
+                    .iter()
+                    .filter_map(|time| Some((parse_time(time.first()?), parse_time(time.last()?))))
+                    .find(|&(start, end)| served.start <= end && served.end >= start)
+            })
+            .fold(None, |bounds: Option<(f64, f64)>, (start, end)| {
+                Some(bounds.map_or((start, end), |(earliest, latest)| (earliest.min(start), latest.max(end))))
+            });
+
         tour.stops
             .iter()
             .flat_map(|stop| stop.activities().iter().map(move |activity| (stop, activity)))
@@ -55,9 +81,13 @@ fn check_tours(context: &CheckerContext) -> GenericResult<()> {
                     .map_or(0., |place| place.duration);
                 let service_start = departure - duration;
 
-                let fits = |window: &VisitWindow| service_start >= window.earliest && departure <= window.latest;
+                let fits = |(earliest, latest): (f64, f64)| service_start >= earliest && departure <= latest;
+                let bounds = |idx: usize, window: &VisitWindow| match (idx, window.bridge, fixed_bounds) {
+                    (0, true, Some((earliest, latest))) => (window.earliest.min(earliest), window.latest.max(latest)),
+                    _ => (window.earliest, window.latest),
+                };
 
-                if chain.iter().all(|(_, window)| !fits(window)) {
+                if chain.iter().enumerate().all(|(idx, (_, window))| !fits(bounds(idx, window))) {
                     let (_, own) = chain[0];
                     Err(format!(
                         "visit window violation: job '{}' is served from {} to {}, its window is {} to {}, vehicle id '{}', shift index: {}",

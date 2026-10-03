@@ -1,12 +1,12 @@
 {
   "statistic": {
-    "cost": 168.696506,
+    "cost": 55.688222,
     "distance": 11357,
-    "duration": 30051,
+    "duration": 6537,
     "times": {
       "driving": 1137,
       "serving": 5400,
-      "waiting": 23514,
+      "waiting": 0,
       "break": 0,
       "commuting": 0,
       "parking": 0
@@ -24,8 +24,8 @@
             "lng": 13.3884
           },
           "time": {
-            "arrival": "2019-07-04T08:00:00Z",
-            "departure": "2019-07-04T08:42:05Z"
+            "arrival": "2019-07-04T07:00:00Z",
+            "departure": "2019-07-04T07:48:33Z"
           },
           "distance": 0,
           "load": [
@@ -40,20 +40,20 @@
         },
         {
           "location": {
-            "lat": 52.52599,
-            "lng": 13.45413
+            "lat": 52.5165,
+            "lng": 13.3808
           },
           "time": {
-            "arrival": "2019-07-04T08:49:35Z",
-            "departure": "2019-07-04T09:19:35Z"
+            "arrival": "2019-07-04T07:51:29Z",
+            "departure": "2019-07-04T08:21:29Z"
           },
-          "distance": 4495,
+          "distance": 1758,
           "load": [
             2
           ],
           "activities": [
             {
-              "jobId": "recurringVisit",
+              "jobId": "bookedVisit",
               "type": "delivery"
             }
           ]
@@ -64,41 +64,37 @@
             "lng": 13.4095
           },
           "time": {
-            "arrival": "2019-07-04T09:24:40Z",
-            "departure": "2019-07-04T09:54:40Z"
+            "arrival": "2019-07-04T08:24:55Z",
+            "departure": "2019-07-04T08:54:55Z"
           },
-          "distance": 7543,
+          "distance": 3814,
           "load": [
             1
           ],
           "activities": [
             {
-              "jobId": "nonRecurringVisit",
+              "jobId": "regularVisit",
               "type": "delivery"
             }
           ]
         },
         {
           "location": {
-            "lat": 52.5165,
-            "lng": 13.3808
+            "lat": 52.52599,
+            "lng": 13.45413
           },
           "time": {
-            "arrival": "2019-07-04T09:58:06Z",
-            "departure": "2019-07-04T17:00:00Z"
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:30:00Z"
           },
-          "distance": 9599,
+          "distance": 6862,
           "load": [
             0
           ],
           "activities": [
             {
-              "jobId": "bookedVisit",
-              "type": "delivery",
-              "time": {
-                "start": "2019-07-04T16:30:00Z",
-                "end": "2019-07-04T17:00:00Z"
-              }
+              "jobId": "recurringVisit",
+              "type": "delivery"
             }
           ]
         },
@@ -108,8 +104,8 @@
             "lng": 13.3884
           },
           "time": {
-            "arrival": "2019-07-04T17:02:56Z",
-            "departure": "2019-07-04T17:02:56Z"
+            "arrival": "2019-07-04T09:37:30Z",
+            "departure": "2019-07-04T09:37:30Z"
           },
           "distance": 11357,
           "load": [
@@ -124,13 +120,13 @@
         }
       ],
       "statistic": {
-        "cost": 168.696506,
+        "cost": 55.688222,
         "distance": 11357,
-        "duration": 30051,
+        "duration": 6537,
         "times": {
           "driving": 1137,
           "serving": 5400,
-          "waiting": 23514,
+          "waiting": 0,
           "break": 0,
           "commuting": 0,
           "parking": 0

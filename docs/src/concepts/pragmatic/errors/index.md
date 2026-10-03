@@ -459,9 +459,10 @@ plan: `earliestFirst` is not before `latestLast`, or either bound falls outside 
 
 #### E1310
 
-`invalid visit windows` error is returned when a vehicle shift's `visitWindows` cannot be used: a window's `earliest`
-or `latest` is not a timestamp, `earliest` is not before `latest`, or the window falls outside the shift's own start and
-end times. It is also returned when a job's `visitWindow` is anything other than `recurring` or `non-recurring`.
+`invalid visit windows` error is returned when a vehicle shift's named `visitWindows` cannot be used: a window's
+`earliest` or `latest` is not a timestamp, `earliest` is not before `latest`, the window falls outside the shift's own
+start and end times, or its `fallback` names no window of the shift or closes a cycle. It is also returned when a job's
+`visitWindow` names no window of a shift that states windows.
 
 #### E1311
 

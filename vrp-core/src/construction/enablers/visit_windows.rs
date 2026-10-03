@@ -103,7 +103,8 @@ impl VisitWindowsActivityCost {
 /// The own window of a tagged visit on `route`. A bridged window reaches out to the untagged visits
 /// on the route: from the earlier of its start and their earliest window start, to the later of its
 /// end and their latest window end. Window bounds, not scheduled times: the window then depends on
-/// which visits are on the route, never on the schedule being built.
+/// which visits are on the route, never on the schedule being built. A visit without a time window
+/// does not bridge.
 pub fn own_window_on(route: &Route, window: &VisitWindow, is_visit: &IsAppointmentFn) -> Window {
     if !window.bridge {
         return (window.earliest, window.latest);
@@ -113,7 +114,12 @@ pub fn own_window_on(route: &Route, window: &VisitWindow, is_visit: &IsAppointme
         .tour
         .all_activities()
         .filter_map(|activity| activity.job.as_ref().map(|single| (activity, single)))
-        .filter(|(_, single)| is_visit(single) && single.dimens.get_visit_window_tag().is_none())
+        // a visit without a time window of its own says nothing about when the route is out.
+        .filter(|(activity, single)| {
+            is_visit(single)
+                && single.dimens.get_visit_window_tag().is_none()
+                && activity.place.time.end < Timestamp::MAX
+        })
         .fold((window.earliest, window.latest), |(earliest, latest), (activity, _)| {
             (earliest.min(activity.place.time.start), latest.max(activity.place.time.end))
         })

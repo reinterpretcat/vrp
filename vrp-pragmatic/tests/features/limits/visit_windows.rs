@@ -221,3 +221,16 @@ fn a_technician_without_a_fixed_visit_keeps_the_regular_hours() {
     assert!(solution.unassigned.is_none());
     assert!(service_start(&solution, "other") >= 50., "a technician without a fixed visit worked early");
 }
+
+#[test]
+fn reads_the_overflow_measure() {
+    let objective: Objective =
+        serde_json::from_str(r#"{"type":"minimize-visit-window-overflow","measure":"minutes"}"#).expect("parses");
+    let plain: Objective = serde_json::from_str(r#"{"type":"minimize-visit-window-overflow"}"#).expect("parses");
+
+    assert!(matches!(
+        objective,
+        Objective::MinimizeVisitWindowOverflow { measure: Some(OverflowMeasureJson::Minutes) }
+    ));
+    assert!(matches!(plain, Objective::MinimizeVisitWindowOverflow { measure: None }));
+}

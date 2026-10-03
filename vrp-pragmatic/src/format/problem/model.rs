@@ -753,9 +753,14 @@ pub enum Objective {
     /// compared to the nearest compatible vehicle in the fleet.
     MinimizeVehicleDistance,
 
-    /// An objective to minimize recurring visits served outside the recurring window of their
-    /// shift. Placed directly after minimizing unassigned jobs, it makes overflow a last resort.
-    MinimizeVisitWindowOverflow,
+    /// An objective to minimize tagged visits served outside their own window, in a fallback.
+    /// Placed directly after minimizing unassigned jobs, it makes overflow a last resort.
+    MinimizeVisitWindowOverflow {
+        /// What is measured: `visits` (one per visit outside, the default) or `minutes` (the service
+        /// time outside).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        measure: Option<OverflowMeasureJson>,
+    },
 
     /// An objective that builds balanced, capacity-aware territories around a per-driver anchor.
     Territory {
@@ -901,6 +906,16 @@ pub enum BalancePeriodMetric {
 
     /// Balances total job production value (the `productionValue` job property).
     ProductionValue,
+}
+
+/// What the visit-window overflow objective measures.
+#[derive(Clone, Copy, Deserialize, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum OverflowMeasureJson {
+    /// One per visit outside its own window.
+    Visits,
+    /// The service time outside its own window.
+    Minutes,
 }
 
 /// Proximity metric for the `territory` objective.

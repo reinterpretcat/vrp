@@ -246,3 +246,12 @@ fn a_fallback_need_not_contain_the_own_window() {
 
     assert_eq!(departure, ControlFlow::Continue(16.));
 }
+
+#[test]
+fn an_untagged_visit_without_a_time_window_does_not_bridge() {
+    let route = bridged_route(vec![(0., Timestamp::MAX)]);
+
+    let departure = cost().estimate_departure(&route, &activity(Some("own"), (0., 1000.), 10.), 31.);
+
+    assert_eq!(departure, ControlFlow::Continue(60.));
+}

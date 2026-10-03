@@ -22,7 +22,7 @@
         "visitWindow": "recurring"
       },
       {
-        "id": "nonRecurringVisit",
+        "id": "regularVisit",
         "deliveries": [
           {
             "places": [
@@ -39,7 +39,7 @@
             ]
           }
         ],
-        "visitWindow": "non-recurring"
+        "visitWindow": "regular"
       },
       {
         "id": "bookedVisit",
@@ -54,8 +54,8 @@
                 "duration": 1800.0,
                 "times": [
                   [
-                    "2019-07-04T16:30:00Z",
-                    "2019-07-04T17:00:00Z"
+                    "2019-07-04T07:30:00Z",
+                    "2019-07-04T08:00:00Z"
                   ]
                 ]
               }
@@ -86,7 +86,7 @@
         "shifts": [
           {
             "start": {
-              "earliest": "2019-07-04T08:00:00Z",
+              "earliest": "2019-07-04T07:00:00Z",
               "location": {
                 "lat": 52.5316,
                 "lng": 13.3884
@@ -100,15 +100,21 @@
               }
             },
             "visitWindows": {
+              "working": {
+                "earliest": "2019-07-04T07:00:00Z",
+                "latest": "2019-07-04T20:00:00Z"
+              },
+              "regular": {
+                "earliest": "2019-07-04T09:00:00Z",
+                "latest": "2019-07-04T17:00:00Z",
+                "fallback": "working",
+                "bridge": true
+              },
               "recurring": {
-                "earliest": "2019-07-04T08:45:00Z",
-                "latest": "2019-07-04T15:00:00Z"
-              },
-              "nonRecurring": {
-                "earliest": "2019-07-04T08:45:00Z",
-                "latest": "2019-07-04T19:00:00Z"
-              },
-              "overflow": false
+                "earliest": "2019-07-04T09:00:00Z",
+                "latest": "2019-07-04T15:00:00Z",
+                "fallback": "regular"
+              }
             }
           }
         ],

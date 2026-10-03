@@ -346,10 +346,15 @@ fn get_objective_feature_layer(
             .set_jobs(blocks.jobs.clone())
             .set_compatibility_fn(territory_compatibility_fn())
             .build(),
-        Objective::MinimizeVisitWindowOverflow => create_visit_window_overflow_feature(
+        Objective::MinimizeVisitWindowOverflow { measure } => create_visit_window_overflow_feature(
             "min_visit_window_overflow",
+            match measure {
+                Some(OverflowMeasureJson::Minutes) => OverflowMeasure::Minutes,
+                Some(OverflowMeasureJson::Visits) | None => OverflowMeasure::Visits,
+            },
             blocks.transport.clone(),
             blocks.activity.clone(),
+            Arc::new(is_stop),
         ),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
         Objective::Territory {
@@ -484,7 +489,7 @@ fn get_objectives(api_problem: &ApiProblem, props: &ProblemProperties) -> Vec<Ob
         });
 
         if has_overflow {
-            objectives.insert(1, Objective::MinimizeVisitWindowOverflow);
+            objectives.insert(1, Objective::MinimizeVisitWindowOverflow { measure: None });
         }
 
         if props.has_value {
