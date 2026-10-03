@@ -147,3 +147,77 @@ fn a_visit_held_back_by_its_window_mid_tour_reports_the_wait() {
     assert_eq!(parse_time(&time.start), 50.);
     assert_eq!(parse_time(&time.end), 60.);
 }
+
+/// A vehicle type whose shift has a `regular` window 50–100, bridged, falling back to `working` 0–200.
+fn bridged_vehicle(id: &str, skills: &[&str]) -> VehicleType {
+    VehicleType {
+        type_id: id.to_string(),
+        vehicle_ids: vec![format!("{id}_1")],
+        skills: Some(skills.iter().map(|skill| skill.to_string()).collect()),
+        shifts: vec![VehicleShift {
+            visit_windows: Some(
+                [
+                    (
+                        "regular".to_string(),
+                        VisitWindowJson {
+                            earliest: format_time(50.),
+                            latest: format_time(100.),
+                            fallback: Some("working".to_string()),
+                            bridge: true,
+                        },
+                    ),
+                    ("working".to_string(), window(0., 200., None)),
+                ]
+                .into_iter()
+                .collect(),
+            ),
+            ..create_default_vehicle_shift()
+        }],
+        ..create_default_vehicle_type()
+    }
+}
+
+fn bridged_problem(jobs: Vec<Job>, vehicles: Vec<VehicleType>) -> Problem {
+    Problem {
+        plan: Plan { jobs, ..create_empty_plan() },
+        fleet: Fleet { vehicles, ..create_default_fleet() },
+        ..create_empty_problem()
+    }
+}
+
+fn fixed(id: &str, x: f64, times: (i32, i32), skill: &str) -> Job {
+    Job {
+        skills: Some(all_of_skills(vec![skill.to_string()])),
+        ..create_delivery_job_with_times(id, (x, 0.), vec![times], 10.)
+    }
+}
+
+fn regular(id: &str, x: f64, skill: &str) -> Job {
+    Job { skills: Some(all_of_skills(vec![skill.to_string()])), ..tagged(id, x, "regular") }
+}
+
+#[test]
+fn a_regular_visit_fills_the_gap_to_an_early_fixed_visit() {
+    // the fixed visit is served by 5: the route is out long before the regular hours open at 50,
+    // and the regular visit fills the gap instead of waiting for them.
+    let solution = solve(bridged_problem(
+        vec![fixed("fixed", 1., (0, 5), "a"), regular("filler", 2., "a")],
+        vec![bridged_vehicle("tech", &["a"])],
+    ));
+
+    assert!(solution.unassigned.is_none());
+    assert!(service_start(&solution, "filler") < 50., "the filler waited for the regular hours");
+}
+
+#[test]
+fn a_technician_without_a_fixed_visit_keeps_the_regular_hours() {
+    // the fixed visit can only go to `a`; `b` has none, so its regular visit keeps to 50–100 even
+    // though serving it at once would be shorter.
+    let solution = solve(bridged_problem(
+        vec![fixed("fixed", 1., (0, 5), "a"), regular("other", 2., "b")],
+        vec![bridged_vehicle("a", &["a"]), bridged_vehicle("b", &["b"])],
+    ));
+
+    assert!(solution.unassigned.is_none());
+    assert!(service_start(&solution, "other") >= 50., "a technician without a fixed visit worked early");
+}

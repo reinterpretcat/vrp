@@ -79,6 +79,9 @@ pub use self::transport::*;
 mod vehicle_shifts;
 pub use self::vehicle_shifts::*;
 
+mod visit_window_bridge;
+pub use self::visit_window_bridge::*;
+
 mod visit_window_overflow;
 pub use self::visit_window_overflow::*;
 

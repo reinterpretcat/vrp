@@ -96,6 +96,17 @@ pub(super) fn create_goal_context(
         )?);
     }
 
+    // a bridged window narrows when ruin removes the untagged visit it reached out to: the visits it
+    // stranded go back for reinsertion.
+    let has_bridged_windows =
+        api_problem.fleet.vehicles.iter().flat_map(|vehicle| vehicle.shifts.iter()).any(|shift| {
+            shift.visit_windows.as_ref().is_some_and(|windows| windows.values().any(|window| window.bridge))
+        });
+
+    if has_bridged_windows {
+        features.push(create_visit_window_bridge_feature("visit_window_bridge", Arc::new(is_stop))?);
+    }
+
     if props.has_min_vehicle_shifts
         && let Some(feature) = get_min_vehicle_shifts_feature("min_vehicle_shifts", api_problem)?
     {

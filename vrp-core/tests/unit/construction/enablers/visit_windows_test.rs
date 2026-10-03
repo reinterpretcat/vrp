@@ -185,3 +185,64 @@ fn overflow_serves_at_once_when_the_own_window_has_passed() {
     assert_eq!(cost().estimate_departure(&route, &activity, 65.).unwrap_value(), 75.);
     assert_eq!(cost().estimate_service_start(&route, &activity, 65.), 65.);
 }
+
+/// A shift whose `own` window 50–100 is bridged, holding `fixed` untagged visits with these windows.
+fn bridged_route(fixed: Vec<(Timestamp, Timestamp)>) -> Route {
+    let mut vehicle = test_vehicle_with_id("v1");
+    vehicle.dimens.set_visit_windows(VisitWindows {
+        windows: [("own".to_string(), VisitWindow { earliest: 50., latest: 100., fallback: None, bridge: true })]
+            .into_iter()
+            .collect(),
+    });
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle).build();
+
+    RouteBuilder::default()
+        .with_vehicle(&fleet, "v1")
+        .add_activities(fixed.into_iter().map(|tw| activity(None, tw, 5.)))
+        .build()
+}
+
+#[test]
+fn a_bridged_window_reaches_out_to_an_untagged_visit_on_the_route() {
+    let departure =
+        cost().estimate_departure(&bridged_route(vec![(20., 30.)]), &activity(Some("own"), (0., 1000.), 10.), 31.);
+
+    assert_eq!(departure, ControlFlow::Continue(41.));
+}
+
+#[test]
+fn a_bridged_window_reaches_out_after_the_window_too() {
+    let departure =
+        cost().estimate_departure(&bridged_route(vec![(150., 160.)]), &activity(Some("own"), (0., 1000.), 10.), 120.);
+
+    assert_eq!(departure, ControlFlow::Continue(130.));
+}
+
+#[test]
+fn a_bridged_window_without_untagged_visits_is_the_window_itself() {
+    let departure = cost().estimate_departure(&bridged_route(vec![]), &activity(Some("own"), (0., 1000.), 10.), 31.);
+
+    assert_eq!(departure, ControlFlow::Continue(60.));
+}
+
+#[test]
+fn a_fallback_need_not_contain_the_own_window() {
+    let mut vehicle = test_vehicle_with_id("v1");
+    vehicle.dimens.set_visit_windows(VisitWindows {
+        windows: [
+            (
+                "morning".to_string(),
+                VisitWindow { earliest: 8., latest: 12., fallback: Some("evening".into()), bridge: false },
+            ),
+            ("evening".to_string(), VisitWindow { earliest: 14., latest: 18., fallback: None, bridge: false }),
+        ]
+        .into_iter()
+        .collect(),
+    });
+    let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle).build();
+    let route = RouteBuilder::default().with_vehicle(&fleet, "v1").build();
+
+    let departure = cost().estimate_departure(&route, &activity(Some("morning"), (0., 1000.), 2.), 13.);
+
+    assert_eq!(departure, ControlFlow::Continue(16.));
+}
