@@ -291,7 +291,46 @@ impl TravelLimitConstraint {
         let moves_last_job = activity_ctx.next.is_none_or(|next| next.job.is_none())
             && matches!(span, RouteCostSpan::DepotToLastJob | RouteCostSpan::FirstJobToLastJob);
 
-        moves_first_job || moves_last_job
+        moves_first_job || moves_last_job || self.receded_departure(route_ctx, activity_ctx).is_some()
+    }
+
+    /// The departure a route with jobs takes back when the target goes in front of its first job, or
+    /// `None` when the insertion leaves the departure where it is.
+    ///
+    /// The time constraint lets such a target count on the shift's `earliest` departure
+    /// (`departure_for_insertion`), and `apply_insertion_success` recedes the route accordingly. The
+    /// tour then starts earlier than the one the delta prices, by up to the whole gap between the old
+    /// first job and the new one, so the cap is read against a replay from the departure that just
+    /// reaches the target: the latest the route can leave and still make it, which is what advancing
+    /// the departure afterwards settles on at most. That departure may not hold — reserved time can
+    /// make it infeasible, as it can for an empty route — so the shift's `earliest` comes with it,
+    /// the departure the route keeps when advancing it fails.
+    fn receded_departure(
+        &self,
+        route_ctx: &RouteContext,
+        activity_ctx: &ActivityContext,
+    ) -> Option<(Timestamp, Timestamp)> {
+        if activity_ctx.index != 0 || route_ctx.route().tour.job_count() == 0 {
+            return None;
+        }
+
+        let route = route_ctx.route();
+        let current = activity_ctx.prev.schedule.departure;
+        let earliest = departure_for_insertion(route_ctx, activity_ctx);
+
+        if earliest >= current {
+            return None;
+        }
+
+        let travel = self.transport.duration(
+            route,
+            activity_ctx.prev.place.location,
+            activity_ctx.target.place.location,
+            TravelTime::Departure(current),
+        );
+        let just_in_time = (activity_ctx.target.place.time.start - travel).max(earliest);
+
+        (just_in_time < current).then_some((just_in_time, earliest))
     }
 
     /// Replays the tour behind the insertion point to get the duration the route would really have.
@@ -331,19 +370,30 @@ impl TravelLimitConstraint {
         activity_ctx: &ActivityContext,
         duration_limit: Duration,
     ) -> Duration {
+        if let Some((just_in_time, earliest)) = self.receded_departure(route_ctx, activity_ctx) {
+            let (duration, is_feasible) = self.replay_tail(route_ctx, activity_ctx, Some(just_in_time), 0.);
+            if is_feasible && duration <= duration_limit {
+                return duration;
+            }
+
+            return self.replay_tail(route_ctx, activity_ctx, Some(earliest), 0.).0;
+        }
+
         let leading_wait = self.reclaimable_leading_wait(route_ctx, activity_ctx);
 
         if leading_wait > 0. {
-            let (duration, is_feasible) = self.replay_tail(route_ctx, activity_ctx, leading_wait);
+            let (duration, is_feasible) = self.replay_tail(route_ctx, activity_ctx, None, leading_wait);
             if is_feasible && duration <= duration_limit {
                 return duration;
             }
         }
 
-        self.replay_tail(route_ctx, activity_ctx, Duration::default()).0
+        self.replay_tail(route_ctx, activity_ctx, None, Duration::default()).0
     }
 
-    /// Walks the tail once from a departure shifted by `departure_shift`, and reports the duration
+    /// Walks the tail once from `start_departure` when the insertion moves the route's departure
+    /// back (`receded_departure`, `prev` is then the start), else from `prev`'s departure shifted by
+    /// `departure_shift`, and reports the duration
     /// the route would then have together with whether that schedule is feasible at all.
     ///
     /// Limitation: reserved time carried as an offset span (`VehicleRequiredBreakTime::OffsetTime`)
@@ -356,13 +406,14 @@ impl TravelLimitConstraint {
         &self,
         route_ctx: &RouteContext,
         activity_ctx: &ActivityContext,
+        start_departure: Option<Timestamp>,
         departure_shift: Duration,
     ) -> (Duration, bool) {
         let route = route_ctx.route();
         let tail = once(activity_ctx.target).chain(route.tour.all_activities().skip(activity_ctx.index + 1));
 
         let mut location = activity_ctx.prev.place.location;
-        let mut departure = activity_ctx.prev.schedule.departure + departure_shift;
+        let mut departure = start_departure.unwrap_or(activity_ctx.prev.schedule.departure + departure_shift);
         let mut target_arrival = Timestamp::default();
         let mut last_job_departure = None;
         let mut is_feasible = true;
@@ -390,8 +441,9 @@ impl TravelLimitConstraint {
         }
 
         // `departure_shift` is zero unless the route is still empty, in which case `prev` is the start
-        let start_departure =
-            route.tour.start().map_or(Timestamp::default(), |start| start.schedule.departure) + departure_shift;
+        let start_departure = start_departure.unwrap_or(
+            route.tour.start().map_or(Timestamp::default(), |start| start.schedule.departure) + departure_shift,
+        );
         // the target takes over as the first job only when it goes in right behind the start
         let first_job_arrival = if activity_ctx.index == 0 {
             target_arrival

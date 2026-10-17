@@ -2,7 +2,7 @@
 #[path = "../../../tests/unit/construction/heuristics/insertions_test.rs"]
 mod insertions_test;
 
-use crate::construction::enablers::advance_departure_time;
+use crate::construction::enablers::{advance_departure_time, update_route_departure};
 use crate::construction::heuristics::*;
 use crate::models::ViolationCode;
 use crate::models::common::Cost;
@@ -400,6 +400,10 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
         ),
     };
 
+    let inserted_in_front = !is_new_route
+        && success.activities.iter().any(|(_, index)| *index == 0)
+        && insertion_ctx.solution.routes[route_index].route().tour.job_count() > 0;
+
     let route_ctx = insertion_ctx.solution.routes.get_mut(route_index).unwrap();
     let route = route_ctx.route_mut();
     success.activities.into_iter().for_each(|(a, index)| {
@@ -418,6 +422,23 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
     // job until that operator happens to be drawn. Fixing it here keeps the route's budget honest from
     // the first insertion on. Safe: the route holds exactly this one job, so there is no other
     // schedule to break.
+    // A job inserted in front of the first one was accepted against the shift's earliest departure
+    // (`departure_for_insertion`), so the route departs that early again before it is advanced anew.
+    if inserted_in_front {
+        let problem = insertion_ctx.problem.clone();
+        if let Some(route_ctx) = insertion_ctx.solution.routes.get_mut(route_index) {
+            let earliest = route_ctx.route().actor.detail.start.as_ref().and_then(|start| start.time.earliest);
+            let departure = route_ctx.route().tour.start().map(|start| start.schedule.departure);
+
+            if let Some((earliest, _)) = earliest.zip(departure).filter(|(earliest, departure)| earliest < departure) {
+                update_route_departure(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), earliest);
+                problem.goal.accept_route_state(route_ctx);
+                advance_departure_time(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), true);
+                problem.goal.accept_route_state(route_ctx);
+            }
+        }
+    }
+
     if is_new_route {
         let problem = insertion_ctx.problem.clone();
         if let Some(route_ctx) = insertion_ctx.solution.routes.get_mut(route_index) {

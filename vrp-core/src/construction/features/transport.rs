@@ -157,6 +157,31 @@ struct TransportConstraint {
     time_window_code: ViolationCode,
 }
 
+/// The departure an insertion may count on from its previous activity.
+///
+/// A route moves its departure forward once it has jobs (`advance_departure_time`), so the start
+/// leaves as late as its first job allows. A job inserted in front of that first job may take the
+/// departure back to the shift's `earliest`: `apply_insertion_success` recedes it when it does.
+/// Measuring from the advanced departure instead refused every job whose window closes before the
+/// first job of the route, however empty the day. A route without jobs keeps its departure: the
+/// duration limit reads its leading wait on terms of its own (`reclaimable_leading_wait`).
+pub(crate) fn departure_for_insertion(route_ctx: &RouteContext, activity_ctx: &ActivityContext) -> Timestamp {
+    let departure = activity_ctx.prev.schedule.departure;
+
+    if activity_ctx.index != 0 || route_ctx.route().tour.job_count() == 0 || route_ctx.route().tour.start().is_none() {
+        return departure;
+    }
+
+    route_ctx
+        .route()
+        .actor
+        .detail
+        .start
+        .as_ref()
+        .and_then(|start| start.time.earliest)
+        .map_or(departure, |earliest| earliest.min(departure))
+}
+
 impl TransportConstraint {
     fn evaluate_job(&self, route_ctx: &RouteContext, job: &Job) -> Option<ConstraintViolation> {
         let date = route_ctx.route().tour.start().unwrap().schedule.departure;
@@ -188,7 +213,7 @@ impl TransportConstraint {
         let target = activity_ctx.target;
         let next = activity_ctx.next;
 
-        let departure = prev.schedule.departure;
+        let departure = departure_for_insertion(route_ctx, activity_ctx);
 
         if actor.detail.time.end < prev.place.time.start
             || actor.detail.time.end < target.place.time.start

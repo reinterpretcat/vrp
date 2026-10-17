@@ -274,6 +274,56 @@ mod timing {
         assert_eq!(result, 30.0);
     }
 
+    /// Once a tour has its first job, its departure moves forward to arrive just in time there. A job
+    /// whose window closes before that departure can still go in front: it is weighed against the
+    /// shift's earliest start, not the departure the later first job left behind.
+    ///
+    /// The shift starts at 0 and the only job waits for its window at 100, so the departure sits at 90.
+    /// Departing at 90 the new job would arrive at 95, long past its window that closes at 20; departing
+    /// at 0 it arrives at 5 and the first job is still reached by 100.
+    #[test]
+    fn can_insert_in_front_of_the_first_job_from_the_shift_start() {
+        let fleet = FleetBuilder::default()
+            .add_driver(test_driver())
+            .add_vehicles(vec![
+                TestVehicleBuilder::default()
+                    .id("v1")
+                    .details(vec![create_detail((Some(0), Some(0)), Some((0., 1000.)))])
+                    .build(),
+            ])
+            .build();
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activity(
+                        ActivityBuilder::default()
+                            .place(Place { idx: 0, location: 10, duration: 5., time: TimeWindow::new(100., 200.) })
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build();
+        route_ctx.route_mut().tour.get_mut(0).unwrap().schedule.departure = 90.;
+        let feature = create_feature();
+        feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let target = ActivityBuilder::default()
+            .place(Place { idx: 0, location: 5, duration: 1., time: TimeWindow::new(0., 20.) })
+            .build();
+        let activity_ctx = ActivityContext {
+            index: 0,
+            prev: route_ctx.route().tour.get(0).unwrap(),
+            target: &target,
+            next: route_ctx.route().tour.get(1),
+        };
+
+        let result =
+            feature.constraint.unwrap().evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
+
+        assert_eq!(result, None);
+    }
+
     #[test]
     fn can_stop_with_time_route_constraint() {
         let fleet = FleetBuilder::default()

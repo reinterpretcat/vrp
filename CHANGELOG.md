@@ -31,6 +31,10 @@ are already published. So, I stick to it for now.
 
 ### Fixed
 
+* let a job go in front of a tour's first job when its window closes before the departure that job left behind: once
+  a tour holds a job its departure moves forward to arrive just in time, and an insertion at the front was weighed
+  against that later departure, so an early visit could only open its own tour; it is now weighed against the shift's
+  earliest start, and the departure recedes after such an insertion and advances again, within the tour duration limit
 * do not charge the tour duration limit for the idle time in front of the first job of an empty route: the departure
   can always be advanced there, but `advance_departure_time` cannot run before the route holds a job, so a job with a
   late time window could never open a new tour on a wide shift
