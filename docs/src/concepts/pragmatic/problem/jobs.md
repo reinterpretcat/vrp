@@ -27,6 +27,11 @@ consists of the following properties:
 - **vehicleGroup** (optional): a vehicle group name. Jobs sharing the same vehicle group are served by the same
   vehicle across all of its shifts (unlike **group**, which requires the same tour). Useful to keep the same
   vehicle serving a recurring customer over a multi-day plan.
+- **spacing** (optional): keeps a job its interval from the other visits of its rhythm. A job is refused on a day
+  too close to, or too far from, the nearest visit of its `group` placed before or after it: `n` steps apart in
+  `order` they lie `n * intervalDays` days apart, give or take `n * toleranceDays`, counted between the starts of
+  their shifts. A job with `anchor: true` is never refused, the others keep their distance to it. Useful to keep a
+  weekly customer a week apart however the plan moves each visit inside its own time windows.
 
 A job should have at least one task property specified.
 

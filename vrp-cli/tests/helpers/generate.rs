@@ -15,6 +15,7 @@ pub fn create_empty_job() -> Job {
         compatibility: None,
         vehicle_group: None,
         visit_window: None,
+        spacing: None,
     }
 }
 

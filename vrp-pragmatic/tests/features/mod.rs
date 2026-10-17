@@ -21,4 +21,5 @@ mod timing;
 mod tour_shape;
 mod unassigned;
 mod vehicle_group;
+mod visit_spacing;
 mod work_balance;

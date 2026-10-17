@@ -20,6 +20,7 @@ pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
         check_jobs_match(ctx),
         check_groups(ctx),
         check_vehicle_groups(ctx),
+        check_visit_spacing(ctx),
     ])
 }
 
@@ -301,6 +302,58 @@ fn check_vehicle_groups(ctx: &CheckerContext) -> GenericResult<()> {
         err_info.sort();
 
         Err(format!("vehicle groups are not respected: {}", err_info.join("; ")).into())
+    }
+}
+
+/// Checks that the visits of one rhythm keep their interval apart, give or take the tolerance.
+///
+/// Measured between neighbours in order among the placed visits, as the solver does: `n` steps
+/// apart they lie `n * intervalDays` days apart, give or take `n * toleranceDays`, counted between
+/// the starts of their shifts. A pair with an anchor is not measured: the solver never refuses an
+/// anchor, so one placed after its neighbour may land anywhere.
+fn check_visit_spacing(ctx: &CheckerContext) -> GenericResult<()> {
+    let mut visits = HashMap::<String, Vec<(usize, Float, &JobSpacing)>>::default();
+
+    for tour in ctx.solution.tours.iter() {
+        let shift = ctx
+            .get_vehicle(&tour.vehicle_id)?
+            .shifts
+            .get(tour.shift_index)
+            .ok_or_else(|| format!("cannot find shift {} of vehicle '{}'", tour.shift_index, tour.vehicle_id))?;
+        let day = parse_time(&shift.start.earliest);
+
+        tour.stops
+            .iter()
+            .flat_map(|stop| stop.activities().iter())
+            .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
+            .flat_map(|job| job.spacing.as_ref())
+            .for_each(|spacing| visits.entry(spacing.group.clone()).or_default().push((spacing.order, day, spacing)));
+    }
+
+    let mut violations = visits
+        .into_iter()
+        .flat_map(|(group, mut placed)| {
+            placed.sort_by_key(|(order, _, _)| *order);
+            placed
+                .windows(2)
+                .filter(|pair| !pair[0].2.anchor.unwrap_or(false) && !pair[1].2.anchor.unwrap_or(false))
+                .filter_map(|pair| {
+                    let ((earlier, earlier_day, _), (later, later_day, spacing)) = (pair[0], pair[1]);
+                    let steps = later.saturating_sub(earlier) as i64;
+                    let days = ((later_day - earlier_day) / 86_400.).round() as i64;
+
+                    ((days - steps * spacing.interval_days).abs() > steps * spacing.tolerance_days)
+                        .then(|| format!("'{group}' visits {earlier} and {later} are {days} days apart"))
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        violations.sort();
+        Err(format!("visit spacing is not respected: {}", violations.join("; ")).into())
     }
 }
 

@@ -429,3 +429,75 @@ fn can_detect_a_vehicle_group_split_between_two_drivers() {
 
     assert_eq!(result, Err("vehicle groups are not respected: 'sub-1' served by emp-7, emp-9".into()));
 }
+
+fn create_spaced_job(id: &str, order: usize, anchor: bool) -> Job {
+    Job {
+        spacing: Some(JobSpacing {
+            group: "sub-1".to_string(),
+            order,
+            interval_days: 7,
+            tolerance_days: 1,
+            anchor: anchor.then_some(true),
+        }),
+        ..create_delivery_job(id, (1., 0.))
+    }
+}
+
+/// One vehicle with a shift on each of the given days; the tours name their shift by index.
+fn create_visit_spacing_context(solution: Solution, days: &[f64], jobs: Vec<Job>) -> CheckerContext {
+    let shifts = days
+        .iter()
+        .map(|day| VehicleShift {
+            start: ShiftStart {
+                earliest: crate::format_time(day * 86400. + 7. * 3600.),
+                latest: None,
+                location: (0., 0.).to_loc(),
+            },
+            end: Some(ShiftEnd {
+                earliest: None,
+                latest: crate::format_time(day * 86400. + 17. * 3600.),
+                location: (0., 0.).to_loc(),
+            }),
+            ..create_default_vehicle_shift()
+        })
+        .collect();
+    let problem = Problem {
+        plan: Plan { jobs, ..create_empty_plan() },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["v1".to_string()],
+                shifts,
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let core_problem = Arc::new(problem.clone().read_pragmatic().unwrap());
+
+    CheckerContext::new(core_problem, problem, None, solution).unwrap()
+}
+
+parameterized_test! {can_check_visit_spacing, (second_day, anchor, expected), {
+    can_check_visit_spacing_impl(second_day, anchor, expected);
+}}
+
+can_check_visit_spacing! {
+    case01_a_week_apart: (7., false, Ok(())),
+    case02_a_day_short: (6., false, Ok(())),
+    case03_two_days_short: (5., false, Err("visit spacing is not respected: 'sub-1' visits 1 and 2 are 5 days apart".into())),
+    case04_two_days_over: (9., false, Err("visit spacing is not respected: 'sub-1' visits 1 and 2 are 9 days apart".into())),
+    case05_an_anchor_is_not_measured: (2., true, Ok(())),
+}
+
+fn can_check_visit_spacing_impl(second_day: f64, anchor: bool, expected: GenericResult<()>) {
+    let solution = SolutionBuilder::default()
+        .tour(create_vehicle_group_tour("v1", 0, "job1"))
+        .tour(create_vehicle_group_tour("v1", 1, "job2"))
+        .build();
+    let jobs = vec![create_spaced_job("job1", 1, false), create_spaced_job("job2", 2, anchor)];
+
+    let result = check_visit_spacing(&create_visit_spacing_context(solution, &[0., second_day], jobs));
+
+    assert_eq!(result, expected);
+}

@@ -102,6 +102,7 @@ mod actual {
                 compatibility: None,
                 vehicle_group: None,
                 visit_window: None,
+                spacing: None,
             })
             .collect();
 

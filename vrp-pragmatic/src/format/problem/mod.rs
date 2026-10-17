@@ -107,6 +107,7 @@ struct ProblemProperties {
     has_order: bool,
     has_group: bool,
     has_vehicle_group: bool,
+    has_visit_spacing: bool,
     has_value: bool,
     has_compatibility: bool,
     has_tour_size_limits: bool,

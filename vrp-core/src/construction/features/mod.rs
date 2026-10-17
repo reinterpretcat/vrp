@@ -29,6 +29,9 @@ pub use self::groups::{JobGroupDimension, create_group_feature};
 mod vehicle_groups;
 pub use self::vehicle_groups::{VehicleGroupDimension, create_vehicle_group_feature};
 
+mod visit_spacing;
+pub use self::visit_spacing::{VisitSpacing, VisitSpacingDimension, create_visit_spacing_feature};
+
 mod hierarchical_areas;
 pub use self::hierarchical_areas::*;
 

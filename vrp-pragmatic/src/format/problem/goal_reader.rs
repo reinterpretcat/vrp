@@ -74,6 +74,14 @@ pub(super) fn create_goal_context(
         )?);
     }
 
+    if props.has_visit_spacing {
+        features.push(create_visit_spacing_feature(
+            "visit_spacing",
+            blocks.jobs.size(),
+            VISIT_SPACING_CONSTRAINT_CODE,
+        )?);
+    }
+
     if props.has_skills {
         features.push(create_skills_feature("skills", SKILL_CONSTRAINT_CODE)?)
     }

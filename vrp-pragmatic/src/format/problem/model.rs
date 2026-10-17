@@ -138,6 +138,32 @@ pub struct Job {
     /// one is bound only by its own time windows and the shift's job times.
     #[serde(rename = "visitWindow", skip_serializing_if = "Option::is_none")]
     pub visit_window: Option<String>,
+
+    /// Keeps the job its interval from the other visits of its rhythm.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<JobSpacing>,
+}
+
+/// Where a job sits in a rhythm of visits and how far it keeps from the others.
+///
+/// A job is refused on a day too close to, or too far from, the nearest visit of its group placed
+/// before or after it: `n` steps apart in `order` they lie `n * intervalDays` days apart, give or
+/// take `n * toleranceDays`. Days are counted between the shifts' starts.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct JobSpacing {
+    /// The rhythm the job belongs to.
+    pub group: String,
+    /// The job's place in the rhythm: 1 comes before 2.
+    pub order: usize,
+    /// Days between two consecutive visits.
+    #[serde(rename = "intervalDays")]
+    pub interval_days: i64,
+    /// Days a visit may land off its interval, per step.
+    #[serde(rename = "toleranceDays")]
+    pub tolerance_days: i64,
+    /// An anchor is never refused; the others keep their distance to it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<bool>,
 }
 
 // region Clustering

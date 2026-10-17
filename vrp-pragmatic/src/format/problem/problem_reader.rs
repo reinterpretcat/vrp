@@ -146,6 +146,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
 
     let has_group = api_problem.plan.jobs.iter().any(|job| job.group.is_some());
     let has_vehicle_group = api_problem.plan.jobs.iter().any(|job| job.vehicle_group.is_some());
+    let has_visit_spacing = api_problem.plan.jobs.iter().any(|job| job.spacing.is_some());
     let has_value = api_problem.plan.jobs.iter().filter_map(|job| job.value).any(|value| value != 0.);
     let has_compatibility = api_problem.plan.jobs.iter().any(|job| job.compatibility.is_some());
     let has_tour_size_limits =
@@ -175,6 +176,7 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_order,
         has_group,
         has_vehicle_group,
+        has_visit_spacing,
         has_value,
         has_compatibility,
         has_tour_size_limits,

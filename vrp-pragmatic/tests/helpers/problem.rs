@@ -28,6 +28,7 @@ pub fn create_job(id: &str) -> Job {
         compatibility: None,
         vehicle_group: None,
         visit_window: None,
+        spacing: None,
     }
 }
 

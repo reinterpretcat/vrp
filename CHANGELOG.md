@@ -23,6 +23,9 @@ are already published. So, I stick to it for now.
 * add per-shift regular hours (`shift.regularHours`) and an off-hours rate (`costs.offHours`): the time of the paid
   span (`costs.span`) outside the regular hours is charged at the off-hours rate on top of the time cost, inside
   `minimize-cost` like the overtime premium; validated by `E1311`, reported per tour as `statistic.times.offHours`
+* add job `spacing` (`{ group, order, intervalDays, toleranceDays, anchor? }`): a visit is refused on a day too close
+  to, or too far from, the nearest visit of its group placed before or after it, `n` steps apart in `order` meaning
+  `n * intervalDays` days give or take `n * toleranceDays`; held by the checker, reported as `VISIT_SPACING_CONSTRAINT`
 * add an experimental objective
 * add naive implementation of LKH local search
 

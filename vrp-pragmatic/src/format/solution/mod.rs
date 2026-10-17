@@ -97,6 +97,10 @@ fn map_code_reason(code: ViolationCode) -> (&'static str, &'static str) {
         VEHICLE_GROUP_CONSTRAINT_CODE => {
             ("VEHICLE_GROUP_CONSTRAINT", "cannot be assigned because its vehicle group is served by another driver")
         }
+        VISIT_SPACING_CONSTRAINT_CODE => (
+            "VISIT_SPACING_CONSTRAINT",
+            "cannot be assigned because no day keeps it its interval from the other visits of its rhythm",
+        ),
         COMPATIBILITY_CONSTRAINT_CODE => {
             ("COMPATIBILITY_CONSTRAINT", "cannot be assigned due to compatibility constraint")
         }
@@ -129,6 +133,7 @@ fn map_reason_code(reason: &str) -> ViolationCode {
         "TOUR_ORDER_CONSTRAINT" => TOUR_ORDER_CONSTRAINT_CODE,
         "GROUP_CONSTRAINT" => GROUP_CONSTRAINT_CODE,
         "VEHICLE_GROUP_CONSTRAINT" => VEHICLE_GROUP_CONSTRAINT_CODE,
+        "VISIT_SPACING_CONSTRAINT" => VISIT_SPACING_CONSTRAINT_CODE,
         "COMPATIBILITY_CONSTRAINT" => COMPATIBILITY_CONSTRAINT_CODE,
         "RELOAD_RESOURCE_CONSTRAINT" => RELOAD_RESOURCE_CONSTRAINT_CODE,
         "RECHARGE_CONSTRAINT_CODE" => RECHARGE_CONSTRAINT_CODE,

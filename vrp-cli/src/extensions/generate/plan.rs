@@ -73,6 +73,8 @@ pub(crate) fn generate_plan(
                 compatibility: job_proto.compatibility.clone(),
                 vehicle_group: job_proto.vehicle_group.clone(),
                 visit_window: job_proto.visit_window.clone(),
+                // a copied place in a rhythm would give two generated jobs the same order
+                spacing: None,
             }
         })
         .collect();
