@@ -24,7 +24,7 @@ are already published. So, I stick to it for now.
   span (`costs.span`) outside the regular hours is charged at the off-hours rate on top of the time cost, inside
   `minimize-cost` like the overtime premium; validated by `E1311`, reported per tour as `statistic.times.offHours`
 * add the `minimize-split-co-located` objective: it counts the given pairs of jobs (`pairs`) which are both assigned
-  but served by different tours, a pair with an unassigned job counting nothing; placed right after
+  but served by different tours, a pair with an unassigned job counting nothing and a repeated pair once; placed below
   `minimize-unassigned` it keeps nearby visits in one tour unless separating them places a job; validated by `E1611`
   (unknown job) and `E1612` (same job twice)
 * add job `spacing` (`{ group, order, intervalDays, toleranceDays, anchor? }`): a visit is refused on a day too close

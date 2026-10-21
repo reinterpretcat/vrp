@@ -1,6 +1,7 @@
 use crate::construction::features::create_co_located_feature;
 use crate::construction::heuristics::{InsertionContext, MoveContext};
 use crate::helpers::solver::{generate_matrix_routes_with_defaults, get_job_by_id};
+use crate::models::Feature;
 use rosomaxa::prelude::Float;
 use rosomaxa::utils::Environment;
 use std::sync::Arc;
@@ -14,14 +15,19 @@ fn create_insertion_ctx() -> InsertionContext {
     InsertionContext::new_from_solution(Arc::new(problem), (solution, None), Arc::new(Environment::default()))
 }
 
-fn get_fitness(insertion_ctx: &mut InsertionContext, pairs: &[(&str, &str)]) -> Float {
+fn create_feature(insertion_ctx: &InsertionContext, pairs: &[(&str, &str)]) -> Feature {
     let pairs = pairs
         .iter()
         .map(|(a, b)| {
             (get_job_by_id(insertion_ctx, a).unwrap().clone(), get_job_by_id(insertion_ctx, b).unwrap().clone())
         })
         .collect();
-    let feature = create_co_located_feature("co_located", pairs).expect("cannot create feature");
+
+    create_co_located_feature("co_located", pairs).expect("cannot create feature")
+}
+
+fn get_fitness(insertion_ctx: &mut InsertionContext, pairs: &[(&str, &str)]) -> Float {
+    let feature = create_feature(insertion_ctx, pairs);
 
     feature.state.as_ref().unwrap().accept_solution_state(&mut insertion_ctx.solution);
 
@@ -38,6 +44,7 @@ can_count_split_pairs! {
     case_01_together:          (&[("c0", "c1")], 0.),
     case_02_split:             (&[("c0", "c3")], 1.),
     case_03_mixed:             (&[("c0", "c1"), ("c0", "c3"), ("c2", "c5")], 2.),
+    case_04_repeated:          (&[("c0", "c3"), ("c0", "c3"), ("c3", "c0")], 1.),
 }
 
 /// Takes `job_id` out of its tour and leaves it waiting for insertion.
@@ -59,6 +66,7 @@ can_estimate_change_in_split_pairs! {
     case_02_leaves_partner:      (&[("c2", "c5")], 1, 1.),
     case_03_two_partners:        (&[("c2", "c5"), ("c0", "c5"), ("c3", "c5")], 0, 1.),
     case_04_no_partner:          (&[("c0", "c3")], 0, 0.),
+    case_05_repeated_partner:    (&[("c2", "c5"), ("c5", "c2")], 1, 1.),
 }
 
 /// `c5` is taken out of route 1 and offered to `route_idx`. The estimate is checked against the
@@ -67,13 +75,7 @@ fn can_estimate_change_in_split_pairs_impl(pairs: &[(&str, &str)], route_idx: us
     let mut insertion_ctx = create_insertion_ctx();
     unassign(&mut insertion_ctx, "c5");
     let before = get_fitness(&mut insertion_ctx, pairs);
-    let job_pairs = pairs
-        .iter()
-        .map(|(a, b)| {
-            (get_job_by_id(&insertion_ctx, a).unwrap().clone(), get_job_by_id(&insertion_ctx, b).unwrap().clone())
-        })
-        .collect();
-    let feature = create_co_located_feature("co_located", job_pairs).unwrap();
+    let feature = create_feature(&insertion_ctx, pairs);
     let job = get_job_by_id(&insertion_ctx, "c5").unwrap().clone();
 
     let estimate = feature.objective.as_ref().unwrap().estimate(&MoveContext::Route {
@@ -82,8 +84,7 @@ fn can_estimate_change_in_split_pairs_impl(pairs: &[(&str, &str)], route_idx: us
         job: &job,
     });
 
-    let activity = insertion_ctx.solution.routes[1].route().tour.get(1).unwrap().deep_copy();
-    let mut activity = activity;
+    let mut activity = insertion_ctx.solution.routes[1].route().tour.get(1).unwrap().deep_copy();
     activity.job = job.as_single().cloned();
     insertion_ctx.solution.routes[route_idx].route_mut().tour.insert_last(activity);
     insertion_ctx.solution.required.retain(|required| *required != job);
@@ -103,13 +104,7 @@ fn can_count_what_a_partial_solution_holds() {
     let pairs = [("c0", "c3"), ("c2", "c5"), ("c0", "c1")];
 
     let fitness = get_fitness(&mut insertion_ctx, &pairs);
-    let job_pairs = pairs
-        .iter()
-        .map(|(a, b)| {
-            (get_job_by_id(&insertion_ctx, a).unwrap().clone(), get_job_by_id(&insertion_ctx, b).unwrap().clone())
-        })
-        .collect();
-    let feature = create_co_located_feature("co_located", job_pairs).unwrap();
+    let feature = create_feature(&insertion_ctx, &pairs);
     let estimate = feature.objective.as_ref().unwrap().estimate(&MoveContext::Route {
         solution_ctx: &insertion_ctx.solution,
         route_ctx: &insertion_ctx.solution.routes[0],

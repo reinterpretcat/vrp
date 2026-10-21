@@ -763,8 +763,8 @@ pub enum Objective {
     },
 
     /// An objective to minimize co-located pairs split across tours: pairs of jobs, both assigned,
-    /// served by different tours. A pair with an unassigned job counts nothing, so placed directly
-    /// after minimizing unassigned jobs it separates a pair only when that places a job.
+    /// served by different tours. A pair with an unassigned job counts nothing, so placed below
+    /// minimizing unassigned jobs it separates a pair only when that places a job.
     MinimizeSplitCoLocated {
         /// Pairs of job ids which belong in one tour.
         pairs: Vec<(String, String)>,
