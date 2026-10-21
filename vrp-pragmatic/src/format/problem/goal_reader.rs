@@ -318,6 +318,15 @@ fn get_objective_feature_layer(
         Objective::CompactTour { job_radius } => {
             create_tour_compactness_feature("tour_compact", blocks.jobs.clone(), *job_radius)
         }
+        Objective::MinimizeSplitCoLocated { pairs } => {
+            let job_index = blocks.job_index.as_ref().ok_or("misconfiguration in goal reader: job index is not set")?;
+            let pairs = pairs
+                .iter()
+                .filter_map(|(a, b)| Some((job_index.get(a)?.clone(), job_index.get(b)?.clone())))
+                .collect();
+
+            create_co_located_feature("split_co_located", pairs)
+        }
         Objective::TourOrder => create_tour_order_soft_feature("tour_order", get_tour_order_fn()),
         Objective::MinimizeTourSizeViolation => create_min_activity_limit_feature(
             "min_tour_size_objective",

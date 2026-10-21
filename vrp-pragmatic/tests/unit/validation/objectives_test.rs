@@ -434,3 +434,38 @@ fn can_detect_missing_min_tour_size_objective_impl(
 
     assert_eq!(result.err().map(|e| e.code), expected);
 }
+
+parameterized_test! {can_detect_invalid_co_located_pairs, (pairs, expected), {
+    can_detect_invalid_co_located_pairs_impl(pairs, expected);
+}}
+
+can_detect_invalid_co_located_pairs! {
+    case01_known_jobs:      (&[("job1", "job2")], None),
+    case02_unknown_job:     (&[("job1", "job9")], Some("E1611")),
+    case03_same_job_twice:  (&[("job1", "job1")], Some("E1612")),
+}
+
+fn can_detect_invalid_co_located_pairs_impl(pairs: &[(&str, &str)], expected: Option<&str>) {
+    let objective = serde_json::from_value::<Objective>(serde_json::json!({
+        "type": "minimize-split-co-located",
+        "pairs": pairs.iter().map(|(a, b)| [a, b]).collect::<Vec<_>>(),
+    }))
+    .expect("co-located objective");
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
+            ..create_empty_plan()
+        },
+        objectives: Some(vec![MinimizeUnassigned { breaks: None }, objective, MinimizeCost]),
+        ..create_empty_problem()
+    };
+    let coord_index = CoordIndex::new(&problem);
+    let ctx = ValidationContext::new(&problem, None, &coord_index);
+
+    let result = validate_objectives(&ctx);
+
+    assert_eq!(
+        result.err().map(|err| err.errors.into_iter().map(|e| e.code).collect::<Vec<_>>()),
+        expected.map(|code| vec![code.to_string()])
+    );
+}

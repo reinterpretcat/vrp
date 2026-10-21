@@ -250,6 +250,65 @@ fn check_e1610_territory_objective_without_anchors(objectives: &[&Objective]) ->
     }
 }
 
+/// Checks that every job named by a `minimize-split-co-located` pair exists. A pair naming an
+/// unknown job would silently count nothing, which hides a caller that sent the wrong ids.
+fn check_e1611_co_located_pair_with_unknown_job(
+    ctx: &ValidationContext,
+    objectives: &[&Objective],
+) -> Result<(), FormatError> {
+    let job_ids = ctx.problem.plan.jobs.iter().map(|job| job.id.as_str()).collect::<HashSet<_>>();
+    let unknown = get_co_located_pairs(objectives)
+        .flat_map(|(a, b)| [a, b])
+        .filter(|id| !job_ids.contains(id.as_str()))
+        .cloned()
+        .collect::<HashSet<_>>();
+
+    if unknown.is_empty() {
+        Ok(())
+    } else {
+        let mut unknown = unknown.into_iter().collect::<Vec<_>>();
+        unknown.sort();
+
+        Err(FormatError::new(
+            "E1611".to_string(),
+            "unknown job in co-located pair".to_string(),
+            format!(
+                "name only jobs of the plan in 'minimize-split-co-located' pairs, unknown: '{}'",
+                unknown.join(", ")
+            ),
+        ))
+    }
+}
+
+/// Checks that no `minimize-split-co-located` pair names the same job twice: one job always shares
+/// its own tour, so such a pair says nothing.
+fn check_e1612_co_located_pair_with_same_job(objectives: &[&Objective]) -> Result<(), FormatError> {
+    let mut same = get_co_located_pairs(objectives).filter(|(a, b)| a == b).map(|(a, _)| a.clone()).collect::<Vec<_>>();
+
+    if same.is_empty() {
+        Ok(())
+    } else {
+        same.sort();
+        same.dedup();
+
+        Err(FormatError::new(
+            "E1612".to_string(),
+            "co-located pair names the same job twice".to_string(),
+            format!(
+                "name two different jobs in each 'minimize-split-co-located' pair, repeated: '{}'",
+                same.join(", ")
+            ),
+        ))
+    }
+}
+
+fn get_co_located_pairs<'a>(objectives: &'a [&Objective]) -> impl Iterator<Item = &'a (String, String)> + 'a {
+    get_objectives_flattened(objectives).flat_map(|objective| match objective {
+        MinimizeSplitCoLocated { pairs } => Either::Left(pairs.iter()),
+        _ => Either::Right(std::iter::empty()),
+    })
+}
+
 fn get_objectives<'a>(ctx: &'a ValidationContext) -> Option<Vec<&'a Objective>> {
     ctx.problem.objectives.as_ref().map(|objectives| objectives.iter().collect())
 }
@@ -275,6 +334,8 @@ pub fn validate_objectives(ctx: &ValidationContext) -> Result<(), MultiFormatErr
             check_e1608_vehicles_with_min_tour_size_but_no_objective(ctx, &objectives),
             check_e1609_no_jobs_with_production_value_objective(ctx, &objectives),
             check_e1610_territory_objective_without_anchors(&objectives),
+            check_e1611_co_located_pair_with_unknown_job(ctx, &objectives),
+            check_e1612_co_located_pair_with_same_job(&objectives),
         ])
         .map_err(From::from)
     } else {

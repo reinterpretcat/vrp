@@ -67,6 +67,11 @@ These objectives provide some extra control on job assignment:
   for a given job' neighbourhood. It has the following mandatory parameters:
   - `options`: options to relax objective: - `jobRadius`: a radius of neighbourhood, minimum is 1 - `threshold`: a minimum shared jobs to count - `distance`: a minimum relative distance between counts when comparing different solutions.
     This objective is supposed to be on the same level within cost ones.
+- `minimize-split-co-located`: counts co-located pairs split across tours, that is pairs of jobs which are both
+  assigned but served by different tours (a vehicle on one shift). A pair with an unassigned job counts nothing, so
+  placed directly after `minimize-unassigned` it separates a pair only when that places a job. Mandatory parameter:
+  - `pairs`: a list of job id pairs, for example `[["job1", "job2"]]`. Every id must name a job of the plan (`E1611`)
+    and the two ids of a pair must differ (`E1612`). Pairs are counted one by one; they are not joined into groups.
 - `minimize-tour-size-violation`: penalizes solutions where routes have fewer activities than the `min_tour_size`
   limit defined on vehicles. Empty routes (with zero activities) are not penalized. This objective should be used
   when vehicles have `min_tour_size` limits defined in their `limits` property.

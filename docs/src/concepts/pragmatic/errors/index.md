@@ -631,3 +631,14 @@ or simply delete the `balance-production-value` (or `balance-period` with `produ
 territory, so an empty map holds no ground for any driver and the objective does nothing. To fix the issue, supply a
 non-empty `anchors` map, or delete the `territory` objective. A *partial* map is valid: drivers absent from the map,
 and drivers mapped to an empty list, simply take no part in the territory.
+
+#### E1611
+
+`unknown job in co-located pair` error is returned when a `minimize-split-co-located` pair names a job id which is not
+in the plan. Such a pair would count nothing and hide the wrong id. To fix the issue, name only jobs of the plan, or
+remove the pair.
+
+#### E1612
+
+`co-located pair names the same job twice` error is returned when both ids of a `minimize-split-co-located` pair are
+the same job. A job always shares its own tour, so the pair says nothing. To fix the issue, name two different jobs.

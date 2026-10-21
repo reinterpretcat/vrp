@@ -14,6 +14,9 @@ mod capacity;
 pub(crate) use self::capacity::MaxVehicleLoadTourState;
 pub use self::capacity::{CapacityFeatureBuilder, JobDemandDimension, VehicleCapacityDimension};
 
+mod co_located;
+pub use self::co_located::create_co_located_feature;
+
 mod compatibility;
 pub use self::compatibility::{JobCompatibilityDimension, create_compatibility_feature};
 
