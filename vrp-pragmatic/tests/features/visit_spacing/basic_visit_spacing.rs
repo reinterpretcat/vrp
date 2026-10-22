@@ -28,6 +28,7 @@ fn create_test_job(id: &str, order: usize, days: std::ops::RangeInclusive<i64>) 
             interval_days: 7,
             tolerance_days: 1,
             anchor: None,
+            min_offset_days: None,
         }),
         ..create_job(id)
     }
@@ -119,4 +120,25 @@ fn can_place_an_anchor_whatever_its_neighbours() {
 
     let days = served_days(&solution);
     assert!(days.iter().any(|(id, day)| id == "anchor" && *day == 1), "the anchor keeps its day, got {days:?}");
+}
+
+/// Without the offsets both visits share the cheapest tour: the first day.
+#[test]
+fn can_keep_the_second_visit_at_least_its_offset_after_the_first() {
+    let with_offset = |id: &str, order: usize, days, offset: i64| {
+        let mut job = create_test_job(id, order, days);
+        job.spacing.as_mut().unwrap().min_offset_days = Some(offset);
+        job
+    };
+    let problem = create_test_problem(vec![with_offset("first", 1, 0..=0, 0), with_offset("second", 2, 0..=14, 4)]);
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    // A short search placing the second visit first may leave the first without a day, as in the interval case.
+    let days = served_days(&solution);
+    assert!(!days.is_empty());
+    if let [first, second] = days.as_slice() {
+        assert!((first.1 - second.1).abs() >= 4, "visits must be at least four days apart, got {days:?}");
+    }
 }

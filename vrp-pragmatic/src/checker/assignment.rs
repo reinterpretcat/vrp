@@ -309,7 +309,7 @@ fn check_vehicle_groups(ctx: &CheckerContext) -> GenericResult<()> {
 ///
 /// Measured between neighbours in order among the placed visits, as the solver does: `n` steps
 /// apart they lie `n * intervalDays` days apart, give or take `n * toleranceDays`, counted between
-/// the starts of their shifts. A pair with an anchor is not measured: the solver never refuses an
+/// the starts of their shifts, or at least the difference of their `minOffsetDays` where both carry one. A pair with an anchor is not measured: the solver never refuses an
 /// anchor, so one placed after its neighbour may land anywhere.
 fn check_visit_spacing(ctx: &CheckerContext) -> GenericResult<()> {
     let mut visits = HashMap::<String, Vec<(usize, Float, &JobSpacing)>>::default();
@@ -338,12 +338,15 @@ fn check_visit_spacing(ctx: &CheckerContext) -> GenericResult<()> {
                 .windows(2)
                 .filter(|pair| !pair[0].2.anchor.unwrap_or(false) && !pair[1].2.anchor.unwrap_or(false))
                 .filter_map(|pair| {
-                    let ((earlier, earlier_day, _), (later, later_day, spacing)) = (pair[0], pair[1]);
+                    let ((earlier, earlier_day, earlier_spacing), (later, later_day, spacing)) = (pair[0], pair[1]);
                     let steps = later.saturating_sub(earlier) as i64;
                     let days = ((later_day - earlier_day) / 86_400.).round() as i64;
+                    let too_close_or_far = match (earlier_spacing.min_offset_days, spacing.min_offset_days) {
+                        (Some(earlier_offset), Some(later_offset)) => days < later_offset - earlier_offset,
+                        _ => (days - steps * spacing.interval_days).abs() > steps * spacing.tolerance_days,
+                    };
 
-                    ((days - steps * spacing.interval_days).abs() > steps * spacing.tolerance_days)
-                        .then(|| format!("'{group}' visits {earlier} and {later} are {days} days apart"))
+                    too_close_or_far.then(|| format!("'{group}' visits {earlier} and {later} are {days} days apart"))
                 })
                 .collect::<Vec<_>>()
         })

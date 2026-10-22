@@ -31,7 +31,9 @@ consists of the following properties:
   too close to, or too far from, the nearest visit of its `group` placed before or after it: `n` steps apart in
   `order` they lie `n * intervalDays` days apart, give or take `n * toleranceDays`, counted between the starts of
   their shifts. A job with `anchor: true` is never refused, the others keep their distance to it. Useful to keep a
-  weekly customer a week apart however the plan moves each visit inside its own time windows.
+  weekly customer a week apart however the plan moves each visit inside its own time windows. Two jobs that both
+  carry `minOffsetDays` lie at least the difference of their offsets apart instead, with no upper bound: useful
+  for a plan whose visits are not evenly spaced.
 
 A job should have at least one task property specified.
 

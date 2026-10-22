@@ -438,6 +438,7 @@ fn create_spaced_job(id: &str, order: usize, anchor: bool) -> Job {
             interval_days: 7,
             tolerance_days: 1,
             anchor: anchor.then_some(true),
+            min_offset_days: None,
         }),
         ..create_delivery_job(id, (1., 0.))
     }
@@ -496,6 +497,33 @@ fn can_check_visit_spacing_impl(second_day: f64, anchor: bool, expected: Generic
         .tour(create_vehicle_group_tour("v1", 1, "job2"))
         .build();
     let jobs = vec![create_spaced_job("job1", 1, false), create_spaced_job("job2", 2, anchor)];
+
+    let result = check_visit_spacing(&create_visit_spacing_context(solution, &[0., second_day], jobs));
+
+    assert_eq!(result, expected);
+}
+
+parameterized_test! {can_check_visit_spacing_by_offset, (second_day, expected), {
+    can_check_visit_spacing_by_offset_impl(second_day, expected);
+}}
+
+can_check_visit_spacing_by_offset! {
+    case01_at_the_offset: (4., Ok(())),
+    case02_far_later: (40., Ok(())),
+    case03_a_day_too_close: (3., Err("visit spacing is not respected: 'sub-1' visits 1 and 2 are 3 days apart".into())),
+}
+
+fn can_check_visit_spacing_by_offset_impl(second_day: f64, expected: GenericResult<()>) {
+    let solution = SolutionBuilder::default()
+        .tour(create_vehicle_group_tour("v1", 0, "job1"))
+        .tour(create_vehicle_group_tour("v1", 1, "job2"))
+        .build();
+    let with_offset = |id: &str, order: usize, offset: i64| {
+        let mut job = create_spaced_job(id, order, false);
+        job.spacing.as_mut().unwrap().min_offset_days = Some(offset);
+        job
+    };
+    let jobs = vec![with_offset("job1", 1, 2), with_offset("job2", 2, 6)];
 
     let result = check_visit_spacing(&create_visit_spacing_context(solution, &[0., second_day], jobs));
 

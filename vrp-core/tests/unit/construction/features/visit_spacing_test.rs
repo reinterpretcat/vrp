@@ -46,7 +46,19 @@ fn actor_on(fleet: &Fleet, day: i64) -> Arc<Actor> {
 }
 
 fn spacing(group: &str, order: usize, anchor: bool) -> VisitSpacing {
-    VisitSpacing { group: group.to_string(), order, interval_days: 7, tolerance_days: 1, anchor }
+    VisitSpacing { group: group.to_string(), order, interval_days: 7, tolerance_days: 1, anchor, min_offset_days: None }
+}
+
+/// A visit kept apart by its offset in days rather than an interval.
+fn offset(group: &str, order: usize, min_offset_days: i64) -> VisitSpacing {
+    VisitSpacing {
+        group: group.to_string(),
+        order,
+        interval_days: 0,
+        tolerance_days: 0,
+        anchor: false,
+        min_offset_days: Some(min_offset_days),
+    }
 }
 
 fn visit(spacing: Option<VisitSpacing>) -> Arc<Single> {
@@ -275,8 +287,8 @@ fn can_rebuild_a_route_state_with_its_visits() {
     );
     let visits = route_ctx.state().get_current_spaced_visits().unwrap();
 
-    assert_eq!(visits.get("sub-1"), Some(&vec![2]));
-    assert_eq!(visits.get("sub-2"), Some(&vec![1]));
+    assert_eq!(visits.get("sub-1"), Some(&vec![(2, None)]));
+    assert_eq!(visits.get("sub-2"), Some(&vec![(1, None)]));
     assert_eq!(visits.len(), 2);
 }
 
@@ -289,4 +301,50 @@ fn can_merge_only_visits_without_spacing() {
     assert!(constraint.merge(plain(), plain()).is_ok());
     assert_eq!(constraint.merge(spaced(), plain()).err(), Some(VIOLATION_CODE));
     assert_eq!(constraint.merge(plain(), spaced()).err(), Some(VIOLATION_CODE));
+}
+
+parameterized_test! {can_keep_a_visit_at_least_its_offset_from_the_one_before, (day, expected), {
+    can_keep_a_visit_at_least_its_offset_from_the_one_before_impl(day, expected);
+}}
+
+can_keep_a_visit_at_least_its_offset_from_the_one_before! {
+    case01_a_day_too_close: (6, refused()),
+    case02_on_the_offset: (7, None),
+    case03_far_later_has_no_limit: (40, None),
+}
+
+fn can_keep_a_visit_at_least_its_offset_from_the_one_before_impl(day: i64, expected: Option<ConstraintViolation>) {
+    let fleet = create_test_fleet(&[(0, 7.), (day, 7.)]);
+    let total = 2;
+    let ctx = solution_ctx(&fleet, total, vec![(day, vec![]), (0, vec![visit(Some(offset("sub-1", 1, 3)))])]);
+
+    assert_eq!(evaluate(&ctx, total, offset("sub-1", 2, 10)), expected);
+}
+
+parameterized_test! {can_keep_a_visit_at_least_its_offset_from_the_one_after, (day, expected), {
+    can_keep_a_visit_at_least_its_offset_from_the_one_after_impl(day, expected);
+}}
+
+can_keep_a_visit_at_least_its_offset_from_the_one_after! {
+    case01_on_the_offset: (7, None),
+    case02_a_day_too_close: (8, refused()),
+}
+
+fn can_keep_a_visit_at_least_its_offset_from_the_one_after_impl(day: i64, expected: Option<ConstraintViolation>) {
+    let fleet = create_test_fleet(&[(day, 7.), (14, 7.)]);
+    let total = 2;
+    let ctx = solution_ctx(&fleet, total, vec![(day, vec![]), (14, vec![visit(Some(offset("sub-1", 2, 7)))])]);
+
+    assert_eq!(evaluate(&ctx, total, offset("sub-1", 1, 0)), expected);
+}
+
+/// Offsets add up: with the second visit not placed, the first and third keep the sum of both gaps.
+#[test]
+fn can_keep_offsets_over_a_visit_not_placed() {
+    let fleet = create_test_fleet(&[(0, 7.), (9, 7.), (10, 7.)]);
+    let total = 3;
+    let placed = |day: i64| vec![(day, vec![]), (0, vec![visit(Some(offset("sub-1", 1, 0)))])];
+
+    assert_eq!(evaluate(&solution_ctx(&fleet, total, placed(9)), total, offset("sub-1", 3, 10)), refused());
+    assert_eq!(evaluate(&solution_ctx(&fleet, total, placed(10)), total, offset("sub-1", 3, 10)), None);
 }

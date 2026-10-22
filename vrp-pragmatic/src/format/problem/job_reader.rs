@@ -464,6 +464,7 @@ fn fill_dimens(job: &ApiJob, dimens: &mut Dimensions) {
             interval_days: spacing.interval_days,
             tolerance_days: spacing.tolerance_days,
             anchor: spacing.anchor.unwrap_or(false),
+            min_offset_days: spacing.min_offset_days,
         });
     }
 

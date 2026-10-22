@@ -20,10 +20,13 @@ pub struct VisitSpacing {
     pub tolerance_days: i64,
     /// An anchor is never refused: its day is a fact, and the others keep their distance to it.
     pub anchor: bool,
+    /// The visit's offset in days within the rhythm. Where two visits both carry one, they lie at least the
+    /// difference of their offsets apart, with no upper bound, instead of keeping an interval.
+    pub min_offset_days: Option<i64>,
 }
 
 custom_dimension!(pub VisitSpacing typeof VisitSpacing);
-custom_tour_state!(CurrentSpacedVisits typeof HashMap<String, Vec<usize>>);
+custom_tour_state!(CurrentSpacedVisits typeof HashMap<String, Vec<(usize, Option<i64>)>>);
 
 const SECONDS_PER_DAY: Float = 86_400.;
 
@@ -66,8 +69,8 @@ impl FeatureConstraint for VisitSpacingConstraint {
                 }
 
                 let day = route_start(route_ctx);
-                let mut before: Option<(usize, Float)> = None;
-                let mut after: Option<(usize, Float)> = None;
+                let mut before: Option<(usize, Option<i64>, Float)> = None;
+                let mut after: Option<(usize, Option<i64>, Float)> = None;
 
                 solution_ctx.routes.iter().for_each(|rc| {
                     let Some(orders) =
@@ -77,19 +80,19 @@ impl FeatureConstraint for VisitSpacingConstraint {
                     };
                     let other_day = route_start(rc);
 
-                    orders.iter().for_each(|&order| {
-                        if order < spacing.order && before.is_none_or(|(nearest, _)| order > nearest) {
-                            before = Some((order, other_day));
+                    orders.iter().for_each(|&(order, offset)| {
+                        if order < spacing.order && before.is_none_or(|(nearest, _, _)| order > nearest) {
+                            before = Some((order, offset, other_day));
                         }
-                        if order > spacing.order && after.is_none_or(|(nearest, _)| order < nearest) {
-                            after = Some((order, other_day));
+                        if order > spacing.order && after.is_none_or(|(nearest, _, _)| order < nearest) {
+                            after = Some((order, offset, other_day));
                         }
                     });
                 });
 
-                let keeps_apart = |(order, other_day): (usize, Float)| {
-                    is_spaced(spacing, order, other_day, spacing.order, day)
-                        && is_spaced(spacing, spacing.order, day, order, other_day)
+                let own = (spacing.order, spacing.min_offset_days, day);
+                let keeps_apart = |other: (usize, Option<i64>, Float)| {
+                    is_spaced(spacing, other, own) && is_spaced(spacing, own, other)
                 };
 
                 if before.is_none_or(keeps_apart) && after.is_none_or(keeps_apart) {
@@ -110,21 +113,23 @@ impl FeatureConstraint for VisitSpacingConstraint {
     }
 }
 
-/// Whether the visit `later_order` on `later_day` keeps its distance to `earlier_order` on
-/// `earlier_day`. Only the pair whose orders run forward is measured; the other one passes.
-fn is_spaced(
-    spacing: &VisitSpacing,
-    earlier_order: usize,
-    earlier_day: Float,
-    later_order: usize,
-    later_day: Float,
-) -> bool {
+/// Whether the `later` visit keeps its distance to the `earlier` one, each given as its order, offset and day.
+/// Only the pair whose orders run forward is measured; the other one passes. Two visits with offsets lie at
+/// least the difference of their offsets apart; otherwise they keep the interval, give or take the tolerance.
+fn is_spaced(spacing: &VisitSpacing, earlier: (usize, Option<i64>, Float), later: (usize, Option<i64>, Float)) -> bool {
+    let ((earlier_order, earlier_offset, earlier_day), (later_order, later_offset, later_day)) = (earlier, later);
+
     if later_order <= earlier_order {
         return true;
     }
 
-    let steps = (later_order - earlier_order) as i64;
     let days = ((later_day - earlier_day) / SECONDS_PER_DAY).round() as i64;
+
+    if let (Some(earlier_offset), Some(later_offset)) = (earlier_offset, later_offset) {
+        return days >= later_offset - earlier_offset;
+    }
+
+    let steps = (later_order - earlier_order) as i64;
 
     (days - steps * spacing.interval_days).abs() <= steps * spacing.tolerance_days
 }
@@ -157,11 +162,11 @@ impl FeatureState for VisitSpacingState {
     }
 }
 
-fn collect_spaced_visits(route_ctx: &RouteContext) -> HashMap<String, Vec<usize>> {
+fn collect_spaced_visits(route_ctx: &RouteContext) -> HashMap<String, Vec<(usize, Option<i64>)>> {
     route_ctx.route().tour.jobs().filter_map(|job| job.dimens().get_visit_spacing()).fold(
         HashMap::default(),
         |mut visits, spacing| {
-            visits.entry(spacing.group.clone()).or_default().push(spacing.order);
+            visits.entry(spacing.group.clone()).or_default().push((spacing.order, spacing.min_offset_days));
             visits
         },
     )

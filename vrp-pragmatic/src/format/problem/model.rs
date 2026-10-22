@@ -164,6 +164,10 @@ pub struct JobSpacing {
     /// An anchor is never refused; the others keep their distance to it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub anchor: Option<bool>,
+    /// The job's offset in days within the rhythm. Two jobs that both carry one lie at least the difference of
+    /// their offsets apart, with no upper bound, instead of keeping the interval.
+    #[serde(rename = "minOffsetDays", default, skip_serializing_if = "Option::is_none")]
+    pub min_offset_days: Option<i64>,
 }
 
 // region Clustering
