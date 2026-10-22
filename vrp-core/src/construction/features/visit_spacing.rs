@@ -69,8 +69,8 @@ impl FeatureConstraint for VisitSpacingConstraint {
                 }
 
                 let day = route_start(route_ctx);
-                let mut before: Option<(usize, Option<i64>, Float)> = None;
-                let mut after: Option<(usize, Option<i64>, Float)> = None;
+                let mut before: Option<SpacedVisit> = None;
+                let mut after: Option<SpacedVisit> = None;
 
                 solution_ctx.routes.iter().for_each(|rc| {
                     let Some(orders) =
@@ -81,19 +81,18 @@ impl FeatureConstraint for VisitSpacingConstraint {
                     let other_day = route_start(rc);
 
                     orders.iter().for_each(|&(order, offset)| {
-                        if order < spacing.order && before.is_none_or(|(nearest, _, _)| order > nearest) {
-                            before = Some((order, offset, other_day));
+                        let other = SpacedVisit { order, offset, day: other_day };
+                        if order < spacing.order && before.is_none_or(|nearest| order > nearest.order) {
+                            before = Some(other);
                         }
-                        if order > spacing.order && after.is_none_or(|(nearest, _, _)| order < nearest) {
-                            after = Some((order, offset, other_day));
+                        if order > spacing.order && after.is_none_or(|nearest| order < nearest.order) {
+                            after = Some(other);
                         }
                     });
                 });
 
-                let own = (spacing.order, spacing.min_offset_days, day);
-                let keeps_apart = |other: (usize, Option<i64>, Float)| {
-                    is_spaced(spacing, other, own) && is_spaced(spacing, own, other)
-                };
+                let own = SpacedVisit { order: spacing.order, offset: spacing.min_offset_days, day };
+                let keeps_apart = |other: SpacedVisit| is_spaced(spacing, other, own) && is_spaced(spacing, own, other);
 
                 if before.is_none_or(keeps_apart) && after.is_none_or(keeps_apart) {
                     None
@@ -113,23 +112,29 @@ impl FeatureConstraint for VisitSpacingConstraint {
     }
 }
 
-/// Whether the `later` visit keeps its distance to the `earlier` one, each given as its order, offset and day.
-/// Only the pair whose orders run forward is measured; the other one passes. Two visits with offsets lie at
-/// least the difference of their offsets apart; otherwise they keep the interval, give or take the tolerance.
-fn is_spaced(spacing: &VisitSpacing, earlier: (usize, Option<i64>, Float), later: (usize, Option<i64>, Float)) -> bool {
-    let ((earlier_order, earlier_offset, earlier_day), (later_order, later_offset, later_day)) = (earlier, later);
+/// A placed visit of a rhythm: its place in order, its offset if it has one, and its shift's day.
+#[derive(Clone, Copy)]
+struct SpacedVisit {
+    order: usize,
+    offset: Option<i64>,
+    day: Float,
+}
 
-    if later_order <= earlier_order {
+/// Whether the `later` visit keeps its distance to the `earlier` one. Only the pair whose orders run
+/// forward is measured; the other one passes. Two visits with offsets lie at least the difference of
+/// their offsets apart; otherwise they keep the interval, give or take the tolerance.
+fn is_spaced(spacing: &VisitSpacing, earlier: SpacedVisit, later: SpacedVisit) -> bool {
+    if later.order <= earlier.order {
         return true;
     }
 
-    let days = ((later_day - earlier_day) / SECONDS_PER_DAY).round() as i64;
+    let days = ((later.day - earlier.day) / SECONDS_PER_DAY).round() as i64;
 
-    if let (Some(earlier_offset), Some(later_offset)) = (earlier_offset, later_offset) {
+    if let (Some(earlier_offset), Some(later_offset)) = (earlier.offset, later.offset) {
         return days >= later_offset - earlier_offset;
     }
 
-    let steps = (later_order - earlier_order) as i64;
+    let steps = (later.order - earlier.order) as i64;
 
     (days - steps * spacing.interval_days).abs() <= steps * spacing.tolerance_days
 }

@@ -309,7 +309,8 @@ fn check_vehicle_groups(ctx: &CheckerContext) -> GenericResult<()> {
 ///
 /// Measured between neighbours in order among the placed visits, as the solver does: `n` steps
 /// apart they lie `n * intervalDays` days apart, give or take `n * toleranceDays`, counted between
-/// the starts of their shifts, or at least the difference of their `minOffsetDays` where both carry one. A pair with an anchor is not measured: the solver never refuses an
+/// the starts of their shifts, or at least the difference of their `minOffsetDays` where both
+/// carry one. A pair with an anchor is not measured: the solver never refuses an
 /// anchor, so one placed after its neighbour may land anywhere.
 fn check_visit_spacing(ctx: &CheckerContext) -> GenericResult<()> {
     let mut visits = HashMap::<String, Vec<(usize, Float, &JobSpacing)>>::default();

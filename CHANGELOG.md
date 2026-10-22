@@ -27,9 +27,11 @@ are already published. So, I stick to it for now.
   but served by different tours, a pair with an unassigned job counting nothing and a repeated pair once; placed below
   `minimize-unassigned` it keeps nearby visits in one tour unless separating them places a job; validated by `E1611`
   (unknown job) and `E1612` (same job twice)
-* add job `spacing` (`{ group, order, intervalDays, toleranceDays, anchor? }`): a visit is refused on a day too close
-  to, or too far from, the nearest visit of its group placed before or after it, `n` steps apart in `order` meaning
-  `n * intervalDays` days give or take `n * toleranceDays`; held by the checker, reported as `VISIT_SPACING_CONSTRAINT`
+* add job `spacing` (`{ group, order, intervalDays, toleranceDays, anchor?, minOffsetDays? }`): a visit is refused on a
+  day too close to, or too far from, the nearest visit of its group placed before or after it, `n` steps apart in
+  `order` meaning `n * intervalDays` days give or take `n * toleranceDays`; two visits that both carry `minOffsetDays`
+  lie at least the difference of their offsets apart instead, with no upper bound; held by the checker, reported as
+  `VISIT_SPACING_CONSTRAINT`
 * add an experimental objective
 * add naive implementation of LKH local search
 
