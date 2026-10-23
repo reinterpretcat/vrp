@@ -1,26 +1,29 @@
 name: Publish release assets
 
+# A release is published by this workflow and by nothing else: pushing a tag builds every target
+# into a DRAFT, attests each archive's build provenance, and only then publishes. The repo has
+# immutable releases on, so a published release's assets can never change again — which is why
+# the assets have to be complete before publishing, not uploaded after it.
 on:
-  release:
-    types: [published]
-  # Rebuilding a tag by hand is what turns one flaky target from a lost release into a retry:
-  # the upload waits on the whole matrix, so a single failed leg still leaves the release with
-  # no assets. Dispatching the same tag again rebuilds every target and clobbers what is there.
+  push:
+    tags: ["v*"]
+  # Retrying a tag whose run failed before publishing: one flaky target still leaves the draft
+  # without assets. A published release is immutable and the run refuses to touch it.
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag of an existing release to build and upload assets for
+        description: Tag whose draft release to build again
         required: true
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   build-binaries:
@@ -75,7 +78,7 @@ jobs:
           # Explicit, because a dispatched run defaults to the branch the workflow came from —
           # which would build master's code and upload it under a tag's name. A release event
           # already checks this commit out; saying so keeps both entry points honest.
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -167,10 +170,14 @@ jobs:
           path: release-artifacts/SHA256SUMS
           if-no-files-found: error
 
-  upload-release-assets:
-    name: Upload assets to GitHub Release
+  publish-release:
+    name: Attest, upload and publish the release
     runs-on: ubuntu-latest
     needs: [build-binaries, create-checksums]
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Download packaged binaries
         uses: actions/download-artifact@v4
@@ -190,7 +197,12 @@ jobs:
           set -euo pipefail
           ls -la release-artifacts
 
-      - name: Upload release assets
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: release-artifacts/vrp-cli-*
+
+      - name: Upload to the draft and publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -201,7 +213,14 @@ jobs:
           mapfile -t files < <(find release-artifacts -maxdepth 1 -type f \( -name 'vrp-cli-*' -o -name 'SHA256SUMS' \) | sort)
           [ "${#files[@]}" -gt 0 ] || { echo "No release files found to upload"; exit 1; }
 
+          if is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
+            [ "$is_draft" = "true" ] || { echo "::error::${RELEASE_TAG} is already published, and published releases are immutable."; exit 1; }
+          else
+            gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" --notes-from-tag
+          fi
+
           for file in "${files[@]}"; do
-            name="$(basename "$file")"
-            gh release upload "$RELEASE_TAG" "$file#$name" --clobber --repo "$GH_REPO"
+            gh release upload "$RELEASE_TAG" "$file#$(basename "$file")" --clobber
           done
+
+          gh release edit "$RELEASE_TAG" --draft=false
