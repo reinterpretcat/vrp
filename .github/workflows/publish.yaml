@@ -216,7 +216,10 @@ jobs:
           if is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
             [ "$is_draft" = "true" ] || { echo "::error::${RELEASE_TAG} is already published, and published releases are immutable."; exit 1; }
           else
-            gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" --notes-from-tag
+            # The annotated tag's message, read through the API: this job checks nothing out.
+            tag_sha="$(gh api "repos/${GH_REPO}/git/ref/tags/${RELEASE_TAG}" --jq .object.sha)"
+            notes="$(gh api "repos/${GH_REPO}/git/tags/${tag_sha}" --jq .message 2>/dev/null || echo "${RELEASE_TAG}")"
+            gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" --notes "$notes"
           fi
 
           for file in "${files[@]}"; do
