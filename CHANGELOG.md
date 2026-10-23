@@ -37,6 +37,14 @@ are already published. So, I stick to it for now.
 
 ### Fixed
 
+* keep a tour's departure from staying at the shift's earliest start when moving it forward runs into a fixed break: the
+  departure is advanced as far as the waiting down the tour allows, and when a break given as exact time made that
+  infeasible it went back to where it was, which after a job was inserted in front of the first one is the shift's
+  earliest start; on a `first-job-to-last-job` span the night idled in front of the first job was then paid for, and
+  the tour broke `maxDuration` past the duration constraint, which had accepted the insertion against a departure just
+  in time for the job (`shift time limit violation ... got: 59261` against 39600); the departure now falls back to
+  arriving just in time for the first job, and failing that to the latest departure whose schedule holds, and a
+  departure that reaches a job after its window closes is never kept
 * let a job go in front of a tour's first job when its window closes before the departure that job left behind: once
   a tour holds a job its departure moves forward to arrive just in time, and an insertion at the front was weighed
   against that later departure, so an early visit could only open its own tour; it is now weighed against the shift's

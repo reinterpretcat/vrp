@@ -45,6 +45,36 @@ pub fn advance_departure_time(
         }
     }
 
+    // Before giving up, leave just in time for the first job. The whole-tour target
+    // pushes the departure as far as the waiting further down the tour allows, which a fixed
+    // reserved break can make infeasible, and the critical departures above only cover breaks given
+    // as offsets. Without this the route keeps the departure it had — the shift's `earliest` after
+    // `apply_insertion_success` put it back there for a job inserted in front — and on a
+    // `FirstJobTo*` span every second idled before the first job is then paid for: a route leaving
+    // at midnight for an 08:00 appointment carries eight hours the duration constraint never saw,
+    // because it accepted the insertion against this very departure (`receded_departure` in
+    // `tour_limits.rs`).
+    for candidate in first_job_departures(route_ctx.route(), activity, transport, current) {
+        if candidate <= current || candidate >= upper {
+            continue;
+        }
+        update_route_departure(route_ctx, activity, transport, candidate);
+        if is_departure_acceptable(route_ctx, activity, transport, duration_before) {
+            return;
+        }
+    }
+
+    // Neither reaches the first job without running into a break either: the break then falls into
+    // the drive or the service, and only a departure early enough to take it in the idle in front of
+    // the job holds. That is a boundary on the clock no single formula gives, so it is searched for
+    // between the departure the route has, which holds, and the one it wanted.
+    if let Some(candidate) = latest_feasible_departure(route_ctx, activity, transport, current, upper) {
+        update_route_departure(route_ctx, activity, transport, candidate);
+        if is_departure_acceptable(route_ctx, activity, transport, duration_before) {
+            return;
+        }
+    }
+
     // Fallback: restore current departure
     update_route_departure(route_ctx, activity, transport, current);
 }
@@ -73,7 +103,7 @@ fn is_departure_acceptable(
     transport: &dyn TransportCost,
     duration_before: Option<Duration>,
 ) -> bool {
-    if !is_schedule_feasible(route_ctx.route(), activity, transport) {
+    if !is_departure_feasible(route_ctx.route(), activity, transport) {
         return false;
     }
 
@@ -87,6 +117,19 @@ fn is_departure_acceptable(
     // total lands exactly on the limit and a last-bit overshoot would throw the whole move away.
     total_duration <= limit_duration + LIMIT_EPSILON
         || duration_before.is_some_and(|duration_before| total_duration <= duration_before)
+}
+
+/// Whether the schedule a departure produces holds: no reserved time pushes work past the end of
+/// its window (`is_schedule_feasible`), and no activity is reached after its window has closed.
+///
+/// The second half is not implied by the first. A break that falls on a drive lengthens the drive
+/// (`DynamicTransportCost`), and the vehicle then arrives late without any activity cost refusing
+/// it: every departure computed here assumes the drive it measured at another time of day.
+fn is_departure_feasible(route: &Route, activity: &dyn ActivityCost, transport: &dyn TransportCost) -> bool {
+    const EPSILON: Duration = 1e-6;
+
+    is_schedule_feasible(route, activity, transport)
+        && route.tour.all_activities().skip(1).all(|a| a.schedule.arrival <= a.place.time.end + EPSILON)
 }
 
 /// Tries to move backward route's departure time.
@@ -156,6 +199,62 @@ fn try_advance_departure_time(
     };
 
     if new_departure_time > last_departure_time { Some(new_departure_time) } else { None }
+}
+
+/// The departures that reach the first job just in time from `departure`, latest first: once for
+/// the moment its service can really start (`estimate_service_start`, which knows the shift's
+/// appointment bounds and visit windows) and once for the opening of its own window, the one the
+/// duration constraint replays from when it accepts a job in front of the first one
+/// (`receded_departure`). The earlier one idles a little in front of the job, but it is the one the
+/// constraint has priced.
+fn first_job_departures(
+    route: &Route,
+    activity: &dyn ActivityCost,
+    transport: &dyn TransportCost,
+    departure: Timestamp,
+) -> Vec<Timestamp> {
+    let (Some(start), Some(first)) = (route.tour.start(), route.tour.get(1)) else {
+        return vec![];
+    };
+
+    let travel =
+        transport.duration(route, start.place.location, first.place.location, TravelTime::Departure(departure));
+    let service_start = activity.estimate_service_start(route, first, departure + travel);
+
+    let mut candidates = vec![service_start - travel, first.place.time.start - travel];
+    candidates.sort_by(|a, b| b.total_cmp(a));
+    candidates.dedup();
+    candidates
+}
+
+/// The latest whole-second departure between `feasible` and `infeasible` whose schedule holds,
+/// found by bisection, or `None` when the search does not get past `feasible`.
+///
+/// Feasibility is not monotone in the departure in general — a later departure can carry a break
+/// past the service it used to collide with — so this finds *a* boundary rather than the latest
+/// feasible departure there is. Whatever it returns holds, and the caller still weighs it against
+/// the duration limit.
+fn latest_feasible_departure(
+    route_ctx: &mut RouteContext,
+    activity: &dyn ActivityCost,
+    transport: &dyn TransportCost,
+    feasible: Timestamp,
+    infeasible: Timestamp,
+) -> Option<Timestamp> {
+    let (mut lo, mut hi) = (feasible, infeasible);
+
+    while hi - lo > 1. {
+        let mid = ((lo + hi) / 2.).floor().max(lo + 1.).min(hi - 1.);
+
+        update_route_departure(route_ctx, activity, transport, mid);
+        if is_departure_feasible(route_ctx.route(), activity, transport) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+
+    (lo > feasible).then_some(lo)
 }
 
 fn try_recede_departure_time(route_ctx: &RouteContext) -> Option<Timestamp> {
