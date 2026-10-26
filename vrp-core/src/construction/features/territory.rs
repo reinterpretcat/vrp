@@ -25,6 +25,7 @@ custom_solution_state!(TerritoryFitness typeof TerritoryFitnessData);
 custom_solution_state!(TerritoryAvgLoad typeof Float);
 custom_tour_state!(TerritoryRouteLoad typeof Float);
 custom_tour_state!(TerritoryRouteQuota typeof Float);
+custom_tour_state!(TerritoryRouteAnchor typeof Location);
 
 /// Restores the quadratic term's weight in the regime the feature's own tests exercise.
 /// `surplus²/quota` alone is below `surplus` for every surplus under quota — at a surplus of a
@@ -150,6 +151,7 @@ pub struct TerritoryFeatureBuilder {
     quota_pools: HashMap<DriverKey, String>,
     job_value_fn: Option<JobValueFn>,
     allow_idle_drivers: bool,
+    day_patch: bool,
 }
 
 impl TerritoryFeatureBuilder {
@@ -172,6 +174,7 @@ impl TerritoryFeatureBuilder {
             quota_pools: HashMap::new(),
             job_value_fn: None,
             allow_idle_drivers: false,
+            day_patch: false,
         }
     }
 
@@ -338,6 +341,14 @@ impl TerritoryFeatureBuilder {
         self
     }
 
+    /// When true, a route is measured against ONE of its driver's anchors, the one nearest its
+    /// jobs as a whole, instead of each job against the nearest of them. A day then stays in one
+    /// patch of its driver's ground rather than mixing patches that lie far apart.
+    pub fn set_day_patch(mut self, day_patch: bool) -> Self {
+        self.day_patch = day_patch;
+        self
+    }
+
     /// Builds the feature.
     pub fn build(mut self) -> GenericResult<Feature> {
         let transport = self.transport.take().ok_or_else(|| GenericError::from("territory: transport required"))?;
@@ -347,7 +358,7 @@ impl TerritoryFeatureBuilder {
             self.compatibility_fn.take().ok_or_else(|| GenericError::from("territory: compatibility_fn required"))?;
         let job_value_fn = self.job_value_fn.take().unwrap_or_else(|| Arc::new(|_| 1.0));
 
-        let shared = Arc::new(TerritoryShared::new(
+        let mut shared = TerritoryShared::new(
             transport,
             actors,
             jobs,
@@ -363,7 +374,9 @@ impl TerritoryFeatureBuilder {
             self.quota_pools,
             job_value_fn,
             self.allow_idle_drivers,
-        ));
+        );
+        shared.day_patch = self.day_patch;
+        let shared = Arc::new(shared);
 
         FeatureBuilder::default()
             .with_name(self.name.as_str())
@@ -462,6 +475,8 @@ struct TerritoryShared {
     driver_order: Vec<DriverKey>,
     /// See [`TerritoryFeatureBuilder::set_allow_idle_drivers`].
     allow_idle_drivers: bool,
+    /// See [`TerritoryFeatureBuilder::set_day_patch`].
+    day_patch: bool,
 }
 
 impl TerritoryShared {
@@ -514,6 +529,7 @@ impl TerritoryShared {
             caps: HashMap::new(),
             driver_order: Vec::new(),
             allow_idle_drivers,
+            day_patch: false,
         };
         // Precompute the static anchor lookups first; quotas/reference/power reuse them.
         shared.job_anchor_ranking = shared.compute_job_anchor_ranking(&jobs);
@@ -716,6 +732,22 @@ impl TerritoryShared {
     /// "no anchor ⇒ no participation" cannot be lost at one call site.
     fn driver_anchors(&self, key: &DriverKey) -> Option<&[Location]> {
         self.anchors.get(key).map(Vec::as_slice).filter(|anchors| !anchors.is_empty())
+    }
+
+    /// The anchor a route is measured against under `day_patch`: of its driver's anchors, the one
+    /// with the smallest summed proximity to the route's jobs. `None` for an empty route or a
+    /// driver without anchors.
+    fn route_anchor(&self, route_ctx: &RouteContext) -> Option<Location> {
+        let anchors = self.driver_anchors(&driver_key(&route_ctx.route().actor))?;
+        let locations: Vec<Location> = route_ctx.route().tour.jobs().filter_map(get_job_location).collect();
+        if locations.is_empty() {
+            return None;
+        }
+        anchors
+            .iter()
+            .map(|&anchor| (anchor, locations.iter().map(|&loc| self.proximity(loc, anchor)).sum::<Float>()))
+            .min_by(|x, y| x.1.total_cmp(&y.1))
+            .map(|(anchor, _)| anchor)
     }
 
     /// Proximity from a location to a driver's *nearest* anchor: `min_k π(loc, anchor_k)`. `None`
@@ -988,9 +1020,14 @@ impl TerritoryShared {
             // A driver holding no anchor takes no part in the territory, so it accrues no PULL.
             let Some(assigned_anchors) = self.driver_anchors(&key) else { continue };
             let weight = self.weight(&key);
+            let route_anchor = if self.day_patch { self.route_anchor(route_ctx) } else { None };
             for job in route_ctx.route().tour.jobs() {
                 let Some(loc) = get_job_location(job) else { continue };
-                let assigned_power = self.min_prox_to(assigned_anchors, loc) - weight;
+                let assigned_prox = match route_anchor {
+                    Some(anchor) => self.proximity(loc, anchor),
+                    None => self.min_prox_to(assigned_anchors, loc),
+                };
+                let assigned_power = assigned_prox - weight;
                 let reference = self.nearest_power(loc, job);
                 total += (assigned_power - reference).max(0.0);
             }
@@ -1310,6 +1347,10 @@ impl FeatureObjective for TerritoryObjective {
                 let Some(assigned_prox) = self.shared.driver_prox(&key, loc) else {
                     return Cost::default();
                 };
+                let assigned_prox = match route_ctx.state().get_territory_route_anchor() {
+                    Some(&anchor) if self.shared.day_patch => self.shared.proximity(loc, anchor),
+                    _ => assigned_prox,
+                };
                 let assigned_power = assigned_prox - self.shared.weight(&key);
                 let reference = self.shared.nearest_power(loc, job);
                 (assigned_power - reference).max(0.0)
@@ -1343,6 +1384,15 @@ impl FeatureState for TerritoryState {
     fn accept_route_state(&self, route_ctx: &mut RouteContext) {
         let load = self.shared.route_load(route_ctx);
         route_ctx.state_mut().set_territory_route_load(load);
+        if self.shared.day_patch {
+            // A route that empties holds no patch any more: its next first job may pick any of them.
+            match self.shared.route_anchor(route_ctx) {
+                Some(anchor) => route_ctx.state_mut().set_territory_route_anchor(anchor),
+                None => {
+                    route_ctx.state_mut().remove_territory_route_anchor();
+                }
+            }
+        }
     }
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {

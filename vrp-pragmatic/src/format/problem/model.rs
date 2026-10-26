@@ -904,6 +904,10 @@ pub enum Objective {
         /// serializer emits would be silently dropped and this would always read as false.
         #[serde(default, alias = "allowIdleDrivers")]
         allow_idle_drivers: bool,
+        /// When true, each route stays in one patch of its driver's ground: it is measured against
+        /// the one anchor nearest its jobs as a whole.
+        #[serde(default, alias = "dayPatch")]
+        day_patch: bool,
     },
 
     /// An objective to consider hierarchy of areas while serving jobs.

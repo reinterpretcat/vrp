@@ -77,6 +77,7 @@ fn territory_objective_with_quota_and_weights(
         anchors,
         weights,
         allow_idle_drivers: false,
+        day_patch: false,
         quota,
         shares: None,
         pools: None,

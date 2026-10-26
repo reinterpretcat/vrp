@@ -382,6 +382,7 @@ fn get_objective_feature_layer(
             anchors,
             weights,
             allow_idle_drivers,
+            day_patch,
             quota,
             shares,
             pools,
@@ -415,6 +416,7 @@ fn get_objective_feature_layer(
                 .set_quota_shares(shares.clone().unwrap_or_default())
                 .set_quota_pools(pools.clone().unwrap_or_default())
                 .set_allow_idle_drivers(*allow_idle_drivers)
+                .set_day_patch(*day_patch)
                 .set_job_value_fn(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
                 .set_compatibility_fn(territory_compatibility_fn())
                 .build()

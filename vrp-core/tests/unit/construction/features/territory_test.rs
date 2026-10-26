@@ -881,6 +881,16 @@ fn feature_with_anchor_lists(
     balance: Option<TerritoryBalance>,
     job_specs: &[(&str, usize)],
 ) -> (Feature, Arc<Actor>, Arc<Actor>, Vec<Arc<Single>>) {
+    feature_with_anchor_lists_and_day_patch(anchors, balance, job_specs, false)
+}
+
+/// [`feature_with_anchor_lists`] with the `day_patch` option set as given.
+fn feature_with_anchor_lists_and_day_patch(
+    anchors: HashMap<String, Vec<usize>>,
+    balance: Option<TerritoryBalance>,
+    job_specs: &[(&str, usize)],
+    day_patch: bool,
+) -> (Feature, Arc<Actor>, Arc<Actor>, Vec<Arc<Single>>) {
     let vehicle_d0 = build_vehicle("v_d0", "d0");
     let vehicle_d1 = build_vehicle("v_d1", "d1");
     let fleet =
@@ -907,6 +917,7 @@ fn feature_with_anchor_lists(
         .set_proximity(TerritoryProximity::Distance)
         .set_balance(balance)
         .set_anchors(anchors)
+        .set_day_patch(day_patch)
         .build()
         .unwrap();
 
@@ -1012,6 +1023,67 @@ fn push_ground_cost_is_the_minimum_over_anchor_pairs() {
 }
 
 // endregion
+
+// region: day patch
+
+/// "d0" holds two patches far apart (anchors 0 and 100), "d1" one between them (50).
+fn day_patch_anchors() -> HashMap<String, Vec<usize>> {
+    HashMap::from([("d0".to_string(), vec![0, 100]), ("d1".to_string(), vec![50])])
+}
+
+/// The PULL of one "d0" route over the given jobs, with and without `day_patch`.
+fn d0_route_pull(job_specs: &[(&str, usize)], day_patch: bool) -> Float {
+    let (feature, actor_d0, _actor_d1, singles) =
+        feature_with_anchor_lists_and_day_patch(day_patch_anchors(), None, job_specs, day_patch);
+    let jobs = singles.iter().cloned().zip(job_specs.iter().map(|(_, loc)| *loc)).collect();
+    let ctx = TestInsertionContextBuilder::default().with_routes(vec![route_with_jobs(actor_d0, jobs)]).build();
+
+    feature.objective.unwrap().fitness(&ctx)
+}
+
+/// A day that mixes both of "d0"'s patches. Without `day_patch` every job counts against its
+/// nearest anchor, so none reaches into a foreign cell and PULL is 0. With it, the route is
+/// measured against its one anchor, the one nearest its jobs as a whole: 0 (summed 5 + 10 + 95 =
+/// 110 against 95 + 90 + 5 = 190 for 100). job_c then sits 95 from it against a reference of 5,
+/// i.e. PULL 90.
+#[test]
+fn day_patch_penalizes_a_day_that_mixes_two_patches() {
+    let specs = [("job_a", 5), ("job_b", 10), ("job_c", 95)];
+
+    assert_eq!(d0_route_pull(&specs, false), 0.0, "each job counts against its nearest anchor");
+    assert_eq!(d0_route_pull(&specs, true), 90.0, "job_c is measured against the route's anchor at 0");
+}
+
+/// A day whose jobs all sit in one patch costs the same either way. job_d at 40 is 40 from "d0"'s
+/// anchor at 0 against 10 to "d1", so PULL is 30 with and without `day_patch` — non-zero, so the
+/// equality is not a pair of zeros.
+#[test]
+fn day_patch_leaves_a_single_patch_day_unchanged() {
+    let specs = [("job_a", 5), ("job_d", 40)];
+
+    assert_eq!(d0_route_pull(&specs, false), 30.0);
+    assert_eq!(d0_route_pull(&specs, true), 30.0);
+}
+
+/// The insertion estimate follows the same rule: once a "d0" route sits in the patch at 0, adding
+/// job_c (beside the anchor at 100) costs nothing without `day_patch` and 95 - 5 = 90 with it.
+#[test]
+fn day_patch_estimate_prices_a_job_from_the_other_patch() {
+    let specs = [("job_a", 5), ("job_b", 10), ("job_c", 95)];
+
+    let estimate = |day_patch: bool| {
+        let (feature, actor_d0, _actor_d1, s) =
+            feature_with_anchor_lists_and_day_patch(day_patch_anchors(), None, &specs, day_patch);
+        let mut route_ctx = route_with_jobs(actor_d0, vec![(s[0].clone(), 5), (s[1].clone(), 10)]);
+        feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+        let ictx = TestInsertionContextBuilder::default().build();
+
+        feature.objective.unwrap().estimate(&MoveContext::route(&ictx.solution, &route_ctx, &Job::Single(s[2].clone())))
+    };
+
+    assert_eq!(estimate(false), 0.0);
+    assert_eq!(estimate(true), 90.0);
+}
 
 // region: independence from hash seeding
 

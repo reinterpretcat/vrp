@@ -137,6 +137,7 @@ fn can_deserialize_territory_objective_with_anchors() {
             anchors,
             weights,
             allow_idle_drivers,
+            day_patch,
             quota,
             shares: None,
             pools: None,
@@ -144,6 +145,7 @@ fn can_deserialize_territory_objective_with_anchors() {
             assert_eq!(anchors.get("drv-1"), Some(&vec![4]));
             assert_eq!(anchors.get("drv-2"), Some(&vec![9, 11]));
             assert!(!allow_idle_drivers, "defaults to false when omitted from JSON");
+            assert!(!day_patch, "defaults to false when omitted from JSON");
             assert_eq!(balance_tolerance, 0.05, "omitted balance_tolerance defaults to 5%");
             assert!(quota.is_none(), "omitted quota selects the derive path");
             assert!(weights.is_none(), "omitted weights leave every power weight at 0");
@@ -156,8 +158,8 @@ fn can_deserialize_territory_objective_with_anchors() {
 /// present at once and in the spelling the field serializer produces. The three per-driver inputs
 /// -- `anchors`, `weights`, `quota` -- are keyed identically (driver id, else vehicle id): `anchors`
 /// to an ARRAY of routing-matrix indices, `weights` to the power weight `w_d`, and `quota` to a
-/// scalar in the unit of `balance`. `balanceTolerance` and `allowIdleDrivers` arrive in camelCase
-/// and are accepted through their aliases.
+/// scalar in the unit of `balance`. `balanceTolerance`, `allowIdleDrivers` and `dayPatch` arrive in
+/// camelCase and are accepted through their aliases.
 #[test]
 fn can_deserialize_the_full_territory_objective_payload() {
     let json = r#"{
@@ -166,6 +168,7 @@ fn can_deserialize_the_full_territory_objective_payload() {
         "balance": "production-value",
         "balanceTolerance": 0.05,
         "allowIdleDrivers": true,
+        "dayPatch": true,
         "anchors": { "emp-17": [412, 986], "emp-23": [77] },
         "weights": { "emp-17": 1250.0, "emp-23": 0.0 },
         "quota": { "emp-17": 1840.5, "emp-23": 920.25 }
@@ -180,12 +183,14 @@ fn can_deserialize_the_full_territory_objective_payload() {
             anchors,
             weights: Some(weights),
             allow_idle_drivers,
+            day_patch,
             quota: Some(quota),
             shares: None,
             pools: None,
         } => {
             assert_eq!(balance_tolerance, 0.05);
             assert!(allow_idle_drivers);
+            assert!(day_patch);
             assert_eq!(anchors.get("emp-17"), Some(&vec![412, 986]));
             assert_eq!(anchors.get("emp-23"), Some(&vec![77]));
             assert_eq!(weights.get("emp-17"), Some(&1250.0));
@@ -223,6 +228,7 @@ fn territory_objective_omits_absent_weights_when_serialized() {
         anchors: std::collections::HashMap::from([("drv-1".to_string(), vec![4])]),
         weights: None,
         allow_idle_drivers: false,
+        day_patch: false,
         quota: None,
         shares: None,
         pools: None,
@@ -274,6 +280,7 @@ fn territory_objective_omits_an_absent_quota_when_serialized() {
         anchors: std::collections::HashMap::from([("drv-1".to_string(), vec![4])]),
         weights: None,
         allow_idle_drivers: false,
+        day_patch: false,
         quota: None,
         shares: None,
         pools: None,
@@ -308,6 +315,46 @@ fn can_deserialize_territory_objective_with_camelcase_allow_idle_drivers() {
     let json = r#"{"type":"territory","proximity":"distance","allowIdleDrivers":true}"#;
     match serde_json::from_str::<Objective>(json).unwrap() {
         Objective::Territory { allow_idle_drivers, .. } => assert!(allow_idle_drivers),
+        _ => panic!("wrong variant"),
+    }
+}
+
+#[test]
+fn can_deserialize_territory_objective_with_camelcase_day_patch() {
+    // Same trap as `allowIdleDrivers`: the camelCase key must be honoured, not dropped to false.
+    let json = r#"{"type":"territory","proximity":"distance","dayPatch":true}"#;
+    match serde_json::from_str::<Objective>(json).unwrap() {
+        Objective::Territory { day_patch, .. } => assert!(day_patch),
+        _ => panic!("wrong variant"),
+    }
+
+    let omitted = r#"{"type":"territory","proximity":"distance"}"#;
+    match serde_json::from_str::<Objective>(omitted).unwrap() {
+        Objective::Territory { day_patch, .. } => assert!(!day_patch, "defaults to false when omitted"),
+        _ => panic!("wrong variant"),
+    }
+}
+
+#[test]
+fn territory_objective_round_trips_day_patch() {
+    let objective = Objective::Territory {
+        proximity: TerritoryProximity::Distance,
+        balance: None,
+        balance_tolerance: 0.05,
+        deficit_weight: 0.0,
+        anchors: std::collections::HashMap::from([("drv-1".to_string(), vec![4, 9])]),
+        weights: None,
+        allow_idle_drivers: false,
+        day_patch: true,
+        quota: None,
+        shares: None,
+        pools: None,
+    };
+
+    let json = serde_json::to_string(&objective).unwrap();
+
+    match serde_json::from_str::<Objective>(&json).unwrap() {
+        Objective::Territory { day_patch, .. } => assert!(day_patch, "day_patch lost in a round trip: {json}"),
         _ => panic!("wrong variant"),
     }
 }
