@@ -59,14 +59,20 @@ jobs:
             # crti.o. Installing only the driver is what broke v0.1.16 and v0.1.17.
             apt_packages: gcc-aarch64-linux-gnu libc6-dev-arm64-cross
             linker: aarch64-linux-gnu-gcc
-          - os: macos-latest
+          # macOS is cross-linked on Linux with zig (`zigbuild`), never on a macOS runner: GitHub
+          # ran short of macOS runners and left v0.1.29's x86_64 job unacquired until it was
+          # cancelled, which held back the whole release. vrp-cli links nothing native beyond
+          # libc, and zig's linker signs the arm64 binary ad hoc, as macOS requires.
+          - os: ubuntu-22.04
             target: x86_64-apple-darwin
             asset_target: macos-x86_64
             archive_ext: tar.gz
-          - os: macos-latest
+            zigbuild: true
+          - os: ubuntu-22.04
             target: aarch64-apple-darwin
             asset_target: macos-aarch64
             archive_ext: tar.gz
+            zigbuild: true
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             asset_target: windows-x86_64
@@ -98,11 +104,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ${{ matrix.apt_packages }}
 
+      - name: Install zig and cargo-zigbuild
+        if: matrix.zigbuild
+        timeout-minutes: 5
+        run: pip install ziglang==0.17.0 cargo-zigbuild==0.24.0
+
       - name: Build vrp-cli
         shell: bash
         env:
           MATRIX_TARGET: ${{ matrix.target }}
           MATRIX_LINKER: ${{ matrix.linker }}
+          MATRIX_ZIGBUILD: ${{ matrix.zigbuild }}
         run: |
           set -euo pipefail
 
@@ -115,7 +127,11 @@ jobs:
             export "${linker_var}=${MATRIX_LINKER}"
           fi
 
-          cargo build -p vrp-cli --release --locked --target "${MATRIX_TARGET}"
+          if [ "${MATRIX_ZIGBUILD}" = "true" ]; then
+            cargo zigbuild -p vrp-cli --release --locked --target "${MATRIX_TARGET}"
+          else
+            cargo build -p vrp-cli --release --locked --target "${MATRIX_TARGET}"
+          fi
 
       - name: Package binary
         shell: bash
