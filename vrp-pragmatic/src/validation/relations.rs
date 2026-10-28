@@ -16,7 +16,7 @@ fn check_e1200_job_existence(ctx: &ValidationContext, relations: &[Relation]) ->
                 .jobs
                 .iter()
                 .filter(|&job_id| !is_reserved_job_id(job_id))
-                .filter(|&job_id| !ctx.job_index.contains_key(job_id))
+                .filter(|&job_id| !ctx.job_index.contains_key(job_id.as_str()))
                 .cloned()
         })
         .collect::<Vec<_>>();
@@ -78,9 +78,9 @@ fn check_e1203_no_multiple_places_times(ctx: &ValidationContext, relations: &[Re
                 .jobs
                 .iter()
                 .filter(|&job_id| !is_reserved_job_id(job_id))
-                .filter_map(|job_id| ctx.job_index.get(job_id))
-                .filter(|&job| {
-                    ctx.tasks(job).into_iter().any(|task| {
+                .filter_map(|job_id| ctx.job_index.get(job_id.as_str()).copied())
+                .filter(|job| {
+                    job_tasks(job).any(|task| {
                         task.places.len() > 1
                             || task.places.iter().any(|place| place.times.as_ref().is_some_and(|tw| tw.len() > 1))
                     })
@@ -213,7 +213,7 @@ fn check_e1207_no_incomplete_relation(ctx: &ValidationContext, relations: &[Rela
             let ids = relation
                 .jobs
                 .iter()
-                .filter_map(|job_id| ctx.job_index.get(job_id))
+                .filter_map(|job_id| ctx.job_index.get(job_id.as_str()).copied())
                 .filter(|job| {
                     let size = get_tasks_size(&job.pickups)
                         + get_tasks_size(&job.deliveries)

@@ -26,7 +26,7 @@ impl Ruin for RandomJobRemoval {
         let tracker = RefCell::new(JobRemovalTracker::new(&self.limits, insertion_ctx.environment.random.as_ref()));
         let mut tabu_list = TabuList::from(&insertion_ctx);
 
-        (0..self.limits.removed_activities_range.end).take_while(|_| !tracker.borrow().is_limit()).for_each(|_| {
+        (0..*self.limits.removed_activities_range.end()).take_while(|_| !tracker.borrow().is_limit()).for_each(|_| {
             if let Some((_, route_idx, job)) = select_seed_job_with_tabu_list(&insertion_ctx, &tabu_list)
                 && tracker.borrow_mut().try_remove_job(&mut insertion_ctx.solution, route_idx, &job)
             {

@@ -131,17 +131,10 @@ fn can_specify_heuristic_setting() {
 }
 
 #[test]
-fn can_specify_parallelism() {
-    for (params, result) in [
-        (vec!["--parallelism", "3,1"], Ok(3_usize)),
-        (vec!["--parallelism", "3"], Err("cannot parse parallelism parameter".into())),
-    ] {
-        let matches = get_solomon_matches(params.as_slice());
+fn cannot_specify_removed_parallelism_setting() {
+    let args = vec!["solve", "solomon", SOLOMON_PROBLEM_PATH, "--parallelism", "3,1"];
 
-        let thread_pool_size = get_environment(&matches).map(|e| e.parallelism.thread_pool_size());
-
-        assert_eq!(thread_pool_size, result);
-    }
+    assert!(get_solve_app().try_get_matches_from(args).is_err());
 }
 
 #[test]

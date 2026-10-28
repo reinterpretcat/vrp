@@ -9,11 +9,20 @@ use vrp_core::rosomaxa::evolution::TelemetryMode;
 use vrp_core::solver::RefinementContext;
 use vrp_core::solver::search::{Recreate, RecreateWithCheapest};
 use vrp_core::solver::{Solver, VrpConfigBuilder, create_elitism_population};
-use vrp_core::utils::{Environment, GenericError, Parallelism};
+use vrp_core::utils::{DefaultRandom, Environment, GenericError, Parallelism};
+
+/// Creates a test environment with a repeatable generator, so solver-driven assertions are deterministic.
+fn create_test_environment(available_cpus: Option<usize>) -> Arc<Environment> {
+    Arc::new(Environment {
+        random: Arc::new(DefaultRandom::new_repeatable()),
+        parallelism: available_cpus.map(Parallelism::new_with_cpus).unwrap_or_default(),
+        ..Environment::default()
+    })
+}
 
 /// Runs solver with cheapest insertion heuristic.
 pub fn solve_with_cheapest_insertion(problem: Problem, matrices: Option<Vec<Matrix>>) -> Solution {
-    let environment = Arc::new(Environment::default());
+    let environment = create_test_environment(None);
     get_core_solution(problem, matrices, true, |problem: Arc<CoreProblem>| {
         let population = create_elitism_population(problem.goal.clone(), environment.clone());
         let refinement_ctx =
@@ -53,8 +62,7 @@ pub fn solve(problem: Problem, matrices: Option<Vec<Matrix>>, generations: usize
     const AVAILABLE_CPUS: usize = 4;
 
     get_core_solution(problem, matrices, perform_check, |problem: Arc<CoreProblem>| {
-        let environment =
-            Arc::new(Environment { parallelism: Parallelism::new_with_cpus(AVAILABLE_CPUS), ..Environment::default() });
+        let environment = create_test_environment(Some(AVAILABLE_CPUS));
 
         VrpConfigBuilder::new(problem.clone())
             .set_environment(environment)

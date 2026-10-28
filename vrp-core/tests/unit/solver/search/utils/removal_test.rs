@@ -7,8 +7,46 @@ use crate::helpers::utils::random::FakeRandom;
 use crate::models::common::Dimensions;
 use crate::models::problem::{Fleet, Multi};
 use crate::models::solution::Registry;
-use rosomaxa::utils::DefaultRandom;
+use rosomaxa::utils::{DefaultRandom, Random, RandomGen};
 use std::iter::once;
+
+struct UpperBoundRandom;
+
+impl Random for UpperBoundRandom {
+    fn uniform_int(&self, _: i32, max: i32) -> i32 {
+        max
+    }
+
+    fn uniform_real(&self, _: Float, _: Float) -> Float {
+        unreachable!()
+    }
+
+    fn is_head_not_tails(&self) -> bool {
+        unreachable!()
+    }
+
+    fn is_hit(&self, _: Float) -> bool {
+        unreachable!()
+    }
+
+    fn weighted(&self, _: &[usize]) -> usize {
+        unreachable!()
+    }
+
+    fn get_rng(&self) -> RandomGen {
+        unreachable!()
+    }
+}
+
+#[test]
+fn can_sample_inclusive_upper_bounds() {
+    let limits = RemovalLimits { removed_activities_range: 2..=5, affected_routes_range: 1..=3 };
+
+    let removal = JobRemovalTracker::new(&limits, &UpperBoundRandom);
+
+    assert_eq!(removal.activities_left, 5);
+    assert_eq!(removal.routes_left, 3);
+}
 
 fn create_route_with_jobs_activities(fleet: &Fleet, jobs: usize, activities: usize) -> RouteContext {
     assert!(jobs > 0);
@@ -97,8 +135,8 @@ fn can_try_remove_job_with_job_limit_impl(
     let (route_idx, activity_idx) = (0, 1);
     let (ruined_activities, affected_routes) = limits;
     let limits = RemovalLimits {
-        removed_activities_range: ruined_activities..ruined_activities,
-        affected_routes_range: affected_routes..affected_routes,
+        removed_activities_range: ruined_activities..=ruined_activities,
+        affected_routes_range: affected_routes..=affected_routes,
     };
     let mut solution_ctx = create_solution_ctx(jobs, activities);
     let job = get_job_from_solution_ctx(&solution_ctx, route_idx, activity_idx);
@@ -144,8 +182,8 @@ fn can_try_remove_route_with_limit_impl(
     let (jobs, activities) = jobs_activities;
     let (ruined_activities, affected_routes) = limits;
     let limits = RemovalLimits {
-        removed_activities_range: ruined_activities..ruined_activities,
-        affected_routes_range: affected_routes..affected_routes,
+        removed_activities_range: ruined_activities..=ruined_activities,
+        affected_routes_range: affected_routes..=affected_routes,
     };
     let route_idx = 0;
     let mut solution_ctx = create_solution_ctx(jobs, activities);
@@ -188,8 +226,8 @@ can_detect_limit_reached! {
 
 fn can_detect_limit_reached_impl(ruined_activities: usize, affected_routes: usize, expected: bool) {
     let limits = RemovalLimits {
-        removed_activities_range: ruined_activities..ruined_activities,
-        affected_routes_range: affected_routes..affected_routes,
+        removed_activities_range: ruined_activities..=ruined_activities,
+        affected_routes_range: affected_routes..=affected_routes,
     };
 
     let removal = JobRemovalTracker::new(&limits, &DefaultRandom::default());

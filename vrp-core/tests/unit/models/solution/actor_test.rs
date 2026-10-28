@@ -56,6 +56,25 @@ fn can_provide_next_actors_from_registry() {
     assert_eq!(actors.last().unwrap().detail.start.as_ref().map(|s| s.location), Some(1));
 }
 
+#[test]
+fn can_modify_registry_deep_copy_independently() {
+    let fleet = FleetBuilder::default()
+        .add_driver(test_driver())
+        .add_vehicles(vec![
+            TestVehicleBuilder::default().id("v1").details(vec![test_vehicle_detail()]).build(),
+            TestVehicleBuilder::default().id("v2").details(create_two_test_vehicle_details()).build(),
+        ])
+        .build();
+    let registry = Registry::new(&fleet, test_random());
+    let actor = registry.available().next().unwrap();
+    let mut copy = registry.deep_copy();
+
+    assert!(copy.use_actor(actor.as_ref()));
+
+    assert_eq!(registry.available().count(), 3);
+    assert_eq!(copy.available().count(), 2);
+}
+
 fn create_two_test_vehicle_details() -> Vec<VehicleDetail> {
     vec![
         test_vehicle_detail(),

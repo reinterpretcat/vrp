@@ -3,6 +3,7 @@
 mod goal_reader_test;
 
 use super::*;
+use std::cmp::Ordering;
 use std::ops::Mul;
 use vrp_core::algorithms::clustering::kmedoids::create_hierarchical_kmedoids;
 use vrp_core::construction::clustering::vicinity::ClusterInfoDimension;
@@ -19,7 +20,6 @@ use vrp_core::models::common::{Demand, LoadOps, Location as CoreLocation, MultiD
 use vrp_core::models::problem::{Actor, Job as CoreJob, Single, TransportCost, driver_key};
 use vrp_core::models::solution::Route;
 use vrp_core::models::{Feature, FeatureObjective, GoalBuilder, GoalContext, GoalContextBuilder};
-use vrp_core::rosomaxa::evolution::objectives::dominance_order;
 
 pub(super) fn create_goal_context(
     api_problem: &ApiProblem,
@@ -564,7 +564,10 @@ fn eval_multi_objective_strategy(
     Ok(match composition_type {
         MultiStrategy::Sum => builder.add_multi(
             objectives,
-            |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| o.fitness(a).total_cmp(&o.fitness(b)))),
+            |os, a, b| {
+                let fitness = |solution| os.iter().map(|objective| objective.fitness(solution)).sum::<Float>();
+                compare_fitness(fitness(a), fitness(b))
+            },
             |os, move_ctx| os.iter().map(|o| o.estimate(move_ctx)).sum(),
         ),
 
@@ -578,12 +581,25 @@ fn eval_multi_objective_strategy(
                 .into());
             }
 
+            let fitness_weights = weights.clone();
+            let estimate_weights = weights.clone();
+
             builder.add_multi(
                 objectives,
-                |os, a, b| dominance_order(a, b, os.iter().map(|o| |a, b| o.fitness(a).total_cmp(&o.fitness(b)))),
-                {
-                    let weights = weights.clone();
-                    move |os, move_ctx| os.iter().enumerate().map(|(idx, o)| o.estimate(move_ctx) * weights[idx]).sum()
+                move |os, a, b| {
+                    let fitness = |solution| {
+                        os.iter()
+                            .zip(&fitness_weights)
+                            .map(|(objective, weight)| objective.fitness(solution) * weight)
+                            .sum::<Float>()
+                    };
+                    compare_fitness(fitness(a), fitness(b))
+                },
+                move |os, move_ctx| {
+                    os.iter()
+                        .zip(&estimate_weights)
+                        .map(|(objective, weight)| objective.estimate(move_ctx) * weight)
+                        .sum()
                 },
             )
         }
@@ -602,10 +618,9 @@ fn eval_multi_objective_strategy(
                 objectives,
                 {
                     // Selection: collapse the weighted fitness values into a single scalar and
-                    // compare those. This makes the weighted sum the quantity being minimized,
-                    // instead of the Pareto-dominance order used by `WeightedSum`.
+                    // compare those, like `WeightedSum` does.
                     //
-                    // Each fitness is divided by the objective's own `fitness_scale()` so that
+                    // Unlike `WeightedSum`, each fitness is divided by the objective's own `fitness_scale()` so that
                     // objectives with very different magnitudes combine on a comparable scale and
                     // the weights stay dimensionless preferences. The objective owns this scale;
                     // the strategy only applies it uniformly (default scale is 1.0 = no-op).
@@ -725,6 +740,11 @@ fn job_primary_location(job: &CoreJob) -> Option<CoreLocation> {
         CoreJob::Single(single) => single.places.first().and_then(|place| place.location),
         CoreJob::Multi(multi) => multi.jobs.first().and_then(|single| single.places.first().and_then(|p| p.location)),
     }
+}
+
+fn compare_fitness(left: Float, right: Float) -> Ordering {
+    // Signed zero has no semantic difference in an objective value.
+    if left == 0. && right == 0. { Ordering::Equal } else { left.total_cmp(&right) }
 }
 
 fn get_capacity_feature(

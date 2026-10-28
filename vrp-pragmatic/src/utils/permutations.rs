@@ -82,12 +82,7 @@ fn get_split_permutations(
 
             first
                 .iter()
-                .flat_map(|a| {
-                    second
-                        .iter()
-                        .map(|b| a.iter().chain(b.iter()).cloned().collect::<Vec<usize>>())
-                        .collect::<Vec<Vec<usize>>>()
-                })
+                .flat_map(|a| second.iter().map(|b| a.iter().chain(b.iter()).cloned().collect::<Vec<usize>>()))
                 .take(sample_size)
                 .collect()
         }

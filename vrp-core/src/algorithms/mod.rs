@@ -2,5 +2,4 @@
 
 pub mod clustering;
 pub mod geometry;
-pub mod lkh;
 pub mod structures;

@@ -14,6 +14,7 @@ use rosomaxa::evolution::TelemetryMetrics;
 use rosomaxa::prelude::*;
 use rustc_hash::FxHasher;
 use std::any::{Any, TypeId};
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::hash::BuildHasherDefault;
@@ -248,7 +249,7 @@ impl SolutionState {
 /// Specifies insertion context for route.
 pub struct RouteContext {
     route: Route,
-    state: RouteState,
+    state: Arc<RouteState>,
     cache: RouteCache,
 }
 
@@ -269,12 +270,13 @@ impl RouteContext {
 
     /// Creates a new instance of `RouteContext` with arguments provided.
     pub fn new_with_state(route: Route, state: RouteState) -> Self {
-        RouteContext { route, state, cache: RouteCache { is_stale: true } }
+        RouteContext { route, state: Arc::new(state), cache: RouteCache { is_stale: true } }
     }
 
     /// Creates a deep copy of `RouteContext`.
     pub fn deep_copy(&self) -> Self {
         let new_route = Route { actor: self.route.actor.clone(), tour: self.route.tour.deep_copy() };
+        // State is read-only until a route is changed, so unchanged routes can share it.
         let new_state = self.state.clone();
 
         RouteContext { route: new_route, state: new_state, cache: RouteCache { is_stale: self.cache.is_stale } }
@@ -287,14 +289,14 @@ impl RouteContext {
 
     /// Returns a reference to state.
     pub fn state(&self) -> &RouteState {
-        &self.state
+        self.state.as_ref()
     }
 
     /// Unwraps given `RouteContext` as pair of mutable references.
     /// Marks context as stale.
     pub fn as_mut(&mut self) -> (&mut Route, &mut RouteState) {
-        self.mark_stale(true);
-        (&mut self.route, &mut self.state)
+        self.cache.is_stale = true;
+        (&mut self.route, Arc::make_mut(&mut self.state))
     }
 
     /// Returns mutable reference to used `Route`.
@@ -307,8 +309,8 @@ impl RouteContext {
     /// Returns mutable reference to used `RouteState`.
     /// Marks context as stale.
     pub fn state_mut(&mut self) -> &mut RouteState {
-        self.mark_stale(true);
-        &mut self.state
+        self.cache.is_stale = true;
+        Arc::make_mut(&mut self.state)
     }
 
     /// Returns true if context is stale. Context is marked stale when it is accessed by `mut`
@@ -347,14 +349,48 @@ impl Default for RouteState {
 }
 
 impl RouteState {
+    #[inline]
+    fn get_exclusive_state<V: Send + Sync + 'static>(state: &mut Arc<dyn Any + Send + Sync>) -> Option<&mut V> {
+        Arc::get_mut(state)?.downcast_mut::<V>()
+    }
+
     /// Gets a value associated with the tour using `K` type as a key.
     pub fn get_tour_state<K: 'static, V: Send + Sync + 'static>(&self) -> Option<&V> {
         self.index.get(&TypeId::of::<K>()).and_then(|any| any.downcast_ref::<V>())
     }
 
+    /// Gets an exclusively owned tour state, initializing it when it is missing or shared.
+    pub(crate) fn get_or_init_exclusive_tour_state<K: 'static, V: Send + Sync + 'static>(
+        &mut self,
+        init: impl FnOnce() -> V,
+    ) -> &mut V {
+        let state = match self.index.entry(TypeId::of::<K>()) {
+            Entry::Occupied(mut entry) => {
+                if Self::get_exclusive_state::<V>(entry.get_mut()).is_none() {
+                    entry.insert(Arc::new(init()));
+                }
+                entry.into_mut()
+            }
+            Entry::Vacant(entry) => entry.insert(Arc::new(init())),
+        };
+
+        Self::get_exclusive_state(state).expect("tour state should be initialized with the requested type")
+    }
+
     /// Sets the value associated with the tour using `K` type as a key.
     pub fn set_tour_state<K: 'static, V: Send + Sync + 'static>(&mut self, value: V) {
         self.index.insert(TypeId::of::<K>(), Arc::new(value));
+    }
+
+    /// Updates an exclusively owned tour state or inserts a new value.
+    pub(crate) fn update_tour_state<K: 'static, V: Send + Sync + 'static>(&mut self, value: V) {
+        let key = TypeId::of::<K>();
+        if let Some(state) = self.index.get_mut(&key).and_then(Self::get_exclusive_state::<V>) {
+            *state = value;
+            return;
+        }
+
+        self.index.insert(key, Arc::new(value));
     }
 
     /// Removes the value associated with the tour using `K` type as a key. Returns true if the
@@ -395,22 +431,24 @@ struct RouteCache {
 pub struct RegistryContext {
     registry: Registry,
     /// Index keeps track of actor mapping to empty route prototypes.
-    index: HashMap<Arc<Actor>, Arc<RouteContext>>,
+    index: Arc<HashMap<Arc<Actor>, RouteContext>>,
 }
 
 impl RegistryContext {
     /// Creates a new instance of `RouteRegistry`.
     pub fn new(goal: &GoalContext, registry: Registry) -> Self {
-        let index = registry
-            .all()
-            .map(|actor| {
-                let mut route_ctx = RouteContext::new(actor.clone());
-                // NOTE: need to initialize empty route with states
-                goal.accept_route_state(&mut route_ctx);
+        let index = Arc::new(
+            registry
+                .all()
+                .map(|actor| {
+                    let mut route_ctx = RouteContext::new(actor.clone());
+                    // NOTE: need to initialize empty route with states
+                    goal.accept_route_state(&mut route_ctx);
 
-                (actor, Arc::new(route_ctx))
-            })
-            .collect();
+                    (actor, route_ctx)
+                })
+                .collect(),
+        );
         Self { registry, index }
     }
 
@@ -421,7 +459,7 @@ impl RegistryContext {
 
     /// Returns next route available for insertion.
     pub fn next_route(&self) -> impl Iterator<Item = &RouteContext> {
-        self.registry.next().map(move |actor| self.index[&actor].as_ref())
+        self.registry.next().map(move |actor| &self.index[&actor])
     }
 
     /// Gets route for given actor and marks it as used.
@@ -445,21 +483,17 @@ impl RegistryContext {
 
     /// Creates a deep copy of `RegistryContext`.
     pub fn deep_copy(&self) -> Self {
-        Self {
-            registry: self.registry.deep_copy(),
-            index: self.index.iter().map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone())).collect(),
-        }
+        Self { registry: self.registry.deep_copy(), index: self.index.clone() }
+    }
+
+    /// Creates a copy in which every actor in the current registry is available while reusing route templates.
+    pub(crate) fn deep_copy_with_all_available(&self) -> Self {
+        Self { registry: self.registry.deep_copy_with_all_available(), index: self.index.clone() }
     }
 
     /// Creates a deep sliced copy of `RegistryContext` keeping only specific actors data.
     pub fn deep_slice(&self, filter: impl Fn(&Actor) -> bool) -> Self {
-        let index = self
-            .index
-            .iter()
-            .filter(|(actor, _)| filter(actor.as_ref()))
-            .map(|(actor, route_ctx)| (actor.clone(), route_ctx.clone()))
-            .collect();
-        Self { registry: self.registry.deep_slice(filter), index }
+        Self { registry: self.registry.deep_slice(filter), index: self.index.clone() }
     }
 }
 

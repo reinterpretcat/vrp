@@ -7,11 +7,17 @@ use crate::helpers::models::solution::{RouteBuilder, RouteContextBuilder, create
 use crate::models::common::{Cost, Location, Schedule, TimeSpan, TimeWindow, Timestamp};
 use crate::models::problem::{Job, Single, VehicleDetail};
 use crate::models::solution::{Activity, Place, Registry};
+use crate::models::{ConstraintViolation, FeatureBuilder, FeatureConstraint, FeatureObjective, GoalContext};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 type JobPlace = crate::models::problem::Place;
 
 fn create_test_insertion_ctx() -> InsertionContext {
+    create_test_insertion_ctx_with_goal(TestGoalContextBuilder::with_transport_feature().build())
+}
+
+fn create_test_insertion_ctx_with_goal(goal: GoalContext) -> InsertionContext {
     let fleet = FleetBuilder::default()
         .add_driver(test_driver_with_costs(empty_costs()))
         .add_vehicle(TestVehicleBuilder::default().id("v1").build())
@@ -19,10 +25,7 @@ fn create_test_insertion_ctx() -> InsertionContext {
     let route =
         RouteContextBuilder::default().with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").build()).build();
 
-    TestInsertionContextBuilder::default()
-        .with_goal(TestGoalContextBuilder::with_transport_feature().build())
-        .with_routes(vec![route])
-        .build()
+    TestInsertionContextBuilder::default().with_goal(goal).with_routes(vec![route]).build()
 }
 
 fn create_activity_at(loc_and_time: usize) -> Activity {
@@ -52,6 +55,152 @@ fn evaluate_job_insertion(
     routes.iter().fold(InsertionResult::make_failure(), |acc, route_ctx| {
         eval_job_insertion_in_route(insertion_ctx, &eval_ctx, route_ctx, insertion_position, acc)
     })
+}
+
+mod route_cost_reuse {
+    use super::*;
+    use crate::models::ViolationCode;
+
+    #[derive(Default)]
+    struct Calls {
+        constraints: AtomicUsize,
+        estimates: AtomicUsize,
+        selections: AtomicUsize,
+    }
+
+    struct CountingConstraint(Vec<bool>, Arc<Calls>);
+    struct CountingObjective(Arc<Calls>);
+    struct CountingSelector(Arc<Calls>);
+
+    type Outcome = Result<(InsertionCost, Vec<usize>), (ViolationCode, bool, bool)>;
+
+    impl FeatureConstraint for CountingConstraint {
+        fn evaluate(&self, move_ctx: &MoveContext<'_>) -> Option<ConstraintViolation> {
+            if matches!(move_ctx, MoveContext::Route { .. }) {
+                let index = self.1.constraints.fetch_add(1, Ordering::Relaxed);
+                return (!self.0[index]).then_some(ConstraintViolation { code: ViolationCode(7), stopped: false });
+            }
+            None
+        }
+    }
+
+    impl FeatureObjective for CountingObjective {
+        fn fitness(&self, _: &InsertionContext) -> Cost {
+            0.
+        }
+
+        fn estimate(&self, move_ctx: &MoveContext<'_>) -> Cost {
+            match move_ctx {
+                MoveContext::Route { .. } => {
+                    self.0.estimates.fetch_add(1, Ordering::Relaxed);
+                    7.
+                }
+                MoveContext::Activity { activity_ctx, .. } => 3. - activity_ctx.index as Cost,
+            }
+        }
+    }
+
+    impl ResultSelector for CountingSelector {
+        fn select_insertion(
+            &self,
+            _: &InsertionContext,
+            left: InsertionResult,
+            right: InsertionResult,
+        ) -> InsertionResult {
+            self.0.selections.fetch_add(1, Ordering::Relaxed);
+            InsertionResult::choose_best_result(left, right)
+        }
+    }
+
+    fn evaluate_positions(allowed: &[bool], skip: bool, shared: bool) -> (Outcome, [usize; 3]) {
+        let calls = Arc::new(Calls::default());
+        let feature = FeatureBuilder::default()
+            .with_name("counting")
+            .with_constraint(CountingConstraint(allowed.to_vec(), calls.clone()))
+            .with_objective(CountingObjective(calls.clone()))
+            .build()
+            .unwrap();
+        let goal = TestGoalContextBuilder::empty().add_feature(feature).build();
+        let mut insertion_ctx = create_test_insertion_ctx_with_goal(goal);
+        let job = TestSingleBuilder::default().build_as_job_ref();
+        let route_ctx = insertion_ctx.solution.routes.first_mut().unwrap();
+        route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
+        if skip {
+            route_ctx.mark_stale(false);
+            insertion_ctx.solution.unassigned.insert(job.clone(), UnassignmentInfo::Simple(ViolationCode(7)));
+        }
+
+        let route_ctx = insertion_ctx.solution.routes.first().unwrap();
+        let leg_selection = LegSelection::Exhaustive;
+        let result_selector = CountingSelector(calls.clone());
+        let eval_ctx = EvaluationContext {
+            goal: &insertion_ctx.problem.goal,
+            job: &job,
+            leg_selection: &leg_selection,
+            result_selector: &result_selector,
+        };
+        let positions = (0..allowed.len()).map(InsertionPosition::Concrete);
+        let result = if shared {
+            eval_job_insertions_in_route(&insertion_ctx, &eval_ctx, route_ctx, positions)
+        } else {
+            positions
+                .map(|position| {
+                    eval_job_insertion_in_route(
+                        &insertion_ctx,
+                        &eval_ctx,
+                        route_ctx,
+                        position,
+                        InsertionResult::make_failure(),
+                    )
+                })
+                .reduce(|best, result| result_selector.select_insertion(&insertion_ctx, best, result))
+                .unwrap_or_else(InsertionResult::make_failure)
+        };
+        let outcome = match result {
+            InsertionResult::Success(success) => {
+                Ok((success.cost, success.activities.into_iter().map(|(_, index)| index).collect()))
+            }
+            InsertionResult::Failure(failure) => Err((failure.constraint, failure.stopped, failure.job.is_some())),
+        };
+
+        (outcome, [&calls.constraints, &calls.estimates, &calls.selections].map(|count| count.load(Ordering::Relaxed)))
+    }
+
+    parameterized_test! {can_reuse_costs_without_reusing_constraints, (allowed, expected_position), {
+        let (shared, shared_calls) = evaluate_positions(&allowed, false, true);
+        let (repeated, repeated_calls) = evaluate_positions(&allowed, false, false);
+        let success_count = allowed.iter().filter(|&&allowed| allowed).count();
+
+        assert_eq!(shared, repeated);
+        assert_eq!(shared_calls, [allowed.len(), usize::from(success_count > 0), allowed.len() * 2 - 1]);
+        assert_eq!(repeated_calls, [allowed.len(), success_count, allowed.len() * 2 - 1]);
+        assert_eq!(shared, expected_position.map(|index| (InsertionCost::new(&[10. - index as Cost]), vec![index]))
+            .ok_or((ViolationCode(7), true, true)));
+    }}
+
+    can_reuse_costs_without_reusing_constraints! {
+        all_allowed: ([true, true, true], Some(2)),
+        rejected_then_allowed: ([false, true, true], Some(2)),
+        allowed_then_rejected: ([true, false, false], Some(0)),
+        all_rejected: ([false, false, false], None::<usize>),
+    }
+
+    #[test]
+    fn does_not_evaluate_empty_positions() {
+        let (outcome, calls) = evaluate_positions(&[], false, true);
+
+        assert_eq!(outcome, Err((ViolationCode::unknown(), false, false)));
+        assert_eq!(calls, [0, 0, 0]);
+    }
+
+    #[test]
+    fn skips_known_unassigned_jobs_without_changing_selection_calls() {
+        let shared = evaluate_positions(&[true, true, true], true, true);
+        let repeated = evaluate_positions(&[true, true, true], true, false);
+
+        assert_eq!(shared, repeated);
+        assert_eq!(shared, (Err((ViolationCode::unknown(), false, false)), [0, 0, 2]));
+    }
 }
 
 mod single {
@@ -248,6 +397,62 @@ mod multi {
             assert_eq!(&activity.place.location, location);
             assert_eq!(position, index);
         });
+    }
+
+    #[test]
+    fn can_reuse_route_costs_for_multi_job() {
+        let mut insertion_ctx = create_test_insertion_ctx();
+        let route_ctx = insertion_ctx.solution.routes.first_mut().unwrap();
+        route_ctx.route_mut().tour.insert_at(create_activity_at(5), 1).insert_at(create_activity_at(10), 2);
+        insertion_ctx.problem.goal.accept_route_state(route_ctx);
+        let job = Job::Multi(test_multi_with_id(
+            "multi",
+            vec![
+                TestSingleBuilder::default().id("s1").location(Some(3)).build_shared(),
+                TestSingleBuilder::default().id("s2").location(Some(7)).build_shared(),
+            ],
+        ));
+        let route_ctx = insertion_ctx.solution.routes.first().unwrap();
+        let leg_selection = LegSelection::Exhaustive;
+        let result_selector = BestResultSelector::default();
+        let eval_ctx = EvaluationContext {
+            goal: &insertion_ctx.problem.goal,
+            job: &job,
+            leg_selection: &leg_selection,
+            result_selector: &result_selector,
+        };
+        let positions = [InsertionPosition::Concrete(0), InsertionPosition::Concrete(1), InsertionPosition::Last];
+        let summarize = |result: InsertionResult| {
+            let success: InsertionSuccess = result.try_into().expect("expected insertion success");
+            let activities = success
+                .activities
+                .into_iter()
+                .map(|(activity, index)| {
+                    (index, activity.place.location, activity.place.time.start, activity.place.time.end)
+                })
+                .collect::<Vec<_>>();
+            (success.cost, activities)
+        };
+
+        let shared = summarize(eval_job_insertions_in_route(&insertion_ctx, &eval_ctx, route_ctx, positions));
+        let repeated = summarize(
+            positions
+                .into_iter()
+                .map(|position| {
+                    eval_job_insertion_in_route(
+                        &insertion_ctx,
+                        &eval_ctx,
+                        route_ctx,
+                        position,
+                        InsertionResult::make_failure(),
+                    )
+                })
+                .reduce(|best, result| result_selector.select_insertion(&insertion_ctx, best, result))
+                .unwrap(),
+        );
+
+        assert_eq!(shared, repeated);
+        assert_eq!(shared.1.len(), 2);
     }
 
     #[test]

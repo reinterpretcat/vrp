@@ -92,7 +92,7 @@ mod timing {
         let (feature, mut route_ctx) = create_feature_and_route(vehicle_detail_data);
         feature.state.unwrap().accept_route_state(&mut route_ctx);
 
-        let result = *route_ctx.state().get_latest_arrival_at(activity_idx).unwrap();
+        let result = route_ctx.state().get_schedule_at(activity_idx).unwrap().latest_arrival;
 
         assert_eq!(result, time);
     }

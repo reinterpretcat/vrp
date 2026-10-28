@@ -14,8 +14,8 @@ mod factories;
 mod insertions;
 pub use self::insertions::*;
 
-mod metrics;
-pub use self::metrics::*;
+mod features;
+pub use self::features::*;
 
 mod selectors;
 pub use self::selectors::*;

@@ -1,6 +1,28 @@
+#[cfg(test)]
+#[path = "../../tests/unit/evolution/simulator_test.rs"]
+mod simulator_test;
+
 use crate::evolution::EvolutionResult;
 use crate::prelude::*;
 use crate::utils::Timer;
+
+fn select_initial_operator_index(
+    index: usize,
+    operator_count: usize,
+    repeat_indices: &[usize],
+    repeat_weights: &[usize],
+    random: &dyn Random,
+) -> Option<usize> {
+    debug_assert_eq!(repeat_indices.len(), repeat_weights.len());
+
+    if index < operator_count {
+        Some(index)
+    } else if repeat_indices.is_empty() {
+        None
+    } else {
+        Some(repeat_indices[random.weighted(repeat_weights)])
+    }
+}
 
 /// An entity which simulates evolution process.
 pub struct EvolutionSimulator<C, O, S>
@@ -53,11 +75,15 @@ where
             },
         );
 
-        let weights = config.initial.operators.iter().map(|(_, _, weight)| *weight).collect::<Vec<_>>();
+        let (repeat_indices, repeat_weights): (Vec<_>, Vec<_>) = config
+            .initial
+            .operators
+            .iter()
+            .enumerate()
+            .filter_map(|(index, (_, _, weight))| (*weight > 0).then_some((index, *weight)))
+            .unzip();
         let init_time = Timer::start();
         let _ = (init_size..config.initial.max_size).try_for_each(|idx| {
-            let item_time = Timer::start();
-
             let is_overall_termination = config.termination.is_termination(&mut heuristic_ctx);
             let is_initial_quota_reached = config.termination.estimate(&heuristic_ctx) > config.initial.quota;
 
@@ -72,11 +98,20 @@ where
                 return Err(());
             }
 
-            let operator_idx =
-                if idx < config.initial.operators.len() { idx } else { random.weighted(weights.as_slice()) };
+            let Some(operator_idx) = select_initial_operator_index(
+                idx,
+                config.initial.operators.len(),
+                repeat_indices.as_slice(),
+                repeat_weights.as_slice(),
+                random.as_ref(),
+            ) else {
+                (logger)("stop building initial solutions as no repeatable initial operators are configured.");
+                return Err(());
+            };
 
             // TODO consider initial quota limit
             let (name, operator, _) = &config.initial.operators[operator_idx];
+            let item_time = Timer::start();
             let solution = operator.create(&heuristic_ctx);
             heuristic_ctx.on_initial(solution, name, item_time);
 

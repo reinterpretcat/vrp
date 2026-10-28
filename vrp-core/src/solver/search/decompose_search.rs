@@ -7,7 +7,8 @@ use crate::models::GoalContext;
 use crate::solver::search::create_environment_with_custom_quota;
 use crate::solver::*;
 use crate::utils::Either;
-use rosomaxa::utils::parallel_into_collect;
+use rand::prelude::SliceRandom;
+use rosomaxa::utils::{ParallelismPolicy, parallel_collect};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::iter::{empty, once};
@@ -17,16 +18,18 @@ use std::iter::{empty, once};
 pub struct DecomposeSearch {
     inner_search: TargetSearchOperator,
     max_routes_range: (i32, i32),
-    repeat_count: usize,
+    max_attempts: usize,
 }
 
 impl DecomposeSearch {
     /// Create a new instance of `DecomposeSearch`.
-    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), repeat_count: usize) -> Self {
+    pub fn new(inner_search: TargetSearchOperator, max_routes_range: (usize, usize), max_attempts: usize) -> Self {
         assert!(max_routes_range.0 > 1);
+        assert!(max_routes_range.0 <= max_routes_range.1);
+        assert!(max_attempts > 0);
         let max_routes_range = (max_routes_range.0 as i32, max_routes_range.1 as i32);
 
-        Self { inner_search, max_routes_range, repeat_count }
+        Self { inner_search, max_routes_range, max_attempts }
     }
 }
 
@@ -39,8 +42,8 @@ impl HeuristicSearchOperator for DecomposeSearch {
         let refinement_ctx = heuristic_ctx;
         let insertion_ctx = solution;
 
-        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range, self.repeat_count)
-            .map(|contexts| self.refine_decomposed(refinement_ctx, contexts))
+        decompose_insertion_context(refinement_ctx, insertion_ctx, self.max_routes_range, self.max_attempts)
+            .map(|contexts| self.refine_decomposed(refinement_ctx, insertion_ctx, contexts))
             .unwrap_or_else(|| self.inner_search.search(heuristic_ctx, insertion_ctx))
     }
 }
@@ -51,32 +54,28 @@ impl DecomposeSearch {
     fn refine_decomposed(
         &self,
         refinement_ctx: &RefinementContext,
-        decomposed: Vec<(RefinementContext, HashSet<usize>)>,
+        original: &InsertionContext,
+        decomposed: Vec<RefinementContext>,
     ) -> InsertionContext {
-        // NOTE: validate decomposition in debug builds only
-        #[cfg(debug_assertions)]
-        decomposed.iter().enumerate().for_each(|(outer_ix, (_, outer))| {
-            decomposed.iter().enumerate().filter(|(inner_idx, _)| outer_ix != *inner_idx).for_each(
-                |(_, (_, inner))| {
-                    debug_assert!(outer.intersection(inner).next().is_none());
-                },
-            );
-        });
-
         // do actual refinement independently for each decomposed context
-        let decomposed = parallel_into_collect(decomposed, |(mut refinement_ctx, route_indices)| {
-            let actual_repeat_count = get_repeat_count(self.repeat_count, refinement_ctx.environment.random.as_ref());
-
-            let _ = (0..actual_repeat_count).try_for_each(|_| {
+        let decomposed = parallel_collect(decomposed, ParallelismPolicy::Coarse, |mut refinement_ctx| {
+            let _ = (0..self.max_attempts).try_for_each(|attempt| {
                 let insertion_ctx = refinement_ctx.selected().next().expect(GREEDY_ERROR);
-                let insertion_ctx = self.inner_search.search(&refinement_ctx, insertion_ctx);
+                let candidate = self.inner_search.search(&refinement_ctx, insertion_ctx);
+                let improved = insertion_ctx.problem.goal.total_order(&candidate, insertion_ctx).is_lt();
                 let is_quota_reached =
                     refinement_ctx.environment.quota.as_ref().is_some_and(|quota| quota.is_reached());
-                refinement_ctx.add_solution(insertion_ctx);
+                refinement_ctx.add_solution(candidate);
 
-                if is_quota_reached { Err(()) } else { Ok(()) }
+                if is_quota_reached
+                    || !should_retry(attempt, self.max_attempts, improved, refinement_ctx.environment.random.as_ref())
+                {
+                    Err(())
+                } else {
+                    Ok(())
+                }
             });
-            (refinement_ctx, route_indices)
+            refinement_ctx
         });
 
         // get new and old parts and detect if there was any improvement in any part
@@ -84,18 +83,37 @@ impl DecomposeSearch {
             decomposed.into_iter().map(get_solution_parts).unzip();
 
         let has_improvements = improvements.iter().any(|is_improvement| *is_improvement);
+        let create_accumulator = || InsertionContext {
+            problem: refinement_ctx.problem.clone(),
+            solution: SolutionContext {
+                required: Default::default(),
+                ignored: Default::default(),
+                unassigned: Default::default(),
+                locked: Default::default(),
+                routes: Default::default(),
+                registry: original.solution.registry.deep_copy_with_all_available(),
+                state: Default::default(),
+            },
+            environment: refinement_ctx.environment.clone(),
+        };
 
         let mut insertion_ctx = if has_improvements {
             improvements.into_iter().zip(new_parts.into_iter().zip(old_parts)).fold(
-                InsertionContext::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
+                create_accumulator(),
                 |accumulated, (is_improvement, (new_part, old_part))| {
                     merge_parts(if is_improvement { new_part } else { old_part }, accumulated)
                 },
             )
         } else {
-            new_parts.into_iter().fold(
-                InsertionContext::new_empty(refinement_ctx.problem.clone(), refinement_ctx.environment.clone()),
-                |accumulated, new_part| merge_parts(new_part, accumulated),
+            // Keep a localized perturbation: merging every non-improving part makes damage grow with problem size.
+            let random = refinement_ctx.environment.random.as_ref();
+            let (first_idx, second_idx) = sample_fallback_part_indices(new_parts.len(), random);
+            new_parts.into_iter().zip(old_parts).enumerate().fold(
+                create_accumulator(),
+                |accumulated, (idx, (new_part, old_part))| {
+                    let is_selected = idx == first_idx || second_idx == Some(idx);
+                    merge_parts(if is_selected { new_part } else { old_part }, accumulated)
+                },
             )
         };
 
@@ -111,62 +129,70 @@ fn create_population(insertion_ctx: InsertionContext) -> TargetPopulation {
     Box::new(DecomposePopulation::new(insertion_ctx.problem.goal.clone(), 1, insertion_ctx))
 }
 
-/// Selects a repeat count from 1 to max_repeat_count using exponential decay.
-/// Uses stack-allocated arrays for common cases to avoid heap allocation.
-fn get_repeat_count(max_repeat_count: usize, random: &dyn Random) -> usize {
-    if max_repeat_count == 1 {
-        return 1;
-    }
+fn should_retry(attempt: usize, max_attempts: usize, improved: bool, random: &dyn Random) -> bool {
+    const RETRY_AFTER_FAILURE_PROBABILITY: Float = 0.2;
 
-    // create weights with exponential decay: [3^(n-1), 3^(n-2), ..., 3^1, 3^0]
-    let index = match max_repeat_count {
-        2 => random.weighted(&[3, 1]),
-        3 => random.weighted(&[9, 3, 1]),
-        4 => random.weighted(&[27, 9, 3, 1]),
-        _ => {
-            let weights: Vec<_> = (1..=max_repeat_count).map(|i| 3_usize.pow((max_repeat_count - i) as u32)).collect();
-            random.weighted(&weights) + 1
-        }
-    };
+    // Follow a productive descent, but occasionally restart after a failure to preserve alternative outcomes.
+    attempt + 1 < max_attempts && (improved || random.is_hit(RETRY_AFTER_FAILURE_PROBABILITY))
+}
 
-    index + 1
+/// Selects one non-improving part, and a second only when this changes no more than half of the decomposition.
+fn sample_fallback_part_indices(part_count: usize, random: &dyn Random) -> (usize, Option<usize>) {
+    const MAX_SELECTED_PARTS: usize = 2;
+
+    debug_assert!(part_count > 1);
+
+    let first_idx = random.uniform_int(0, part_count as i32 - 1) as usize;
+    let second_idx = (part_count >= MAX_SELECTED_PARTS * 2).then(|| {
+        let idx = random.uniform_int(0, part_count as i32 - 2) as usize;
+        if idx >= first_idx { idx + 1 } else { idx }
+    });
+
+    (first_idx, second_idx)
 }
 
 fn create_multiple_insertion_contexts(
     insertion_ctx: &InsertionContext,
     environment: Arc<Environment>,
     max_routes_range: (i32, i32),
-) -> Option<Vec<(InsertionContext, HashSet<usize>)>> {
+) -> Option<Vec<InsertionContext>> {
     if insertion_ctx.solution.routes.is_empty() {
         return None;
     }
 
-    let route_groups = group_routes_by_proximity(insertion_ctx);
+    let mut route_groups = group_routes_by_proximity(insertion_ctx).into_iter().enumerate().collect::<Vec<_>>();
+    // A route which is visited first claims its closest unused neighbours. Vary this order so repeated
+    // decomposition can search across boundaries left by earlier partitions.
+    route_groups.shuffle(&mut environment.random.get_rng());
     let (min, max) = max_routes_range;
     let max = if insertion_ctx.solution.routes.len() < max as usize { (max / 2).max(min) } else { max };
 
     // identify route groups and create contexts from them
-    let mut used_indices: HashSet<usize> = HashSet::new();
+    let mut used_indices = vec![false; insertion_ctx.solution.routes.len()];
     let insertion_ctxs = route_groups
         .into_iter()
-        .enumerate()
         .filter_map(|(outer_idx, route_group)| {
-            if used_indices.contains(&outer_idx) {
+            if used_indices[outer_idx] {
                 return None;
             }
 
             let group_size = environment.random.uniform_int(min, max) as usize;
             let route_group = once(outer_idx)
-                .chain(route_group.into_iter().filter(|inner_idx| !used_indices.contains(inner_idx)))
+                .chain(route_group.into_iter().filter(|inner_idx| !used_indices[*inner_idx]))
                 .take(group_size)
                 .collect::<HashSet<_>>();
 
-            used_indices.extend(route_group.iter().copied());
+            route_group.iter().for_each(|idx| {
+                debug_assert!(!used_indices[*idx]);
+                used_indices[*idx] = true;
+            });
 
             Some(create_partial_insertion_ctx(insertion_ctx, environment.clone(), route_group))
         })
         .chain(create_empty_insertion_ctxs(insertion_ctx, environment.clone()))
         .collect();
+
+    debug_assert!(used_indices.iter().all(|is_used| *is_used));
 
     Some(insertion_ctxs)
 }
@@ -175,99 +201,102 @@ fn create_partial_insertion_ctx(
     insertion_ctx: &InsertionContext,
     environment: Arc<Environment>,
     route_indices: HashSet<usize>,
-) -> (InsertionContext, HashSet<usize>) {
+) -> InsertionContext {
+    debug_assert!(!route_indices.is_empty());
     let solution = &insertion_ctx.solution;
 
     let routes = route_indices.iter().map(|idx| solution.routes[*idx].deep_copy()).collect::<Vec<_>>();
-    let actors = routes.iter().map(|route_ctx| route_ctx.route().actor.clone()).collect::<HashSet<_>>();
-    let registry = solution.registry.deep_slice(|actor| actors.contains(actor));
+    let registry = solution
+        .registry
+        .deep_slice(|actor| routes.iter().any(|route_ctx| std::ptr::eq(route_ctx.route().actor.as_ref(), actor)));
+    let locked = if solution.locked.is_empty() {
+        HashSet::default()
+    } else {
+        let jobs = routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
+        solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
+    };
 
-    (
-        InsertionContext {
-            problem: insertion_ctx.problem.clone(),
-            solution: SolutionContext {
-                // NOTE we need to handle empty route indices case differently
-                required: if route_indices.is_empty() { solution.required.clone() } else { Default::default() },
-                ignored: if route_indices.is_empty() { solution.ignored.clone() } else { Default::default() },
-                unassigned: if route_indices.is_empty() { solution.unassigned.clone() } else { Default::default() },
-                locked: if route_indices.is_empty() {
-                    let jobs = solution
-                        .routes
-                        .iter()
-                        .flat_map(|route_ctx| route_ctx.route().tour.jobs())
-                        .collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| !jobs.contains(*job)).cloned().collect()
-                } else {
-                    let jobs =
-                        routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
-                    solution.locked.iter().filter(|job| jobs.contains(*job)).cloned().collect()
-                },
-                routes,
-                registry,
-                state: Default::default(),
-            },
-            environment,
+    initialize_decomposed_context(InsertionContext {
+        problem: insertion_ctx.problem.clone(),
+        solution: SolutionContext {
+            required: Default::default(),
+            ignored: Default::default(),
+            unassigned: Default::default(),
+            locked,
+            routes,
+            registry,
+            state: Default::default(),
         },
-        route_indices,
-    )
+        environment,
+    })
 }
 
 fn create_empty_insertion_ctxs(
     insertion_ctx: &InsertionContext,
     environment: Arc<Environment>,
-) -> impl Iterator<Item = (InsertionContext, HashSet<usize>)> + use<> {
+) -> impl Iterator<Item = InsertionContext> + use<> {
     let solution = &insertion_ctx.solution;
+    let locked = if solution.locked.is_empty() {
+        HashSet::default()
+    } else {
+        let assigned =
+            solution.routes.iter().flat_map(|route_ctx| route_ctx.route().tour.jobs()).collect::<HashSet<_>>();
+        solution.locked.iter().filter(|job| !assigned.contains(*job)).cloned().collect()
+    };
 
     if solution.required.is_empty()
         && solution.unassigned.is_empty()
         && solution.ignored.is_empty()
-        && solution.locked.is_empty()
+        && locked.is_empty()
     {
         Either::Left(empty())
     } else {
-        Either::Right(once((
-            InsertionContext {
-                problem: insertion_ctx.problem.clone(),
-                solution: SolutionContext {
-                    required: solution.required.clone(),
-                    ignored: solution.ignored.clone(),
-                    unassigned: solution.unassigned.clone(),
-                    locked: solution.locked.clone(),
-                    routes: Default::default(),
-                    registry: solution.registry.deep_copy(),
-                    state: Default::default(),
-                },
-                environment,
+        Either::Right(once(initialize_decomposed_context(InsertionContext {
+            problem: insertion_ctx.problem.clone(),
+            solution: SolutionContext {
+                required: solution.required.clone(),
+                ignored: solution.ignored.clone(),
+                unassigned: solution.unassigned.clone(),
+                locked,
+                routes: Default::default(),
+                registry: solution.registry.deep_copy(),
+                state: Default::default(),
             },
-            HashSet::default(),
-        )))
+            environment,
+        })))
     }
+}
+
+fn initialize_decomposed_context(mut insertion_ctx: InsertionContext) -> InsertionContext {
+    // Global state from the original solution cannot be reused by a route subset. Rebuild it before
+    // the first objective, constraint, or search evaluation sees the decomposed solution.
+    insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx
 }
 
 fn decompose_insertion_context(
     refinement_ctx: &RefinementContext,
     insertion_ctx: &InsertionContext,
     max_routes_range: (i32, i32),
-    repeat: usize,
-) -> Option<Vec<(RefinementContext, HashSet<usize>)>> {
-    // NOTE make limit a bit higher than median
+    max_attempts: usize,
+) -> Option<Vec<RefinementContext>> {
+    const QUOTA_MULTIPLIER: Float = 1.5;
+
+    // Keep the local quota as a runaway guard rather than a normal stopping condition.
     let median = refinement_ctx.statistics().speed.get_median();
-    let limit = median.map(|median| (((median.max(10) * repeat) as f64) * 1.5) as usize);
+    let limit = median.map(|median| ((median.max(10) * max_attempts) as Float * QUOTA_MULTIPLIER) as usize);
     let environment = create_environment_with_custom_quota(limit, refinement_ctx.environment.as_ref());
 
     create_multiple_insertion_contexts(insertion_ctx, environment.clone(), max_routes_range)
         .map(|insertion_ctxs| {
             insertion_ctxs
                 .into_iter()
-                .map(|(insertion_ctx, indices)| {
-                    (
-                        RefinementContext::new(
-                            refinement_ctx.problem.clone(),
-                            create_population(insertion_ctx),
-                            TelemetryMode::None,
-                            environment.clone(),
-                        ),
-                        indices,
+                .map(|insertion_ctx| {
+                    RefinementContext::new(
+                        refinement_ctx.problem.clone(),
+                        create_population(insertion_ctx),
+                        TelemetryMode::None,
+                        environment.clone(),
                     )
                 })
                 .collect::<Vec<_>>()
@@ -275,8 +304,7 @@ fn decompose_insertion_context(
         .filter(|contexts| contexts.len() > 1)
 }
 
-fn get_solution_parts(decomposed: (RefinementContext, HashSet<usize>)) -> ((SolutionContext, SolutionContext), bool) {
-    let (decomposed_ctx, _) = decomposed;
+fn get_solution_parts(decomposed_ctx: RefinementContext) -> ((SolutionContext, SolutionContext), bool) {
     let mut individuals = decomposed_ctx.into_individuals();
 
     // Baseline is preserved by `DecomposePopulation` and yielded first.
@@ -344,11 +372,12 @@ impl HeuristicPopulation for DecomposePopulation {
     type Individual = InsertionContext;
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
-        if individuals.is_empty() {
-            return false;
+        let mut is_improved = false;
+        for individual in individuals {
+            is_improved = self.add(individual) || is_improved;
         }
 
-        individuals.into_iter().any(|individual| self.add(individual))
+        is_improved
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {
@@ -379,10 +408,10 @@ impl HeuristicPopulation for DecomposePopulation {
 
     fn ranked(&self) -> Box<dyn Iterator<Item = &'_ Self::Individual> + '_> {
         // Not used by `DecomposeSearch`, but provide a deterministic iteration order.
-        if let Some(best) = self.best.as_ref() {
-            Box::new(once(best).chain(once(&self.baseline)))
-        } else {
-            Box::new(once(&self.baseline))
+        match (&self.best, &self.last_non_improving) {
+            (Some(best), _) => Box::new(once(best).chain(once(&self.baseline))),
+            (None, Some(last)) => Box::new(once(&self.baseline).chain(once(last))),
+            (None, None) => Box::new(once(&self.baseline)),
         }
     }
 

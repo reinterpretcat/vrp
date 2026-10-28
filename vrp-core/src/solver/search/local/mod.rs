@@ -1,6 +1,9 @@
 //! This module contains various Local Search operators.
 
 use crate::construction::heuristics::*;
+use crate::models::common::Cost;
+use crate::models::problem::TravelTime;
+use crate::models::solution::{Activity, Route};
 use crate::solver::RefinementContext;
 use rosomaxa::prelude::*;
 use std::cmp::Ordering;
@@ -12,14 +15,29 @@ pub use self::exchange_inter_route::*;
 mod exchange_intra_route;
 pub use self::exchange_intra_route::*;
 
+mod relocate_inter_route;
+pub use self::relocate_inter_route::*;
+
+mod relocate_intra_route;
+pub use self::relocate_intra_route::*;
+
 mod exchange_sequence;
 pub use self::exchange_sequence::*;
+
+mod exchange_sequence_best;
+pub use self::exchange_sequence_best::*;
 
 mod exchange_swap_star;
 pub use self::exchange_swap_star::*;
 
 mod territory_relocate;
 pub use self::territory_relocate::TerritoryRelocate;
+
+mod exchange_two_opt_star;
+pub use self::exchange_two_opt_star::*;
+
+mod variable_neighborhood_search;
+pub use self::variable_neighborhood_search::*;
 
 mod reschedule_departure;
 pub use self::reschedule_departure::*;
@@ -30,6 +48,30 @@ pub trait LocalOperator: Send + Sync {
     /// small move in solution space which leads to a different solution.
     fn explore(&self, refinement_ctx: &RefinementContext, insertion_ctx: &InsertionContext)
     -> Option<InsertionContext>;
+}
+
+fn get_path_cost<'a>(
+    insertion_ctx: &InsertionContext,
+    route: &Route,
+    activities: impl IntoIterator<Item = &'a Activity>,
+) -> Cost {
+    let mut activities = activities.into_iter();
+    let Some(first) = activities.next() else {
+        return Cost::default();
+    };
+
+    activities
+        .fold((Cost::default(), first), |(acc, previous), current| {
+            let cost = insertion_ctx.problem.transport.cost(
+                route,
+                previous.place.location,
+                current.place.location,
+                TravelTime::Departure(previous.schedule.departure),
+            );
+
+            (acc + cost, current)
+        })
+        .0
 }
 
 /// Provides the way to run multiple local search operators with different probability.

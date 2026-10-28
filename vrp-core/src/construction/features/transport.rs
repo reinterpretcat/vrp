@@ -223,15 +223,28 @@ impl TransportConstraint {
         }
 
         let (next_act_location, latest_arr_time_at_next) = if let Some(next) = next {
-            let latest_arrival = route_ctx.state().get_latest_arrival_at(activity_ctx.index + 1).copied();
+            let latest_arrival =
+                route_ctx.state().get_schedule_at(activity_ctx.index + 1).map(|state| state.latest_arrival);
             (next.place.location, latest_arrival.unwrap_or(next.place.time.end))
         } else {
             // open vrp
             (target.place.location, target.place.time.end.min(actor.detail.time.end))
         };
 
-        let arr_time_at_next = departure
-            + self.transport.duration(route, prev.place.location, next_act_location, TravelTime::Departure(departure));
+        // A non-stale route already has the arrival on its existing prev -> next leg. Reuse it
+        // instead of repeating a potentially expensive transport lookup for every insertion candidate.
+        let arr_time_at_next = match (route_ctx.is_stale(), next) {
+            (false, Some(next)) => next.schedule.arrival,
+            _ => {
+                departure
+                    + self.transport.duration(
+                        route,
+                        prev.place.location,
+                        next_act_location,
+                        TravelTime::Departure(departure),
+                    )
+            }
+        };
 
         if arr_time_at_next > latest_arr_time_at_next {
             return ConstraintViolation::fail(self.time_window_code);
@@ -247,6 +260,11 @@ impl TransportConstraint {
                 target.place.location,
                 TravelTime::Departure(departure),
             );
+
+        // Neither service nor travel can recover an arrival beyond these upper bounds.
+        if arr_time_at_target > target.place.time.end || arr_time_at_target > latest_arr_time_at_next {
+            return ConstraintViolation::skip(self.time_window_code);
+        }
 
         let latest_departure_at_target = latest_arr_time_at_next
             - self.transport.duration(
@@ -538,7 +556,11 @@ impl CostObjective {
             return new_costs + get_time_premium_delta(route_ctx, dep_time_tail - prev.schedule.departure);
         };
 
-        let waiting_time = route_ctx.state().get_waiting_time_at(activity_ctx.index + 1).copied().unwrap_or_default();
+        let waiting_time = route_ctx
+            .state()
+            .get_schedule_at(activity_ctx.index + 1)
+            .map(|state| state.waiting_time)
+            .unwrap_or_default();
 
         let (tp_cost_old, act_cost_old, dep_time_old) =
             self.analyze_route_leg(route_ctx, prev, next, prev.schedule.departure);

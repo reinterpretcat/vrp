@@ -1,15 +1,26 @@
 # Javascript
 
-This is example how to call solver methods from **javascript** in browser. You need to build `vrp-cli` library for
-`WebAssembly` target. To do this, you can use [wasm-pack](https://rustwasm.github.io/wasm-pack/installer):
+This is example how to call solver methods from **javascript**. You need to build `vrp-cli` library for the
+`WebAssembly` target. To do this, you can use [wasm-pack](https://rustwasm.github.io/wasm-pack/installer), picking the
+target that matches where the code runs:
 
-    cd vrp-cli
-    wasm-pack build --target web
+```shell
+pip install -r vrp-cli/bindings/python/requirements-codegen.txt
+npm ci --prefix vrp-cli/bindings/typescript
+./vrp-cli/bindings/generate.sh
+cd vrp-cli
+wasm-pack build --target web                        # browsers
+wasm-pack build --target nodejs --out-dir pkg-node  # node
+```
 
 It should generate `wasm` build + some javascript files for you. If you want to have a smaller binary, you can try
-to build without default features: `csv-format`, `hre-format`, `scientific-format`.
+to build without default features: `csv-format`, `scientific-format`.
 
-To test it, use the following index.html file:
+Arguments accept plain javascript objects (or json strings, if you already have them) and results come back as objects.
+
+## In the browser
+
+Use the following index.html file:
 
 ```html
 <html>
@@ -167,14 +178,15 @@ To test it, use the following index.html file:
 }
 `);
 
+        // the locations the matrix below has to describe, in this exact order
         const locations = get_routing_locations(pragmatic_problem);
-        console.log(`routing locations are:\n ${locations}`);
+        console.log('routing locations are:', locations);
 
         // NOTE let's assume we got routing matrix data for locations somehow
         // NOTE or just pass an empty array to use great-circle distance approximation
         const matrix_data= [
             {
-                "matrix": "normal_car",
+                "profile": "normal_car",
                 "travelTimes": [
                    0,    609, 981, 906,
                    813,  0,   371, 590,
@@ -198,8 +210,9 @@ To test it, use the following index.html file:
             }
         };
 
+        // the result is an object, so its fields can be read directly
         const solution = solve_pragmatic(pragmatic_problem, matrix_data, config);
-        console.log(`solution is:\n ${solution}`);
+        console.log(`cost is ${solution.statistic.cost}, tours: ${solution.tours.length}`);
     }
 
     run();
@@ -207,3 +220,62 @@ To test it, use the following index.html file:
 </body>
 </html>
 ```
+
+
+## In node
+
+No `init()` call is needed with the `nodejs` target:
+
+```js
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const vrp = require('./pkg-node/vrp_cli.js');
+
+const solution = vrp.solve_pragmatic(problem, [matrix], config);
+console.log(solution.statistic.cost);
+```
+
+A complete runnable example lives in
+[examples/js-interop](https://github.com/reinterpretcat/vrp/tree/master/examples/js-interop).
+
+Node 19 or newer is required: the solver seeds its random number generator from the Web Crypto API, which node only
+exposes as a global from that version. On older releases install it before loading the module, otherwise solving fails
+with `could not initialize ThreadRng: Unknown Error: 65546` followed by `RuntimeError: unreachable`:
+
+```js
+import { webcrypto } from 'node:crypto';
+if (typeof globalThis.crypto === 'undefined') globalThis.crypto = webcrypto;
+```
+
+
+## Types
+
+`wasm-pack` emits a `vrp_cli.d.ts` which describes the documents instead of using `any`. The declarations and their json
+schemas are generated from the solver's rust types by `vrp-cli/bindings/generate.sh`, so they match what it accepts:
+
+```ts
+import { solve_pragmatic, type Problem, type Solution } from './pkg-node/vrp_cli.js';
+
+const problem: Problem = { /* checked at compile time */ };
+const solution: Solution = solve_pragmatic(problem, [], undefined);
+const cost: number = solution.statistic.cost;
+```
+
+
+## Error handling
+
+Failures throw an `Error` whose message is a json array, where each entry has a `code`, a `cause` and a suggested
+`action`:
+
+```js
+try {
+  vrp.solve_pragmatic(problem, [], config);
+} catch (err) {
+  for (const error of JSON.parse(err.message)) {
+    console.error(error.code, error.cause, error.action);
+  }
+}
+```
+
+See the [error index](../../concepts/pragmatic/errors/index.md) for the meaning of each code. Note that
+`solve_pragmatic` validates the problem before solving it.

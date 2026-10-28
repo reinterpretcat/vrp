@@ -14,6 +14,7 @@ use vrp_core::prelude::*;
 
 /// Represents geometry of the feature.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum Geometry {
     /// A point.
@@ -30,6 +31,7 @@ pub enum Geometry {
 
 /// Represents geo json feature.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub struct Feature {
     /// Feature properties.
@@ -40,6 +42,7 @@ pub struct Feature {
 
 /// Represents a feature collection.
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub struct FeatureCollection {
     /// List of features.

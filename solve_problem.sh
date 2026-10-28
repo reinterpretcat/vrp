@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # A handy script to run solver on pragmatic problem using routing approximation.
 # Output is a solution in pragmatic and geojson formats stored in the same folder
 # using the problem's file pattern.

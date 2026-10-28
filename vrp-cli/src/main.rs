@@ -29,7 +29,8 @@ mod cli {
 
     pub fn get_app() -> Command {
         Command::new("Vehicle Routing Problem Solver")
-            .version("1.25.0")
+            // taken from the manifest so that `--version` cannot fall behind a release
+            .version(env!("CARGO_PKG_VERSION"))
             .author("Ilya Builuk <ilya.builuk@gmail.com>")
             .about("A command line interface to Vehicle Routing Problem solver")
             .subcommand(get_analyze_app())

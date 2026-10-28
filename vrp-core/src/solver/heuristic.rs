@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/solver/heuristic_test.rs"]
+mod heuristic_test;
+
 use super::*;
 use crate::construction::heuristics::*;
 use crate::models::common::FootprintSolutionState;
@@ -25,6 +29,7 @@ pub type TargetSearchOperator = Arc<
         + Send
         + Sync,
 >;
+type TargetSearchOperatorConfig = HeuristicSearchOperatorConfig<RefinementContext, GoalContext, InsertionContext>;
 
 /// A type for greedy population.
 pub type GreedyPopulation = Greedy<GoalContext, InsertionContext>;
@@ -107,7 +112,7 @@ impl VrpConfigBuilder {
             .with_heuristic(heuristic)
             .with_context(RefinementContext::new(problem.clone(), population, telemetry_mode, environment.clone()))
             .with_processing(create_default_processing())
-            .with_initial(4, 0.05, create_default_init_operators(problem, environment)))
+            .with_initial(16, 0.05, create_default_init_operators(problem, environment)))
     }
 }
 
@@ -143,10 +148,6 @@ pub fn get_static_heuristic(
                 environment.random.clone(),
             ),
         ),
-        (
-            Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)),
-            create_scalar_operator_probability(0.05, environment.random.clone()),
-        ),
         (local_search.clone(), create_scalar_operator_probability(0.05, environment.random.clone())),
         (default_operator.clone(), create_scalar_operator_probability(1., environment.random.clone())),
         (local_search, create_scalar_operator_probability(0.05, environment.random.clone())),
@@ -161,10 +162,12 @@ pub fn get_static_heuristic_from_heuristic_group(
     environment: Arc<Environment>,
     heuristic_group: TargetHeuristicGroup,
 ) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
-    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(
-        heuristic_group,
-        create_diversify_operators(problem, environment),
-    )
+    let guided_ejection = Arc::new(GuidedEjectionSearch::new());
+    let diversify_operators = create_diversify_operators(problem, environment, guided_ejection.clone());
+
+    StaticSelective::<RefinementContext, GoalContext, InsertionContext>::new(heuristic_group)
+        .with_diversify_operators(diversify_operators)
+        .with_intensify_operators(vec![guided_ejection])
 }
 
 /// Gets dynamic heuristic using default settings.
@@ -173,13 +176,12 @@ pub fn get_dynamic_heuristic(
     environment: Arc<Environment>,
 ) -> DynamicSelective<RefinementContext, GoalContext, InsertionContext> {
     let search_operators = dynamic::get_operators(problem.clone(), environment.clone());
-    let diversify_operators = create_diversify_operators(problem, environment.clone());
+    let guided_ejection = Arc::new(GuidedEjectionSearch::new());
+    let diversify_operators = create_diversify_operators(problem, environment.clone(), guided_ejection.clone());
 
-    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(
-        search_operators,
-        diversify_operators,
-        environment.as_ref(),
-    )
+    DynamicSelective::<RefinementContext, GoalContext, InsertionContext>::new(search_operators, environment.as_ref())
+        .with_diversify_operators(diversify_operators)
+        .with_intensify_operators(vec![guided_ejection])
 }
 
 /// Creates elitism population algorithm.
@@ -197,30 +199,7 @@ impl RosomaxaSolution for InsertionContext {
     type Context = Footprint;
 
     fn on_init(&mut self, context: &Self::Context) {
-        // built a feature vector which is used to classify solution in population
-        let weights = vec![
-            // load related features
-            get_max_load_variance(self),
-            get_max_load_mean(self),
-            get_full_load_ratio(self),
-            // time related features
-            get_duration_mean(self),
-            get_waiting_mean(self),
-            // distance related features
-            get_distance_mean(self),
-            get_longest_distance_between_customers_mean(self),
-            get_first_distance_customer_mean(self),
-            get_last_distance_customer_mean(self),
-            // depot related features
-            get_average_distance_between_depot_customer_mean(self),
-            get_longest_distance_between_depot_customer_mean(self),
-            // tour related features
-            get_customers_deviation(self),
-            // default objective related
-            self.solution.unassigned.len() as Float,
-            self.solution.routes.len() as Float,
-            self.get_total_cost().unwrap_or_default(),
-        ];
+        let weights = Vec::from(get_rosomaxa_solution_features(self));
 
         self.solution.state.set_solution_weights(weights);
         self.on_update(context);
@@ -273,8 +252,8 @@ fn get_limits(problem: &Problem) -> (RemovalLimits, RemovalLimits) {
     let normal_limits = RemovalLimits::new(problem);
     let activities_range = normal_limits.removed_activities_range.clone();
     let small_limits = RemovalLimits {
-        removed_activities_range: (activities_range.start / 3).max(2)..(activities_range.end / 3).max(8),
-        affected_routes_range: 1..2,
+        removed_activities_range: (*activities_range.start() / 3).max(2)..=(*activities_range.end() / 3).max(8),
+        affected_routes_range: 1..=2,
     };
 
     (normal_limits, small_limits)
@@ -303,38 +282,48 @@ mod builder {
         let wrap: fn(Arc<dyn Recreate>) -> Box<VrpInitialOperator> =
             |recreate| Box::new(RecreateInitialOperator::new(recreate));
 
-        std::iter::once({
-            // main stable constructive heuristics
-            ("blinks".to_string(), wrap(Arc::new(RecreateWithBlinks::new_with_defaults(random.clone()))), 1)
-        })
-        .chain(
-            // alternative constructive heuristics
+        let mut operators = vec![
+            ("cheapest".to_string(), wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 0),
+            (
+                "blink_far".to_string(),
+                wrap(Arc::new(RecreateWithBlinks::new_with_job_order(BlinkJobOrder::Far, random.clone()))),
+                1,
+            ),
+            (
+                "blink_close".to_string(),
+                wrap(Arc::new(RecreateWithBlinks::new_with_job_order(BlinkJobOrder::Close, random.clone()))),
+                1,
+            ),
+            (
+                "blink_tw_start".to_string(),
+                wrap(Arc::new(RecreateWithBlinks::new_with_job_order(BlinkJobOrder::TimeWindowStart, random.clone()))),
+                1,
+            ),
+        ];
+
+        operators.extend(
             get_recreate_with_alternative_goal(problem.goal.as_ref(), {
                 let random = random.clone();
-                move || RecreateWithBlinks::new_with_defaults(random.clone())
+                move || RecreateWithCheapest::new(random.clone())
             })
             .enumerate()
-            .map(|(index, recreate)| (format!("alternative_{}", index), wrap(recreate), 1)),
-        )
-        .chain([
-            // additional constructive heuristics
-            ("cheapest".to_string(), wrap(Arc::new(RecreateWithCheapest::new(random.clone()))), 1),
-            ("farthest".to_string(), wrap(Arc::new(RecreateWithFarthest::new(random.clone()))), 1),
-            ("regret".to_string(), wrap(Arc::new(RecreateWithRegret::new(2, 3, random.clone()))), 1),
-            (
-                "gaps".to_string(),
-                wrap(Arc::new(RecreateWithGaps::new(1, (problem.jobs.size() / 10).max(1), random.clone()))),
-                1,
-            ),
-            ("skip_best".to_string(), wrap(Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()))), 1),
-            (
-                "perturbation".to_string(),
-                wrap(Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()))),
-                1,
-            ),
-            ("nearest_neighbor".to_string(), wrap(Arc::new(RecreateWithNearestNeighbor::new(random.clone()))), 1),
-        ])
-        .collect()
+            .map(|(index, recreate)| (format!("alternative_cheapest_{index}"), wrap(recreate), 1)),
+        );
+
+        for (name, job_order) in
+            [("far", BlinkJobOrder::Far), ("close", BlinkJobOrder::Close), ("tw_start", BlinkJobOrder::TimeWindowStart)]
+        {
+            operators.extend(
+                get_recreate_with_alternative_goal(problem.goal.as_ref(), {
+                    let random = random.clone();
+                    move || RecreateWithBlinks::new_with_job_order(job_order, random.clone())
+                })
+                .enumerate()
+                .map(|(index, recreate)| (format!("alternative_{name}_{index}"), wrap(recreate), 1)),
+            );
+        }
+
+        operators
     }
 
     /// Create default processing.
@@ -354,6 +343,7 @@ mod builder {
 fn create_diversify_operators(
     problem: Arc<Problem>,
     environment: Arc<Environment>,
+    guided_ejection: Arc<GuidedEjectionSearch>,
 ) -> HeuristicDiversifyOperators<RefinementContext, GoalContext, InsertionContext> {
     let random = environment.random.clone();
     let has_territory = problem.goal.has_objective("territory");
@@ -371,7 +361,7 @@ fn create_diversify_operators(
     let infeasible_search = Arc::new(InfeasibleSearch::new(
         Arc::new(WeightedHeuristicOperator::new(
             vec![
-                dynamic::create_default_inner_ruin_recreate(problem, environment.clone()),
+                dynamic::create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
                 dynamic::create_default_local_search(random.clone(), has_territory),
             ],
             vec![10, 1],
@@ -386,11 +376,21 @@ fn create_diversify_operators(
         2,
         4,
     ))));
+    let path_relinking = Arc::new(PathRelinkingSearch::new(
+        Arc::new(RecreateWithBlinks::new_with_defaults(environment.random.clone())),
+        dynamic::create_default_inner_ruin_recreate(problem, environment),
+        64,
+        5,
+    ));
 
-    vec![Arc::new(WeightedHeuristicOperator::new(
+    let regular = Arc::new(WeightedHeuristicOperator::new(
         vec![redistribute_search, local_search, infeasible_search],
         vec![10, 2, 1],
-    ))]
+    ));
+
+    // Deep population-level searches are additive: a scheduled success contributes an extra
+    // offspring without replacing the regular diversification selected for this parent.
+    vec![Arc::new(CompositeDiversifyOperator::new(vec![regular, guided_ejection, path_relinking]))]
 }
 
 mod statik {
@@ -417,7 +417,6 @@ mod statik {
             (Arc::new(RecreateWithGaps::new(2, 20, random.clone())), 5),
             (Arc::new(RecreateWithFarthest::new(random.clone())), 2),
             (Arc::new(RecreateWithSkipBest::new(4, 8, random.clone())), 2),
-            (Arc::new(RecreateWithSlice::new(random.clone())), 1),
             (
                 Arc::new(RecreateWithSkipRandom::default_explorative_phased(
                     Arc::new(RecreateWithCheapest::new(random.clone())),
@@ -613,6 +612,8 @@ mod dynamic {
     }
 
     fn get_weak_recreates(random: Arc<dyn Random>) -> Vec<(Arc<dyn Recreate>, String, Float)> {
+        // Slice recreate is omitted: the remaining stochastic recreates provide controlled
+        // perturbations without adding another coarse subsampling arm to the bandit.
         let cheapest: Arc<dyn Recreate> = Arc::new(RecreateWithCheapest::new(random.clone()));
         let skip_best: Arc<dyn Recreate> = Arc::new(RecreateWithSkipBest::new(1, 2, random.clone()));
         let perturbation: Arc<dyn Recreate> = Arc::new(RecreateWithPerturbation::new_with_defaults(random.clone()));
@@ -620,7 +621,6 @@ mod dynamic {
         let farthest: Arc<dyn Recreate> = Arc::new(RecreateWithFarthest::new(random.clone()));
         let skip_random: Arc<dyn Recreate> =
             Arc::new(RecreateWithSkipRandom::default_explorative_phased(cheapest, random.clone()));
-        let slice: Arc<dyn Recreate> = Arc::new(RecreateWithSlice::new(random));
 
         vec![
             (skip_best, "skip_best".to_string(), WEAK_ARM_PRIOR),
@@ -628,7 +628,6 @@ mod dynamic {
             (gaps, "gaps".to_string(), WEAK_ARM_PRIOR),
             (farthest, "farthest".to_string(), WEAK_ARM_PRIOR),
             (skip_random, "skip_random".to_string(), WEAK_ARM_PRIOR),
-            (slice, "slice".to_string(), WEAK_ARM_PRIOR),
         ]
     }
 
@@ -666,11 +665,6 @@ mod dynamic {
     ) -> Vec<(TargetSearchOperator, String, Float)> {
         vec![
             (
-                Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteBest::default()))),
-                "local_exch_inter_route_best".to_string(),
-                1.,
-            ),
-            (
                 Arc::new(LocalSearch::new(Arc::new(ExchangeInterRouteRandom::default()))),
                 "local_exch_inter_route_random".to_string(),
                 1.,
@@ -685,12 +679,7 @@ mod dynamic {
                 "local_reschedule_departure".to_string(),
                 1.,
             ),
-            (Arc::new(LKHSearch::new(LKHSearchMode::ImprovementOnly)), "lkh_strict".to_string(), 1.),
-            (
-                Arc::new(LocalSearch::new(Arc::new(ExchangeSwapStar::new(environment.random.clone())))),
-                "local_swap_star".to_string(),
-                2.,
-            ),
+            (create_variable_neighborhood_search(environment.as_ref()), "local_vnd".to_string(), 1.),
             (
                 create_variable_search_decompose_search(problem.clone(), environment.clone()),
                 "variable_decompose_search".to_string(),
@@ -700,10 +689,50 @@ mod dynamic {
         ]
     }
 
-    pub fn get_operators(
-        problem: Arc<Problem>,
-        environment: Arc<Environment>,
-    ) -> Vec<(TargetSearchOperator, String, Float)> {
+    fn create_variable_neighborhood_search(environment: &Environment) -> TargetSearchOperator {
+        // The limit lets neighborhoods interact without allowing one selected parent to consume the
+        // whole generation. Exchange cost perturbation is disabled; its stochastic seed and leg
+        // selection still let repeated descents propose different moves.
+        const MAX_IMPROVEMENTS: usize = 8;
+
+        let search =
+            VariableNeighborhoodSearch::new(create_variable_neighborhood_operators(environment), MAX_IMPROVEMENTS)
+                .with_extended_operator(Arc::new(ExchangeSequenceBest::new_global(32, 2)));
+
+        Arc::new(LocalSearch::new(Arc::new(search)))
+    }
+
+    /// Groups related sequence moves into one VND neighborhood. Pair moves are tried first; the
+    /// single-job fallback is used only after that broader exchange cannot improve the solution.
+    #[derive(Default)]
+    struct SequenceNeighborhood {
+        exchange: ExchangeSequenceBest,
+        relocate: RelocateIntraRoute,
+    }
+
+    impl LocalOperator for SequenceNeighborhood {
+        fn explore(
+            &self,
+            refinement_ctx: &RefinementContext,
+            insertion_ctx: &InsertionContext,
+        ) -> Option<InsertionContext> {
+            self.exchange
+                .explore(refinement_ctx, insertion_ctx)
+                .or_else(|| self.relocate.explore(refinement_ctx, insertion_ctx))
+        }
+    }
+
+    fn create_variable_neighborhood_operators(environment: &Environment) -> Vec<Arc<dyn LocalOperator>> {
+        vec![
+            Arc::new(RelocateInterRoute::default()),
+            Arc::new(SequenceNeighborhood::default()),
+            Arc::new(ExchangeTwoOptStar::default()),
+            Arc::new(ExchangeInterRouteBest::new(0., 0., 0.)),
+            Arc::new(ExchangeSwapStar::new(environment.random.clone())),
+        ]
+    }
+
+    pub fn get_operators(problem: Arc<Problem>, environment: Arc<Environment>) -> Vec<TargetSearchOperatorConfig> {
         let (normal_limits, small_limits) = get_limits(problem.as_ref());
         let random = environment.random.clone();
 
@@ -734,13 +763,16 @@ mod dynamic {
         let strong_cartesian_ops = strong_recreates
             .iter()
             .flat_map(|(recreate, recreate_name, recreate_weight)| {
-                wrapped_strong_ruins.iter().map::<(TargetSearchOperator, String, Float), _>(
+                wrapped_strong_ruins.iter().map::<TargetSearchOperatorConfig, _>(
                     move |(ruin, ruin_name, ruin_weight)| {
-                        (
-                            Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone())),
+                        let operator: TargetSearchOperator =
+                            Arc::new(RuinAndRecreate::new(ruin.clone(), recreate.clone()));
+                        HeuristicSearchOperatorConfig::new(
+                            operator,
                             format!("{ruin_name}+{recreate_name}"),
                             ruin_weight + recreate_weight,
                         )
+                        .with_families([format!("ruin:{ruin_name}"), format!("recreate:{recreate_name}")])
                     },
                 )
             })
@@ -750,9 +782,11 @@ mod dynamic {
         let weak_ruin_recreate_bundle = build_weak_recreate_bundle(&strong_recreates, &weak_recreates);
         let weak_ruin_ops = weak_ruins
             .iter()
-            .map::<(TargetSearchOperator, String, Float), _>(|(ruin, name, weight)| {
+            .map::<TargetSearchOperatorConfig, _>(|(ruin, name, weight)| {
                 let primary = wrap_with_extra(ruin.clone(), name, extra_random_job.clone());
-                (Arc::new(RuinAndRecreate::new(primary, weak_ruin_recreate_bundle.clone())), name.clone(), *weight)
+                let operator: TargetSearchOperator =
+                    Arc::new(RuinAndRecreate::new(primary, weak_ruin_recreate_bundle.clone()));
+                HeuristicSearchOperatorConfig::new(operator, name, *weight)
             })
             .collect::<Vec<_>>();
 
@@ -760,12 +794,10 @@ mod dynamic {
         let weak_recreate_ruin_bundle = build_weak_ruin_bundle(&strong_ruins, &weak_ruins, extra_random_job);
         let weak_recreate_ops = weak_recreates
             .iter()
-            .map::<(TargetSearchOperator, String, Float), _>(|(recreate, name, weight)| {
-                (
-                    Arc::new(RuinAndRecreate::new(weak_recreate_ruin_bundle.clone(), recreate.clone())),
-                    name.clone(),
-                    *weight,
-                )
+            .map::<TargetSearchOperatorConfig, _>(|(recreate, name, weight)| {
+                let operator: TargetSearchOperator =
+                    Arc::new(RuinAndRecreate::new(weak_recreate_ruin_bundle.clone(), recreate.clone()));
+                HeuristicSearchOperatorConfig::new(operator, name, *weight)
             })
             .collect::<Vec<_>>();
 
@@ -776,8 +808,12 @@ mod dynamic {
             .into_iter()
             .chain(weak_ruin_ops)
             .chain(weak_recreate_ops)
-            .chain(operators)
-            .filter(|(_, name, _)| heuristic_filter.as_ref().is_none_or(|filter| (filter)(name.as_str())))
+            .chain(
+                operators
+                    .into_iter()
+                    .map(|(operator, name, weight)| HeuristicSearchOperatorConfig::new(operator, name, weight)),
+            )
+            .filter(|config| heuristic_filter.as_ref().is_none_or(|filter| (filter)(config.name())))
             .collect::<Vec<_>>()
     }
 
@@ -845,27 +881,65 @@ mod dynamic {
         Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(operators, 1, 1))))
     }
 
+    /// Runs a refinement only after the primary search has improved its input and preserves the
+    /// primary result when the refinement cannot improve it further.
+    struct RefineOnImprovement {
+        primary: TargetSearchOperator,
+        refinement: Arc<dyn LocalOperator>,
+    }
+
+    impl RefineOnImprovement {
+        fn new(primary: TargetSearchOperator, refinement: Arc<dyn LocalOperator>) -> Self {
+            Self { primary, refinement }
+        }
+    }
+
+    impl HeuristicSearchOperator for RefineOnImprovement {
+        type Context = RefinementContext;
+        type Objective = GoalContext;
+        type Solution = InsertionContext;
+
+        fn search(&self, heuristic_ctx: &Self::Context, solution: &Self::Solution) -> Self::Solution {
+            let candidate = self.primary.search(heuristic_ctx, solution);
+            let goal = solution.problem.goal.as_ref();
+
+            if !goal.total_order(&candidate, solution).is_lt() {
+                return candidate;
+            }
+
+            let Some(refined) = self.refinement.explore(heuristic_ctx, &candidate) else {
+                return candidate;
+            };
+
+            if goal.total_order(&refined, &candidate).is_lt() { refined } else { candidate }
+        }
+    }
+
     fn create_variable_search_decompose_search(
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> TargetSearchOperator {
         let has_territory = problem.goal.has_objective("territory");
-        Arc::new(DecomposeSearch::new(
-            Arc::new(WeightedHeuristicOperator::new(
-                vec![
-                    create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
-                    create_default_good_operator(problem, environment.clone()),
-                    create_default_local_search(environment.random.clone(), has_territory),
-                ],
-                vec![9, 3, 1],
-            )),
-            (2, 4),
-            2,
-        ))
+        let inner = Arc::new(WeightedHeuristicOperator::new(
+            vec![
+                create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
+                create_default_good_operator(problem, environment.clone()),
+                create_default_local_search(environment.random.clone(), has_territory),
+            ],
+            vec![9, 3, 1],
+        ));
+        let primary = Arc::new(DecomposeSearch::new(inner, (2, 4), 2));
+
+        // Decomposition exposes new cross-route moves. Apply one bounded descent only after the
+        // merged candidate improves its parent under the complete objective.
+        let refinement =
+            Arc::new(VariableNeighborhoodSearch::new(create_variable_neighborhood_operators(environment.as_ref()), 1));
+
+        Arc::new(RefineOnImprovement::new(primary, refinement))
     }
 
     fn create_composite_decompose_search(problem: Arc<Problem>, environment: Arc<Environment>) -> TargetSearchOperator {
-        let limits = RemovalLimits { removed_activities_range: (10..100), affected_routes_range: 1..2 };
+        let limits = RemovalLimits { removed_activities_range: 10..=100, affected_routes_range: 1..=2 };
         let ruin = WeightedRuin::new(vec![
             (Arc::new(RandomRouteRemoval::new(limits.clone())), 1),
             (Arc::new(WorstRouteRemoval::new(limits)), 1),

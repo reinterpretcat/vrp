@@ -16,6 +16,40 @@ fn create_matrix_data(
 }
 
 #[test]
+fn can_use_time_agnostic_matrix() {
+    struct TestFallback;
+
+    impl TransportFallback for TestFallback {
+        fn duration(&self, _: &Profile, _: Location, _: Location) -> Duration {
+            42.
+        }
+
+        fn distance(&self, _: &Profile, _: Location, _: Location) -> Distance {
+            43.
+        }
+    }
+
+    let profile0 = Profile::default();
+    let profile1 = Profile::new(1, Some(2.));
+    let costs = TimeAgnosticMatrixTransportCost::new(
+        vec![
+            MatrixData::new(0, None, vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]),
+            MatrixData::new(1, None, vec![9., 10., 11., 12.], vec![13., 14., 15., 16.]),
+        ],
+        2,
+        TestFallback,
+    )
+    .unwrap();
+
+    assert_eq!(costs.duration_approx(&profile0, 1, 0), 3.);
+    assert_eq!(costs.distance_approx(&profile0, 1, 0), 7.);
+    assert_eq!(costs.duration_approx(&profile1, 1, 0), 22.);
+    assert_eq!(costs.distance_approx(&profile1, 1, 0), 15.);
+    assert_eq!(costs.duration_approx(&profile0, 2, 0), 42.);
+    assert_eq!(costs.distance_approx(&profile0, 2, 0), 43.);
+}
+
+#[test]
 fn can_detect_dimensions_mismatch() {
     assert_eq!(
         create_matrix_transport_cost(vec![

@@ -68,7 +68,7 @@ mod single {
 }
 
 mod multi {
-    use crate::models::common::{Load, MultiDimLoad};
+    use crate::models::common::{Demand, DemandType, Load, MultiDimLoad};
     use std::cmp::Ordering;
 
     fn from_vec(load: Vec<i32>) -> MultiDimLoad {
@@ -114,11 +114,35 @@ mod multi {
     fn can_use_specific_functions() {
         assert!(from_vec(vec![1, 0]).is_not_empty());
         assert!(!from_vec(vec![0, 0]).is_not_empty());
+        assert!(!MultiDimLoad::default().is_not_empty());
 
         assert_eq!(from_vec(vec![0, 1]).max_load(from_vec(vec![1, 0])), from_vec(vec![1, 1]));
         assert_eq!(from_vec(vec![3, 0, 2]).max_load(from_vec(vec![1, 1, 4])), from_vec(vec![3, 1, 4]));
+        assert_eq!(from_vec(vec![3]).max_load(from_vec(vec![1, 1, 4])), from_vec(vec![3, 1, 4]));
 
         assert!(!from_vec(vec![1, 0]).can_fit(&from_vec(vec![0, 1])));
         assert!(!from_vec(vec![3, 0, 2]).can_fit(&from_vec(vec![1, 1, 4])));
+        assert!(!from_vec(vec![3]).can_fit(&from_vec(vec![1, 1])));
+    }
+
+    #[test]
+    fn can_get_static_delivery_demand_type() {
+        let demand = Demand::<MultiDimLoad> {
+            pickup: Default::default(),
+            delivery: (from_vec(vec![1, 2]), MultiDimLoad::default()),
+        };
+
+        assert!(matches!(demand.get_type(), DemandType::Delivery));
+        assert!(!demand.has_dynamic());
+    }
+
+    #[test]
+    fn can_detect_dynamic_demand() {
+        let demand = Demand::<MultiDimLoad> {
+            pickup: (MultiDimLoad::default(), from_vec(vec![1, 2])),
+            delivery: Default::default(),
+        };
+
+        assert!(demand.has_dynamic());
     }
 }

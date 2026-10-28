@@ -4,12 +4,50 @@ use crate::helpers::example::create_example_objective;
 
 type RosomaxaType = Rosomaxa<VectorRosomaxaContext, VectorObjective, VectorSolution>;
 
+#[test]
+fn can_reject_invalid_config() {
+    let invalid_configs = [
+        RosomaxaConfig { initial_size: 0, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { max_network_size: 0, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { spread_factor: 0., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { spread_factor: 1., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { spread_factor: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { distribution_factor: 0., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { distribution_factor: 1., ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { distribution_factor: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { exploration_ratio: -0.1, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { exploration_ratio: 1.1, ..RosomaxaConfig::new_with_defaults(4) },
+        RosomaxaConfig { exploration_ratio: Float::NAN, ..RosomaxaConfig::new_with_defaults(4) },
+    ];
+
+    for config in invalid_configs {
+        let result =
+            Rosomaxa::new(VectorRosomaxaContext, create_example_objective(), Arc::new(Environment::default()), config);
+
+        assert!(result.is_err());
+    }
+}
+
+#[test]
+fn can_accept_exploration_ratio_boundaries() {
+    for exploration_ratio in [0., 1.] {
+        let config = RosomaxaConfig { exploration_ratio, ..RosomaxaConfig::new_with_defaults(4) };
+        let result =
+            Rosomaxa::new(VectorRosomaxaContext, create_example_objective(), Arc::new(Environment::default()), config);
+
+        assert!(result.is_ok());
+    }
+}
+
 mod selection {
     use super::*;
 
     fn create_rosomaxa(initial_size: usize) -> RosomaxaType {
+        create_rosomaxa_with_config(RosomaxaConfig { initial_size, ..RosomaxaConfig::new_with_defaults(4) })
+    }
+
+    fn create_rosomaxa_with_config(config: RosomaxaConfig) -> RosomaxaType {
         let env = Arc::new(Environment::default());
-        let config = RosomaxaConfig { initial_size, ..RosomaxaConfig::new_with_defaults(4) };
         let objective = create_example_objective();
 
         Rosomaxa::new(VectorRosomaxaContext, objective, env, config).unwrap()
@@ -34,6 +72,64 @@ mod selection {
     }
 
     #[test]
+    fn can_limit_initial_selection_to_best_parents() {
+        let selection_size = 4;
+        let mut rosomaxa = create_rosomaxa_with_config(RosomaxaConfig {
+            initial_size: 16,
+            selection_size,
+            ..RosomaxaConfig::new_with_defaults(selection_size)
+        });
+
+        for fitness in (0..8).rev() {
+            let fitness = fitness as Float;
+            rosomaxa.add(VectorSolution { data: vec![fitness], weights: vec![fitness], fitness });
+        }
+
+        let selected = rosomaxa.select().map(|solution| solution.fitness).collect::<Vec<_>>();
+
+        assert_eq!(selected, vec![0., 1., 2., 3.]);
+    }
+
+    #[test]
+    fn can_select_quality_diverse_initial_data() {
+        let objective = create_example_objective();
+        let data = [
+            (0., 1.),
+            (1., 1.1),
+            (2., 10.),
+            // The structurally most distant solution is too weak to shape the initial map.
+            (100., 1_000.),
+        ]
+        .into_iter()
+        .map(|(fitness, weight)| VectorSolution { data: vec![weight], weights: vec![weight], fitness })
+        .collect();
+
+        let selected = RosomaxaType::select_initial_data(data, objective.as_ref(), 2)
+            .into_iter()
+            .map(|solution| solution.fitness)
+            .collect::<Vec<_>>();
+
+        assert_eq!(selected, vec![0., 2.]);
+    }
+
+    #[test]
+    fn can_handle_less_than_four_initial_solutions() {
+        for initial_size in 1..4 {
+            let mut rosomaxa = create_rosomaxa(initial_size);
+
+            for i in 1..=initial_size {
+                let value = i as Float;
+                rosomaxa.add(VectorSolution { data: vec![value], weights: vec![value], fitness: -value });
+            }
+
+            rosomaxa
+                .on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
+
+            assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+        }
+    }
+
+    #[test]
     fn can_handle_exploration_phase() {
         let initial_size = 4;
         let selection_size = 4;
@@ -49,6 +145,206 @@ mod selection {
         rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
         assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
         assert_eq!(rosomaxa.select().count(), selection_size);
+    }
+
+    #[test]
+    fn can_track_exploration_inputs_and_refresh_young_network() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for value in 0..initial_size {
+            let value = value as Float;
+            rosomaxa.add(VectorSolution { data: vec![value], weights: vec![value], fitness: -value });
+        }
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+
+        let RosomaxaPhases::Exploration { maintenance, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(maintenance.new_input_count, 0);
+
+        rosomaxa.add(VectorSolution { data: vec![5.], weights: vec![5.], fitness: -5. });
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+        let RosomaxaPhases::Exploration { maintenance, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(maintenance.new_input_count, 1);
+
+        let max_network_size = rosomaxa.config.max_network_size;
+        let RosomaxaPhases::Exploration { maintenance, .. } = &mut rosomaxa.phase else { unreachable!() };
+        maintenance.add_observations(max_network_size);
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+        let RosomaxaPhases::Exploration { maintenance, .. } = &rosomaxa.phase else { unreachable!() };
+        assert_eq!(maintenance.new_input_count, 0);
+    }
+
+    #[test]
+    fn can_adapt_smoothing_observation_window() {
+        let config = RosomaxaConfig { max_network_size: 600, node_size: 2, ..RosomaxaConfig::new_with_defaults(4) };
+        let mut maintenance = NetworkMaintenance::new(&config);
+
+        maintenance.add_observations(99);
+        assert_eq!(maintenance.next_action(100), None);
+        maintenance.add_observations(1);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
+
+        maintenance.on_smoothing();
+        assert_eq!(maintenance.new_input_count, 0);
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::RefreshNormalization));
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
+
+        maintenance.on_smoothing();
+        maintenance.on_smoothing();
+        maintenance.on_smoothing();
+        for _ in 0..7 {
+            maintenance.add_observations(100);
+            assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::RefreshNormalization));
+        }
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
+
+        maintenance.on_stable_observation();
+        for _ in 0..3 {
+            maintenance.add_observations(100);
+            assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::RefreshNormalization));
+        }
+        maintenance.add_observations(100);
+        assert_eq!(maintenance.next_action(100), Some(NetworkMaintenanceAction::CheckDistortion));
+    }
+
+    #[test]
+    fn can_bound_smoothing_observation_window_for_different_node_sizes() {
+        assert_eq!(get_max_smoothing_observation_multiplier(1), 4);
+        assert_eq!(get_max_smoothing_observation_multiplier(2), 8);
+        assert_eq!(get_max_smoothing_observation_multiplier(4), 16);
+        assert_eq!(get_max_smoothing_observation_multiplier(10), 16);
+    }
+
+    #[test]
+    fn can_fill_different_exploration_selection_budgets() {
+        for (selection_size, node_size) in [(2, 1), (4, 2), (8, 2), (16, 4)] {
+            let initial_size = 16;
+            let config = RosomaxaConfig {
+                initial_size,
+                selection_size,
+                node_size,
+                ..RosomaxaConfig::new_with_defaults(selection_size)
+            };
+            let mut rosomaxa = create_rosomaxa_with_config(config);
+
+            for value in 0..initial_size {
+                let value = value as Float;
+                rosomaxa.add(VectorSolution { data: vec![value], weights: vec![value], fitness: -value });
+            }
+
+            rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..Default::default() });
+
+            assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+            assert_eq!(rosomaxa.select().count(), selection_size);
+        }
+    }
+
+    #[test]
+    fn can_identify_basin_sink() {
+        let coordinate = Coordinate(0, 0);
+
+        assert!(is_basin_sink(
+            &coordinate,
+            [(Coordinate(1, 0), Ordering::Less), (Coordinate(0, 1), Ordering::Equal)].into_iter()
+        ));
+        assert!(!is_basin_sink(&coordinate, [(Coordinate(1, 0), Ordering::Greater)].into_iter()));
+        assert!(!is_basin_sink(&coordinate, [(Coordinate(-1, 0), Ordering::Equal)].into_iter()));
+        assert!(is_basin_sink(&coordinate, std::iter::empty()));
+    }
+
+    #[test]
+    fn can_prioritize_basins_and_keep_coverage_slot() {
+        let mut coordinates = (0..8).map(|idx| Coordinate(idx, 0)).collect::<Vec<_>>();
+        let basins = [5, 6, 7, 4, 3].map(|idx| BasinCandidate::new(Coordinate(idx, 0)));
+
+        promote_basin_coordinates(&mut coordinates, &basins, 6, 1);
+
+        assert_eq!(coordinates[..6], [5, 6, 7, 0, 4, 3].map(|idx| Coordinate(idx, 0)));
+    }
+
+    #[test]
+    fn can_distribute_multiple_coverage_slots() {
+        let mut coordinates = (0..12).map(|idx| Coordinate(idx, 0)).collect::<Vec<_>>();
+        let basins = (3..12).rev().map(|idx| BasinCandidate::new(Coordinate(idx, 0))).collect::<Vec<_>>();
+
+        promote_basin_coordinates(&mut coordinates, &basins, 12, 3);
+
+        let coverage = [coordinates[2], coordinates[6], coordinates[10]];
+        let prioritized = coordinates[..12]
+            .iter()
+            .enumerate()
+            .filter(|(idx, _)| ![2, 6, 10].contains(idx))
+            .map(|(_, coordinate)| *coordinate)
+            .collect::<Vec<_>>();
+        assert!(coverage.iter().all(|coordinate| basins.iter().all(|candidate| candidate.coordinate != *coordinate)));
+        assert_eq!(prioritized, basins.iter().map(|candidate| candidate.coordinate).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn can_select_structurally_different_basins() {
+        let mut candidates = [0, 1, 3, 10].map(|idx| BasinCandidate::new(Coordinate(idx, 0)));
+        let evaluations = std::cell::Cell::new(0);
+
+        select_diverse_basin_candidates(&mut candidates, 3, 0, |left, right| {
+            evaluations.set(evaluations.get() + 1);
+            (left.0 - right.0).abs() as Float
+        });
+
+        assert_eq!(
+            candidates[..3].iter().map(|candidate| candidate.coordinate).collect::<Vec<_>>(),
+            [0, 10, 3].map(|idx| Coordinate(idx, 0))
+        );
+        assert_eq!(evaluations.get(), 5);
+    }
+
+    #[test]
+    fn can_keep_incremental_basin_selection_equivalent() {
+        let coordinates = [
+            Coordinate(0, 0),
+            Coordinate(1, 3),
+            Coordinate(2, 1),
+            Coordinate(4, 5),
+            Coordinate(7, 2),
+            Coordinate(9, 8),
+        ];
+        let distance = |left: &Coordinate, right: &Coordinate| {
+            let dx = (left.0 - right.0) as Float;
+            let dy = (left.1 - right.1) as Float;
+            dx.hypot(dy)
+        };
+
+        for selected_size in 1..=coordinates.len() {
+            for reference_idx in 0..coordinates.len() {
+                let mut expected = coordinates;
+                expected.swap(0, reference_idx);
+                for selected_idx in 1..selected_size {
+                    let candidate_idx = (selected_idx..expected.len())
+                        .map(|candidate_idx| {
+                            let min_distance = expected[..selected_idx]
+                                .iter()
+                                .map(|selected| distance(&expected[candidate_idx], selected))
+                                .min_by(Float::total_cmp)
+                                .unwrap_or_default();
+                            (candidate_idx, min_distance)
+                        })
+                        .max_by(|(_, left), (_, right)| left.total_cmp(right))
+                        .map(|(idx, _)| idx)
+                        .unwrap();
+                    expected.swap(selected_idx, candidate_idx);
+                }
+
+                let mut actual = coordinates.map(BasinCandidate::new);
+                select_diverse_basin_candidates(&mut actual, selected_size, reference_idx, distance);
+
+                assert_eq!(
+                    actual[..selected_size].iter().map(|candidate| candidate.coordinate).collect::<Vec<_>>(),
+                    expected[..selected_size]
+                );
+            }
+        }
     }
 
     #[test]
@@ -68,6 +364,110 @@ mod selection {
 
         assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
         assert_eq!(rosomaxa.select().count(), selection_size);
+    }
+
+    #[test]
+    fn exploitation_batch_uses_fixed_pre_batch_best() {
+        let mut rosomaxa = create_rosomaxa(4);
+        rosomaxa.add(VectorSolution { data: vec![10.], weights: vec![10.], fitness: 10. });
+        rosomaxa.phase = RosomaxaPhases::Exploitation { selection_size: 4 };
+
+        let is_improved = rosomaxa.add_all(vec![
+            VectorSolution { data: vec![5.], weights: vec![5.], fitness: 5. },
+            VectorSolution { data: vec![9.], weights: vec![9.], fitness: 9. },
+        ]);
+        let fitness = rosomaxa.ranked().map(|solution| solution.fitness).collect::<Vec<_>>();
+
+        assert!(is_improved);
+        assert_eq!(fitness, vec![5., 9.]);
+    }
+
+    #[test]
+    fn can_skip_exploration_at_exact_phase_boundary() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let solution = VectorSolution { data: vec![i as Float], weights: vec![i as Float], fitness: -(i as Float) };
+            rosomaxa.add(solution);
+        }
+
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.9, ..HeuristicStatistics::default() });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
+    }
+
+    #[test]
+    fn can_extend_exploration_while_improving() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let solution = VectorSolution { data: vec![i as Float], weights: vec![i as Float], fitness: -(i as Float) };
+            rosomaxa.add(solution);
+        }
+
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.9,
+            improvement_1000_ratio: 0.001,
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.95,
+            improvement_1000_ratio: 0.001,
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
+    }
+
+    #[test]
+    fn can_fallback_to_exploitation_when_network_creation_fails() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let weights = if i == 0 { vec![i as Float] } else { vec![i as Float, i as Float] };
+            rosomaxa.add(VectorSolution { data: weights.clone(), weights, fitness: -(i as Float) });
+        }
+
+        rosomaxa.on_generation(&HeuristicStatistics { termination_estimate: 0.5, ..HeuristicStatistics::default() });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
+        assert!(rosomaxa.select().next().is_some());
+    }
+
+    #[test]
+    fn can_keep_phase_boundary_when_speed_is_slow() {
+        let initial_size = 4;
+        let mut rosomaxa = create_rosomaxa(initial_size);
+
+        for i in 0..initial_size {
+            let solution = VectorSolution { data: vec![i as Float], weights: vec![i as Float], fitness: -(i as Float) };
+            rosomaxa.add(solution);
+        }
+
+        let slow_speed = HeuristicSpeed::Slow { ratio: 0.1, average: 1., median: Some(1000) };
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.5,
+            speed: slow_speed.clone(),
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploration);
+        assert_eq!(rosomaxa.select().count(), 1);
+
+        rosomaxa.on_generation(&HeuristicStatistics {
+            termination_estimate: 0.9,
+            speed: slow_speed,
+            ..HeuristicStatistics::default()
+        });
+
+        assert_eq!(rosomaxa.selection_phase(), SelectionPhase::Exploitation);
     }
 
     #[test]
@@ -165,21 +565,90 @@ mod auxiliary {
 
     #[test]
     fn can_get_keep_size() {
-        let rebalance_memory = 100;
+        let max_network_size = 300;
 
         // early phase
-        let size_early = get_keep_size(rebalance_memory, 0.0);
-        assert!(size_early > rebalance_memory * 2);
+        let size_early = get_keep_size(max_network_size, 0.0);
+        assert!(size_early > max_network_size * 2 / 3);
 
         // mid phase
-        let size_mid = get_keep_size(rebalance_memory, 0.5);
-        assert!(size_mid > rebalance_memory);
+        let size_mid = get_keep_size(max_network_size, 0.5);
+        assert!(size_mid > max_network_size * 2 / 3);
         assert!(size_mid < size_early);
 
         // late phase
-        let size_late = get_keep_size(rebalance_memory, 0.8);
-        assert!(size_late >= rebalance_memory);
+        let size_late = get_keep_size(max_network_size, 0.8);
+        assert!(size_late >= max_network_size * 2 / 3);
         assert!(size_late < size_mid);
+
+        assert_eq!(get_keep_size(4, 1.), 4);
+        assert_eq!(get_min_network_size(600), 200);
+        assert_eq!(get_min_network_size(4), 4);
+    }
+
+    #[test]
+    fn can_get_exploration_ratio() {
+        assert_eq!(get_exploration_ratio(0.9, 0.), 0.9);
+        assert_eq!(get_exploration_ratio(0.9, 0.001), 0.95);
+        assert_eq!(get_exploration_ratio(0., 0.001), 0.);
+        assert_eq!(get_exploration_ratio(0.97, 0.001), 0.97);
+    }
+
+    #[test]
+    fn can_scale_elite_selection_size() {
+        for selection_size in 2..=6 {
+            assert_eq!(get_elite_selection_size(selection_size, 0., |_| true), 1);
+        }
+
+        assert_eq!(get_elite_selection_size(8, 0., |_| false), 2);
+        assert_eq!(get_elite_selection_size(8, 0., |_| true), 4);
+        assert_eq!(get_elite_selection_size(16, 0., |_| false), 4);
+        assert_eq!(get_elite_selection_size(16, 0., |_| true), 8);
+    }
+
+    #[test]
+    fn can_keep_enough_quality_gated_basins_for_selection() {
+        assert_eq!(get_basin_candidate_size(0, 4), 0);
+        assert_eq!(get_basin_candidate_size(3, 4), 3);
+        assert_eq!(get_basin_candidate_size(10, 4), 5);
+        assert_eq!(get_basin_candidate_size(20, 4), 10);
+    }
+
+    #[test]
+    fn can_reserve_coverage_for_different_selection_sizes() {
+        assert_eq!((1..=8).map(get_coverage_selection_size).collect::<Vec<_>>(), [0, 1, 1, 1, 1, 1, 1, 2]);
+        assert_eq!(get_coverage_selection_size(12), 3);
+    }
+
+    #[test]
+    fn can_reserve_periodic_full_map_generation() {
+        assert_eq!(
+            (1..=8).map(is_basin_selection_generation).collect::<Vec<_>>(),
+            [true, true, true, false, true, true, true, false]
+        );
+        assert_eq!(
+            (1..=8).map(|generation| is_basin_shoulder_selection_generation(generation, 0.2)).collect::<Vec<_>>(),
+            [true, false, false, false, false, false, false, false]
+        );
+        assert!(is_basin_shoulder_selection_generation(17, 0.2));
+        assert_eq!(
+            (1..=8).map(|generation| is_basin_shoulder_selection_generation(generation, 0.1)).collect::<Vec<_>>(),
+            [true, false, false, false, true, false, false, false]
+        );
+    }
+
+    #[test]
+    fn can_cool_node_alternative_probability() {
+        assert_eq!(get_node_alternative_probability(0.), 0.05);
+        assert_eq!(get_node_alternative_probability(0.5), 0.025);
+        assert_eq!(get_node_alternative_probability(1.), 0.);
+    }
+
+    #[test]
+    fn can_scale_exploitation_selection_size() {
+        assert_eq!((1..=8).map(get_exploitation_selection_size).collect::<Vec<_>>(), [2, 2, 2, 2, 3, 3, 4, 4]);
+        assert_eq!(get_exploitation_selection_size(16), 8);
+        assert_eq!(get_exploitation_selection_size(64), 32);
     }
 
     #[test]

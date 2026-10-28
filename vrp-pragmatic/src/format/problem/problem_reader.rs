@@ -13,7 +13,8 @@ use vrp_core::solver::processing::{ClusterConfigExtraProperty, ReservedTimesExtr
 
 pub(super) fn map_to_problem_with_approx(problem: ApiProblem) -> Result<CoreProblem, MultiFormatError> {
     let coord_index = CoordIndex::new(&problem);
-    let matrices = if coord_index.has_indices() { vec![] } else { create_approx_matrices(&problem) };
+    let matrices =
+        if coord_index.has_indices() { vec![] } else { create_approx_matrices_with_index(&problem, &coord_index) };
     map_to_problem(problem, matrices, coord_index)
 }
 
@@ -197,7 +198,7 @@ fn get_problem_blocks(
     // TODO pass environment from outside to allow parametrization
     let environment = Environment::default();
 
-    let fleet = read_fleet(api_problem, problem_props, &coord_index);
+    let fleet = read_fleet(api_problem, problem_props, &coord_index)?;
     let reserved_times_index = read_reserved_times_index(api_problem, &fleet);
 
     let transport = Timer::measure_duration_with_callback(
@@ -214,6 +215,9 @@ fn get_problem_blocks(
             (environment.logger)(format!("fleet index created in {}ms", duration.as_millis()).as_str());
         },
     )?;
+    // `create_transport_costs` owns the converted floating-point arrays. Release the raw integer
+    // matrices before building the job index, which can itself be large for dense problems.
+    drop(matrices);
     let activity: Arc<dyn ActivityCost> = Arc::new(OnlyVehicleActivityCost::default());
 
     let (transport, activity) = if reserved_times_index.is_empty() {

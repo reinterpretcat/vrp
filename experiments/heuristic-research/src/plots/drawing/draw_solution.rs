@@ -25,10 +25,17 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
 
     chart.configure_axes().draw()?;
 
-    chart
-        .draw_series(SurfaceSeries::xoz(x_axis.values(), z_axis.values(), &config.series.surface).style_func(
-            &|&v| (&HSLColor((240. / 360. - 240. / 360. * v / config.axes.y.end) as f64, 1., 0.7)).into(),
-        ))?;
+    if let Some(surface) = &config.series.surface {
+        let y_span = config.axes.y.end - config.axes.y.start;
+        chart.draw_series(SurfaceSeries::xoz(x_axis.values(), z_axis.values(), surface).style_func(&|&value| {
+            let ratio = if y_span.abs() <= Float::EPSILON {
+                0.5
+            } else {
+                ((value - config.axes.y.start) / y_span).clamp(0., 1.)
+            };
+            (&HSLColor((240. / 360. - 240. / 360. * ratio) as f64, 1., 0.7)).into()
+        }))?;
+    }
 
     let data_points = (config.series.points)();
 

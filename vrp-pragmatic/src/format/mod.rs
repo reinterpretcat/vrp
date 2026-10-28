@@ -28,9 +28,13 @@ pub mod solution;
 
 /// Represents a location type.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
 pub enum Location {
     /// A location type represented by geocoordinate with latitude and longitude.
+    // NOTE: an untagged variant has no discriminator to derive a name from, so name it explicitly
+    // to keep generated models readable
+    #[cfg_attr(feature = "schema", schemars(title = "LocationCoordinate"))]
     Coordinate {
         /// Latitude.
         lat: f64,
@@ -39,12 +43,14 @@ pub enum Location {
     },
 
     /// A location type represented by index reference in routing matrix.
+    #[cfg_attr(feature = "schema", schemars(title = "LocationReference"))]
     Reference {
         /// An index in routing matrix.
         index: usize,
     },
 
     /// A custom location type with no reference in matrix.
+    #[cfg_attr(feature = "schema", schemars(title = "LocationCustom"))]
     Custom {
         /// Specifies a custom location type.
         r#type: CustomLocationType,
@@ -93,6 +99,7 @@ impl std::fmt::Display for Location {
 
 /// A custom location type which has no reference to matrix.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum CustomLocationType {
     /// Unknown location type which has a zero distance/duration to any other location.
     #[serde(rename(deserialize = "unknown", serialize = "unknown"))]
@@ -101,6 +108,7 @@ pub enum CustomLocationType {
 
 /// A format error.
 #[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FormatError {
     /// An error code in registry.
     pub code: String,

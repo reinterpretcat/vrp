@@ -10,11 +10,11 @@ use rustc_hash::FxHasher;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
-use std::iter::once;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-type NodeHashMap<I, S> = HashMap<Coordinate, Node<I, S>, BuildHasherDefault<FxHasher>>;
+type CoordinateHashMap<T> = HashMap<Coordinate, T, BuildHasherDefault<FxHasher>>;
+type NodeHashMap<I, S> = CoordinateHashMap<Node<I, S>>;
 
 /// A customized Growing Self Organizing Map designed to store and retrieve trained input.
 pub struct Network<C, I, S, F>
@@ -32,7 +32,7 @@ where
     distribution_factor: Float,
     learning_rate: Float,
     time: usize,
-    rebalance_memory: usize,
+    hit_memory_size: usize,
     min_max_weights: MinMaxWeights,
     nodes: NodeHashMap<I, S>,
     storage_factory: F,
@@ -51,8 +51,8 @@ pub struct NetworkConfig {
     pub distribution_factor: Float,
     /// Initial learning rate.
     pub learning_rate: Float,
-    /// A rebalance memory.
-    pub rebalance_memory: usize,
+    /// Number of recent generations tracked in each node's hit history.
+    pub hit_memory_size: usize,
     /// If set to true, initial nodes have error set to the value equal to a growing threshold.
     pub has_initial_error: bool,
 }
@@ -118,33 +118,49 @@ where
     where
         SF: Fn(usize) -> F,
     {
-        assert!(!initial_data.is_empty());
+        if initial_data.is_empty() {
+            return Err("GSOM network requires initial data".into());
+        }
+
         let dimension = initial_data[0].weights().len();
         let data_size = initial_data.len();
-        assert!(initial_data.iter().all(|r| r.weights().len() == dimension));
-        assert!(config.distribution_factor > 0. && config.distribution_factor < 1.);
-        assert!(config.spread_factor > 0. && config.spread_factor < 1.);
+        if !initial_data.iter().all(|input| input.weights().len() == dimension) {
+            return Err("GSOM inputs must have the same weight dimension".into());
+        }
+        if !(config.distribution_factor > 0.
+            && config.distribution_factor < 1.
+            && config.spread_factor > 0.
+            && config.spread_factor < 1.)
+        {
+            return Err("GSOM spread and distribution factors must be finite and within (0, 1)".into());
+        }
+
+        // GSOM growth threshold: GT = -D * ln(SF).
+        let growing_threshold = -(dimension as Float) * config.spread_factor.ln();
 
         // create initial nodes
         // note that storage factory creates storage with size up to data_size
         // it should help to prevent data lost until the network is rebalanced
-        let (nodes, min_max_weights) = Self::create_initial_nodes(
+        let (mut nodes, min_max_weights) = Self::create_initial_nodes(
             context,
             initial_data,
-            config.rebalance_memory,
+            config.hit_memory_size,
             &storage_factory(data_size),
             // apply small noise to initial weights
             Noise::new_with_ratio(1., (0.99, 1.), random.clone()),
         )?;
+        if config.has_initial_error {
+            nodes.values_mut().for_each(|node| node.error = growing_threshold);
+        }
 
         // create a network with more aggressive initial parameters
         let mut network = Self {
             dimension,
-            growing_threshold: -(dimension as Float) * config.spread_factor.log2(),
+            growing_threshold,
             distribution_factor: config.distribution_factor,
             learning_rate: config.learning_rate,
             time: 0,
-            rebalance_memory: config.rebalance_memory,
+            hit_memory_size: config.hit_memory_size,
             min_max_weights,
             nodes,
             storage_factory: storage_factory(data_size),
@@ -250,6 +266,15 @@ where
         self.iter_nodes().map(|node| node.unified_distance(self, 1)).max_by(|a, b| a.total_cmp(b)).unwrap_or_default()
     }
 
+    /// Rebuilds normalization ranges from the state retained by the network.
+    pub(crate) fn refresh_normalization(&mut self) {
+        self.min_max_weights.reset();
+        self.nodes.values().for_each(|node| {
+            node.storage.iter().for_each(|input| self.min_max_weights.update(input.weights()));
+            self.min_max_weights.update(node.weights.as_slice());
+        });
+    }
+
     /// Performs training loop multiple times.
     fn retrain<FM>(&mut self, context: &C, rebalance_count: usize, allow_growth: bool, node_fn: FM)
     where
@@ -265,9 +290,7 @@ where
             // update min max weights to reflect the current state
             self.min_max_weights.reset();
             data.iter().for_each(|i| self.min_max_weights.update(i.weights()));
-            self.nodes.iter().for_each(|(_, node)| {
-                self.min_max_weights.update(node.weights.as_slice());
-            });
+            self.nodes.values().for_each(|node| self.min_max_weights.update(node.weights.as_slice()));
 
             self.train_on_data(context, data, allow_growth);
 
@@ -287,9 +310,8 @@ where
 
     /// Trains network on given input data.
     pub(super) fn train_on_data(&mut self, context: &C, data: Vec<I>, is_new_input: bool) {
-        let nodes_data = parallel_into_collect(data, |input| {
-            let bmu = self.find_bmu(&input);
-            let error = self.distance(&bmu.weights, input.weights());
+        let nodes_data = parallel_collect(data, ParallelismPolicy::Default, |input| {
+            let (bmu, error) = self.find_bmu(&input);
             (bmu.coordinate, error, input)
         });
 
@@ -297,12 +319,13 @@ where
     }
 
     /// Finds the best matching unit within the map for the given input.
-    fn find_bmu(&self, input: &I) -> &Node<I, S> {
+    fn find_bmu(&self, input: &I) -> (&Node<I, S>, Float) {
+        let input_weights = input.weights();
+
         self.nodes
             .values()
-            .map(|node| (node, self.distance(&node.weights, input.weights())))
+            .map(|node| (node, self.distance(&node.weights, input_weights)))
             .min_by(|(_, x), (_, y)| x.partial_cmp(y).unwrap_or(Ordering::Less))
-            .map(|(node, _)| node)
             .expect("no nodes")
     }
 
@@ -336,28 +359,14 @@ where
     }
 
     fn distribute_error(&mut self, coord: &Coordinate, radius: usize) {
-        let nodes = once((*coord, None))
-            .chain(
-                self.nodes
-                    .get(coord)
-                    .unwrap()
-                    .neighbours(self, radius)
-                    .filter_map(|(coord, offset)| coord.map(|coord| (coord, offset)))
-                    .map(|(coord, (x, y))| {
-                        let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as Float;
-                        (coord, Some(distribution_factor))
-                    }),
-            )
-            .collect::<Vec<_>>();
+        self.nodes.get_mut(coord).unwrap().error = 0.5 * self.growing_threshold;
 
-        nodes.into_iter().for_each(|(coord, distribution_factor)| {
-            let node = self.nodes.get_mut(&coord).unwrap();
-            if let Some(distribution_factor) = distribution_factor {
+        for (coordinate, (x, y)) in neighbour_coordinates(*coord, radius) {
+            if let Some(node) = self.nodes.get_mut(&coordinate) {
+                let distribution_factor = self.distribution_factor / (x.abs() + y.abs()) as Float;
                 node.error += distribution_factor * node.error
-            } else {
-                node.error = 0.5 * self.growing_threshold
             }
-        });
+        }
     }
 
     fn grow_nodes(&self, coord: &Coordinate) -> Vec<(Coordinate, Vec<Float>)> {
@@ -417,26 +426,20 @@ where
     }
 
     fn adjust_weights(&mut self, coord: &Coordinate, weights: &[Float], radius: usize, is_new_input: bool) {
-        let node = self.nodes.get(coord).expect("invalid coordinate");
         let learning_rate = self.learning_rate * (1. - 3.8 / (self.nodes.len() as Float));
         let learning_rate = if is_new_input { learning_rate } else { 0.25 * learning_rate };
 
-        let nodes = once((*coord, weights, learning_rate))
-            .chain(node.neighbours(self, radius).filter_map(|(coord, offset)| coord.map(|coord| (coord, offset))).map(
-                |(coord, offset)| {
-                    let distance = offset.0.abs() + offset.1.abs();
-                    let learning_rate = learning_rate / distance as Float;
-                    (coord, weights, learning_rate)
-                },
-            ))
-            .collect::<Vec<_>>();
+        let node = self.nodes.get_mut(coord).expect("invalid coordinate");
+        node.adjust(weights, learning_rate);
+        self.min_max_weights.update(node.weights.as_slice());
 
-        nodes.into_iter().for_each(|(coord, weights, learning_rate)| {
-            if let Some(node) = self.nodes.get_mut(&coord) {
+        for (coordinate, (x, y)) in neighbour_coordinates(*coord, radius) {
+            if let Some(node) = self.nodes.get_mut(&coordinate) {
+                let learning_rate = learning_rate / (x.abs() + y.abs()) as Float;
                 node.adjust(weights, learning_rate);
                 self.min_max_weights.update(node.weights.as_slice());
             }
-        })
+        }
     }
 
     /// Gets a mutable reference for node with given coordinate.
@@ -468,14 +471,14 @@ where
 
     /// Creates a new node for given data.
     fn create_node(&self, context: &C, coord: Coordinate, weights: &[Float], error: Float) -> Node<I, S> {
-        Node::new(coord, weights, error, self.rebalance_memory, self.storage_factory.eval(context))
+        Node::new(coord, weights, error, self.hit_memory_size, self.storage_factory.eval(context))
     }
 
     /// Creates nodes for initial topology.
     fn create_initial_nodes(
         context: &C,
         data: Vec<I>,
-        rebalance_memory: usize,
+        hit_memory_size: usize,
         storage_factory: &F,
         noise: Noise,
     ) -> GenericResult<(NodeHashMap<I, S>, MinMaxWeights)> {
@@ -488,12 +491,16 @@ where
         let mut min_max = MinMaxWeights::new(dimension);
         data.iter().for_each(|i| min_max.update(i.weights()));
 
-        let initial_node_indices = Self::select_initial_samples(&data, sample_size, &min_max, noise.random())
+        let unique_sample_size = sample_size.min(data.len());
+        let unique_node_indices = Self::select_initial_samples(&data, unique_sample_size, &min_max, noise.random())
             .ok_or_else(|| GenericError::from("cannot select initial samples"))?;
+        // Keep the four-node minimum required by the learning-rate schedule when fewer distinct inputs are available.
+        let initial_node_indices =
+            (0..sample_size).map(|idx| unique_node_indices[idx % unique_node_indices.len()]).collect::<Vec<_>>();
 
         // create initial node coordinates and data assignments (by index)
         let grid_size = (initial_node_indices.len() as f64).sqrt().ceil() as i32;
-        let mut node_assignments: HashMap<Coordinate, Vec<usize>> = initial_node_indices
+        let mut node_assignments: CoordinateHashMap<Vec<usize>> = initial_node_indices
             .iter()
             .enumerate()
             .map(|(grid_idx, &data_idx)| {
@@ -527,7 +534,7 @@ where
         for (&coord, indices) in node_assignments.iter() {
             let init_idx = indices[0];
             let weights: Vec<Float> = data[init_idx].weights().iter().map(|&v| noise.generate(v)).collect();
-            let node = Node::new(coord, &weights, 0., rebalance_memory, storage_factory.eval(context));
+            let node = Node::new(coord, &weights, 0., hit_memory_size, storage_factory.eval(context));
 
             nodes.insert(coord, node);
         }
@@ -583,10 +590,28 @@ where
         euclidian_distance(left, right, &self.min_max_weights)
     }
 
+    /// Returns squared normalized Euclidean distance for callers which only compare distances and do not need a root.
+    pub(crate) fn squared_distance(&self, left: &[Float], right: &[Float]) -> Float {
+        squared_euclidian_distance(left, right, &self.min_max_weights)
+    }
+
     /// Returns normalized weights.
     pub(crate) fn normalize<'a>(&'a self, values: &'a [Float]) -> impl Iterator<Item = Float> + 'a {
         normalize(values, &self.min_max_weights)
     }
+}
+
+fn neighbour_coordinates(
+    Coordinate(center_x, center_y): Coordinate,
+    radius: usize,
+) -> impl Iterator<Item = (Coordinate, (i32, i32))> {
+    let radius = radius as i32;
+
+    (-radius..=radius).flat_map(move |x| {
+        (-radius..=radius)
+            .filter(move |&y| x != 0 || y != 0)
+            .map(move |y| (Coordinate(center_x + x, center_y + y), (x, y)))
+    })
 }
 
 fn compare_input<I: Input>(left: &I, right: &I) -> Ordering {
@@ -602,9 +627,20 @@ fn normalize<'a>(values: &'a [Float], min_max: &'a MinMaxWeights) -> impl Iterat
 }
 
 fn euclidian_distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights) -> Float {
+    squared_euclidian_distance(left, right, min_max).sqrt()
+}
+
+/// Calculates squared Euclidean distance after applying the network's min--max normalization.
+fn squared_euclidian_distance(left: &[Float], right: &[Float], min_max: &MinMaxWeights) -> Float {
     let left_iter = normalize(left, min_max);
     let right_iter = normalize(right, min_max);
 
     // TODO allow to pass custom distance function
-    left_iter.zip(right_iter).map(|(a, b)| (a - b).powi(2)).sum::<Float>().sqrt()
+    left_iter
+        .zip(right_iter)
+        .map(|(left, right)| {
+            let difference = left - right;
+            difference * difference
+        })
+        .sum()
 }

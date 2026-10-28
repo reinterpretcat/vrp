@@ -33,6 +33,50 @@ problem and routing matrix.
 `cannot read config` is returned when algorithm configuration cannot be created. To fix it, make sure that config has
 a valid json schema and valid parameters.
 
+### E0005
+
+`cannot serialize <document>` is returned when a result cannot be written out, for example a solution or the list of
+routing locations. This should not happen: please submit a bug and share the original problem and routing matrix.
+
+### E0006
+
+`language binding panicked`, `cannot read <argument> argument` or `cannot serialize <argument> argument as json` is
+returned when a C, Python or WebAssembly adapter cannot safely pass a value to the shared solver contract. Check that
+the supplied value has the type documented by the binding. A panic or a failure to return an already serialized result
+is an internal error: please submit a bug and share the original input.
+
+
+## Error reporting in the language bindings
+
+The C, Python and WebAssembly bindings all report failures as a json array of these errors, so they can be inspected
+programmatically instead of being matched as text. Each entry has a `code`, a `cause` and a suggested `action`, plus
+optional `details`. `vrp-cli/bindings/generate.sh` can generate a machine-readable schema at
+`vrp-cli/bindings/schemas/error.schema.json`.
+
+Python raises `OSError`:
+
+```python
+import json, vrp_cli
+try:
+    vrp_cli.solve_pragmatic(problem=problem, matrices=[], config=config)
+except OSError as err:
+    codes = [error["code"] for error in json.loads(str(err))]
+```
+
+Javascript throws an `Error`:
+
+```js
+try {
+  vrp.solve_pragmatic(problem, [], config);
+} catch (err) {
+  const codes = JSON.parse(err.message).map((error) => error.code);
+}
+```
+
+Note that `solve_pragmatic` validates its input before solving, so a logically inconsistent definition is reported as an
+`E1xxx` validation error rather than being solved into a meaningless solution.
+
+
 ## E1xxx: Validation errors
 
 Errors from E1xxx range are used by validation engine which checks logical correctness of the rich VRP definition.
@@ -422,6 +466,24 @@ Additionally, reload time should be inside vehicle shift it is specified:
 }
 ```
 
+#### E1305
+
+`vehicle type has no vehicle ids` is returned when a vehicle type declares an empty `vehicleIds` list:
+
+```json
+{
+  "typeId": "vehicle",
+  /** Error: no concrete vehicles of this type exist **/
+  "vehicleIds": [],
+  /** omitted **/
+}
+```
+
+Such a type contributes no vehicles, so it is either a mistake or dead weight in the definition. To fix the issue, add at
+least one vehicle id or remove the vehicle type. When it is the only type, the fleet ends up empty and the problem cannot
+be solved at all: that case is also reported while reading the problem, even when validation is skipped.
+
+
 #### E1306
 
 `time and duration costs are zeros` is returned when both time and duration costs are zeros in vehicle type definition:
@@ -469,6 +531,13 @@ start and end times, or its `fallback` names no window of the shift or closes a 
 `invalid regular hours` error is returned when a vehicle shift's `regularHours` cannot be used: `earliest` or `latest`
 is not a timestamp, `earliest` is not before `latest`, or the hours fall outside the shift's own start and end times. It
 is also returned when a vehicle type sets `costs.offHours` but none of its shifts states `regularHours`.
+
+#### E1312
+
+`fleet has no vehicle types` is returned when `fleet.vehicles` is empty, and `fleet has no vehicles` when the types it
+contains produce no vehicles at all, for example because every one of them has no `vehicleIds` or no `shifts`. Either way
+there is nothing to route with. To fix the issue, define a vehicle type with at least one vehicle id and one shift.
+
 
 ### E15xx: Routing profiles
 

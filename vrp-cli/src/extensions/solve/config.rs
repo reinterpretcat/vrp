@@ -18,13 +18,13 @@ use vrp_core::prelude::*;
 use vrp_core::rosomaxa::evolution::{InitialOperator, TelemetryMode};
 use vrp_core::rosomaxa::get_default_selection_size;
 use vrp_core::rosomaxa::prelude::*;
-use vrp_core::rosomaxa::utils::*;
 use vrp_core::solver::RecreateInitialOperator;
 use vrp_core::solver::search::*;
 use vrp_core::solver::*;
 
 /// An algorithm configuration.
 #[derive(Clone, Default, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Config {
     /// Specifies evolution configuration.
     pub evolution: Option<EvolutionConfig>,
@@ -42,6 +42,7 @@ pub struct Config {
 
 /// An evolution configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EvolutionConfig {
     pub initial: Option<InitialConfig>,
@@ -49,6 +50,7 @@ pub struct EvolutionConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum PopulationType {
@@ -79,14 +81,14 @@ pub enum PopulationType {
         selection_size: Option<usize>,
         /// Elite population size. Default is 2.
         max_elite_size: Option<usize>,
-        /// Node population size. Default is 4.
+        /// Node population size. Default is 2.
         max_node_size: Option<usize>,
         /// Spread factor. Default is 0.75.
         spread_factor: Option<Float>,
-        /// Distribution factor. Default is 0.75.
+        /// Distribution factor. Default is 0.9.
         distribution_factor: Option<Float>,
-        /// A rebalance memory. Default is 100.
-        rebalance_memory: Option<usize>,
+        /// GSOM network size which triggers compaction. Default is 600.
+        max_network_size: Option<usize>,
         /// An exploration phase ratio. Default is 0.9.
         exploration_ratio: Option<Float>,
     },
@@ -94,6 +96,7 @@ pub enum PopulationType {
 
 /// An initial solution configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct InitialConfig {
     pub method: RecreateMethod,
     pub alternatives: InitialAlternativesConfig,
@@ -101,6 +104,7 @@ pub struct InitialConfig {
 
 /// An initial solution alternatives configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct InitialAlternativesConfig {
     pub methods: Vec<RecreateMethod>,
@@ -110,6 +114,7 @@ pub struct InitialAlternativesConfig {
 
 /// A selection operator configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
 pub enum SelectionType {
@@ -122,6 +127,7 @@ pub enum SelectionType {
 
 /// A hyper heuristic configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum HyperType {
     /// A hyper heuristic which selects one operator from the list based on its predefined probability.
@@ -139,6 +145,7 @@ pub enum HyperType {
 
 /// A operator configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum SearchOperatorType {
     /// A metaheuristic which splits problem into smaller and solves them independently.
@@ -178,15 +185,18 @@ pub enum SearchOperatorType {
 
 /// A operator probability type
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
 pub enum OperatorProbabilityType {
     /// A scalar probability based type.
+    #[cfg_attr(feature = "schema", schemars(title = "OperatorProbabilityTypeScalar"))]
     Scalar {
         /// Probability value of the operator.
         scalar: Float,
     },
 
     /// A context specific probability type.
+    #[cfg_attr(feature = "schema", schemars(title = "OperatorProbabilityTypeContext"))]
     Context {
         /// Threshold parameters.
         threshold: ContextThreshold,
@@ -197,6 +207,7 @@ pub enum OperatorProbabilityType {
 
 /// A context condition for `MutationProbabilityType`.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ContextThreshold {
     /// Min amount of jobs in individual.
     pub jobs: usize,
@@ -206,6 +217,7 @@ pub struct ContextThreshold {
 
 /// A selection phase filter for `MutationProbabilityType`.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum ContextPhase {
     /// Initial selection phase.
@@ -232,6 +244,7 @@ pub enum ContextPhase {
 
 /// A ruin method configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RuinGroupConfig {
     /// Ruin methods.
     methods: Vec<RuinMethod>,
@@ -241,6 +254,7 @@ pub struct RuinGroupConfig {
 
 /// Specifies ruin methods with their probability weight and specific parameters.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum RuinMethod {
     /// Adjusted string removal method.
@@ -271,6 +285,7 @@ pub enum RuinMethod {
 
 /// Specifies recreate methods with their probability weight and specific parameters.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum RecreateMethod {
     /// Cheapest insertion method.
@@ -281,7 +296,12 @@ pub enum RecreateMethod {
     SkipBest { weight: usize, start: usize, end: usize },
     /// Insertion with blinks method.
     #[serde(rename(deserialize = "blinks"))]
-    Blinks { weight: usize },
+    Blinks {
+        weight: usize,
+        /// A fixed job order. Uses the standard weighted SISR selection when omitted.
+        #[serde(rename(deserialize = "jobOrder"), default)]
+        job_order: Option<BlinksJobOrder>,
+    },
     /// Insertion with gaps method.
     #[serde(rename(deserialize = "gaps"))]
     Gaps { weight: usize, min: usize, max: usize },
@@ -305,8 +325,23 @@ pub enum RecreateMethod {
     Regret { weight: usize, start: usize, end: usize },
 }
 
+/// Specifies a fixed job order for blink insertion.
+#[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum BlinksJobOrder {
+    Random,
+    Demand,
+    Far,
+    Close,
+    TimeWindowLength,
+    TimeWindowStart,
+    TimeWindowEnd,
+}
+
 /// A local search configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type")]
 pub enum LocalOperatorType {
     #[serde(rename(deserialize = "swap-star"))]
@@ -326,6 +361,7 @@ pub enum LocalOperatorType {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct NoiseConfig {
     probability: Float,
     min: Float,
@@ -333,6 +369,7 @@ pub struct NoiseConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminationConfig {
     pub max_time: Option<usize>,
@@ -341,6 +378,7 @@ pub struct TerminationConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct VariationConfig {
     interval_type: String,
@@ -351,12 +389,14 @@ pub struct VariationConfig {
 
 /// A telemetry config.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TelemetryConfig {
     progress: Option<ProgressConfig>,
     metrics: Option<MetricsConfig>,
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct ProgressConfig {
     /// Specifies whether logging is enabled. Default is false.
@@ -368,6 +408,7 @@ pub struct ProgressConfig {
 }
 
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct MetricsConfig {
     /// Specifies whether metrics collection is enabled. Default is false.
@@ -378,11 +419,10 @@ pub struct MetricsConfig {
 
 /// An environment specific configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct EnvironmentConfig {
-    /// Specifies a data parallelism configuration.
-    pub parallelism: Option<ParallelismConfig>,
-
     /// Specifies a logging configuration.
     pub logging: Option<LoggingConfig>,
 
@@ -390,18 +430,9 @@ pub struct EnvironmentConfig {
     pub is_experimental: Option<bool>,
 }
 
-/// Data parallelism configuration.
-#[derive(Clone, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ParallelismConfig {
-    /// Number of thread pools.
-    pub num_thread_pools: usize,
-    /// Specifies amount of threads in each thread pool.
-    pub threads_per_pool: usize,
-}
-
 /// Global logging configuration.
 #[derive(Clone, Deserialize, Debug)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct LoggingConfig {
     /// Specifies whether logging is enabled. Default is false.
@@ -411,12 +442,14 @@ pub struct LoggingConfig {
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct MinMaxConfig {
     pub min: usize,
     pub max: usize,
 }
 
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct NameWeight {
     pub name: String,
     pub weight: usize,
@@ -424,6 +457,7 @@ pub struct NameWeight {
 
 /// Specifies output configuration.
 #[derive(Clone, Deserialize, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OutputConfig {
     /// True if the solution, serialized as geojson features, should be included in solution.extras.
@@ -489,7 +523,7 @@ fn configure_from_evolution(
                     spread_factor,
                     distribution_factor,
                     selection_size,
-                    rebalance_memory,
+                    max_network_size,
                     exploration_ratio,
                 } => {
                     let mut config = RosomaxaConfig::new_with_defaults(default_selection_size);
@@ -508,8 +542,8 @@ fn configure_from_evolution(
                     if let Some(distribution_factor) = distribution_factor {
                         config.distribution_factor = *distribution_factor;
                     }
-                    if let Some(rebalance_memory) = rebalance_memory {
-                        config.rebalance_memory = *rebalance_memory;
+                    if let Some(max_network_size) = max_network_size {
+                        config.max_network_size = *max_network_size;
                     }
                     if let Some(exploration_ratio) = exploration_ratio {
                         config.exploration_ratio = *exploration_ratio;
@@ -581,7 +615,26 @@ fn create_recreate_method(method: &RecreateMethod, environment: Arc<Environment>
             (Arc::new(RecreateWithSkipBest::new(*start, *end, random)), *weight)
         }
         RecreateMethod::Slice { weight } => (Arc::new(RecreateWithSlice::new(random)), *weight),
-        RecreateMethod::Blinks { weight } => (Arc::new(RecreateWithBlinks::new_with_defaults(random.clone())), *weight),
+        RecreateMethod::Blinks { weight, job_order } => {
+            let recreate = job_order.as_ref().map_or_else(
+                || RecreateWithBlinks::new_with_defaults(random.clone()),
+                |job_order| {
+                    let job_order = match job_order {
+                        BlinksJobOrder::Random => BlinkJobOrder::Random,
+                        BlinksJobOrder::Demand => BlinkJobOrder::Demand,
+                        BlinksJobOrder::Far => BlinkJobOrder::Far,
+                        BlinksJobOrder::Close => BlinkJobOrder::Close,
+                        BlinksJobOrder::TimeWindowLength => BlinkJobOrder::TimeWindowLength,
+                        BlinksJobOrder::TimeWindowStart => BlinkJobOrder::TimeWindowStart,
+                        BlinksJobOrder::TimeWindowEnd => BlinkJobOrder::TimeWindowEnd,
+                    };
+
+                    RecreateWithBlinks::new_with_job_order(job_order, random.clone())
+                },
+            );
+
+            (Arc::new(recreate), *weight)
+        }
         RecreateMethod::SkipRandom { weight } => (Arc::new(RecreateWithSkipRandom::new(random)), *weight),
         RecreateMethod::Gaps { weight, min, max } => (Arc::new(RecreateWithGaps::new(*min, *max, random)), *weight),
         RecreateMethod::Nearest { weight } => (Arc::new(RecreateWithNearestNeighbor::new(random)), *weight),
@@ -619,10 +672,13 @@ fn create_operator(
         }
         SearchOperatorType::Decomposition { routes, repeat, probability } => {
             if *repeat < 1 {
-                return Err(format!("repeat must be greater than 1. Specified: {repeat}").into());
+                return Err(format!("repeat must be at least 1. Specified: {repeat}").into());
             }
             if routes.min < 2 {
-                return Err(format!("min routes must be greater than 2. Specified: {}", routes.min).into());
+                return Err(format!("min routes must be at least 2. Specified: {}", routes.min).into());
+            }
+            if routes.min > routes.max {
+                return Err(format!("min routes cannot exceed max routes: {} > {}", routes.min, routes.max).into());
             }
 
             let operator = create_default_heuristic_operator(problem, environment.clone());
@@ -663,7 +719,7 @@ fn create_ruin_group(problem: &Arc<Problem>, group: &RuinGroupConfig) -> (Arc<dy
 fn create_ruin_method(problem: &Arc<Problem>, method: &RuinMethod) -> (Arc<dyn Ruin>, Float) {
     let limits = RemovalLimits::new(problem.as_ref());
     let get_limits = |min: usize, max: usize| RemovalLimits {
-        removed_activities_range: min..max,
+        removed_activities_range: min..=max,
         ..RemovalLimits::new(problem.as_ref())
     };
 
@@ -761,11 +817,6 @@ fn configure_from_environment(
     max_time: Option<usize>,
 ) -> Arc<Environment> {
     let mut environment = Environment::new_with_time_quota(max_time);
-
-    if let Some(parallelism) = environment_config.as_ref().and_then(|c| c.parallelism.as_ref()) {
-        // TODO validate parameters
-        environment.parallelism = Parallelism::new(parallelism.num_thread_pools, parallelism.threads_per_pool);
-    }
 
     if let Some(logging) = environment_config.as_ref().and_then(|c| c.logging.as_ref()) {
         environment.logger = match (logging.enabled, logging.prefix.clone()) {

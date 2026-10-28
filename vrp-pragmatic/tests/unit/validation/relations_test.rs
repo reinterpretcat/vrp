@@ -113,6 +113,37 @@ fn can_detect_multi_place_time_window_jobs_impl(relation_type: RelationType, exp
     }
 }
 
+#[test]
+fn duplicate_job_relation_lookup_uses_last_definition() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![
+                create_delivery_job("job1", (1., 0.)),
+                Job {
+                    services: Some(vec![JobTask {
+                        places: vec![create_job_place((1., 0.), None), create_job_place((2., 0.), None)],
+                        ..create_task((1., 0.), None)
+                    }]),
+                    ..create_job("job1")
+                },
+            ],
+            relations: Some(vec![Relation {
+                type_field: RelationType::Strict,
+                jobs: vec!["job1".to_string()],
+                vehicle_id: "my_vehicle_1".to_string(),
+                shift_index: None,
+            }]),
+            ..create_empty_plan()
+        },
+        fleet: create_default_fleet(),
+        ..create_empty_problem()
+    };
+
+    let result = validate_result(&ValidationContext::new(&problem, None, &CoordIndex::new(&problem)));
+
+    assert_eq!(result.map(|error| error.code), Some("E1203".to_string()));
+}
+
 parameterized_test! {can_detect_multi_vehicle_assignment, (relations, expected), {
     can_detect_multi_vehicle_assignment_impl(relations, expected);
 }}

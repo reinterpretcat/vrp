@@ -169,6 +169,16 @@ where
         self.individuals.drain(range).collect()
     }
 
+    /// Returns the best individual in the population.
+    pub(crate) fn best(&self) -> Option<&S> {
+        self.individuals.first()
+    }
+
+    /// Returns an individual by its objective rank.
+    pub(crate) fn get(&self, index: usize) -> Option<&S> {
+        self.individuals.get(index)
+    }
+
     /// Shrinks the population to the specified size.
     pub fn set_max_population_size(&mut self, max_population_size: usize) {
         self.max_population_size = max_population_size;
@@ -188,7 +198,8 @@ where
 
     fn is_improved(&self, best_known_fitness: Option<Vec<Float>>) -> bool {
         best_known_fitness.zip(self.individuals.first()).is_none_or(|(best_known_fitness, new_best_known)| {
-            best_known_fitness.into_iter().zip(new_best_known.fitness()).any(|(a, b)| a != b)
+            // Keep the exact best individual, but do not report roundoff-sized changes as search progress.
+            relative_distance(best_known_fitness.into_iter(), new_best_known.fitness()) > Float::EPSILON.sqrt()
         })
     }
 }

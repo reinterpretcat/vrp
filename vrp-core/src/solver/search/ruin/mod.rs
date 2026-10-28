@@ -6,12 +6,15 @@ use crate::models::Problem;
 use crate::solver::RefinementContext;
 use rand::prelude::SliceRandom;
 use rosomaxa::prelude::*;
-use std::ops::Range;
+use std::ops::RangeInclusive;
 use std::sync::Arc;
 
 /// A trait which specifies logic to destroy parts of solution.
 pub trait Ruin: Send + Sync {
     /// Ruins given solution and returns a new one with less jobs assigned.
+    ///
+    /// The returned partial solution can contain stale route or solution state. A consumer must
+    /// restore it before reading cached state or evaluating insertions.
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
@@ -42,10 +45,10 @@ pub struct WeightedRuin {
 /// Specifies a limit for amount of jobs to be removed.
 #[derive(Clone)]
 pub struct RemovalLimits {
-    /// Specifies maximum amount of removed jobs.
-    pub removed_activities_range: Range<usize>,
-    /// Specifies maximum amount of affected routes.
-    pub affected_routes_range: Range<usize>,
+    /// Specifies an inclusive range for the amount of removed activities.
+    pub removed_activities_range: RangeInclusive<usize>,
+    /// Specifies an inclusive range for the amount of affected routes.
+    pub affected_routes_range: RangeInclusive<usize>,
 }
 
 impl RemovalLimits {
@@ -56,7 +59,7 @@ impl RemovalLimits {
         let min_activities = ((jobs_size * 0.05) as usize).clamp(1, 8);
         let max_activities = ((jobs_size * 0.5) as usize).clamp(8, 32);
 
-        Self { removed_activities_range: min_activities..max_activities, affected_routes_range: 2..5 }
+        Self { removed_activities_range: min_activities..=max_activities, affected_routes_range: 2..=5 }
     }
 }
 

@@ -1,10 +1,39 @@
 use super::*;
-use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory};
+use crate::helpers::algorithms::gsom::{Data, DataStorage, DataStorageFactory, create_test_network};
 use crate::helpers::utils::create_test_random;
-use crate::utils::Float;
+use crate::utils::{Float, Random, RandomGen};
 use std::collections::HashSet;
+use std::sync::Arc;
 
 type NetworkType = Network<(), Data, DataStorage, DataStorageFactory>;
+
+struct IdentityRandom;
+
+impl Random for IdentityRandom {
+    fn uniform_int(&self, min: i32, _: i32) -> i32 {
+        min
+    }
+
+    fn uniform_real(&self, _: Float, max: Float) -> Float {
+        max
+    }
+
+    fn is_head_not_tails(&self) -> bool {
+        true
+    }
+
+    fn is_hit(&self, _: Float) -> bool {
+        true
+    }
+
+    fn weighted(&self, _: &[usize]) -> usize {
+        0
+    }
+
+    fn get_rng(&self) -> RandomGen {
+        RandomGen::new_repeatable()
+    }
+}
 
 fn create_config(node_size: usize) -> NetworkConfig {
     // NOTE these numbers are used in rosomaxa population
@@ -12,9 +41,99 @@ fn create_config(node_size: usize) -> NetworkConfig {
         node_size,
         spread_factor: 0.75,
         distribution_factor: 0.75,
-        rebalance_memory: 100,
+        hit_memory_size: 100,
         learning_rate: 0.1,
         has_initial_error: true,
+    }
+}
+
+fn create_uniform_network(has_initial_error: bool) -> NetworkType {
+    Network::new(
+        &(),
+        vec![Data::new(1., 1., 1.); 4],
+        NetworkConfig { has_initial_error, ..create_config(2) },
+        Arc::new(IdentityRandom),
+        |_| DataStorageFactory,
+    )
+    .unwrap()
+}
+
+#[test]
+fn can_calculate_squared_distance() {
+    let mut min_max = MinMaxWeights::new(2);
+    min_max.update(&[0., 0.]);
+    min_max.update(&[2., 4.]);
+
+    let squared_distance = squared_euclidian_distance(&[0., 0.], &[2., 4.], &min_max);
+
+    assert_eq!(squared_distance, 2.);
+    assert_eq!(super::euclidian_distance(&[0., 0.], &[2., 4.], &min_max), squared_distance.sqrt());
+}
+
+#[test]
+fn rejects_empty_initial_data() {
+    let result =
+        NetworkType::new(&(), Vec::<Data>::new(), create_config(2), Arc::new(IdentityRandom), |_| DataStorageFactory);
+
+    assert_eq!(result.err().map(|err| err.to_string()), Some("GSOM network requires initial data".to_string()));
+}
+
+#[test]
+fn rejects_inconsistent_input_dimensions() {
+    let result = NetworkType::new(
+        &(),
+        vec![Data::new(1., 1., 1.), Data { values: vec![1., 1.] }],
+        create_config(2),
+        Arc::new(IdentityRandom),
+        |_| DataStorageFactory,
+    );
+
+    assert_eq!(
+        result.err().map(|err| err.to_string()),
+        Some("GSOM inputs must have the same weight dimension".to_string())
+    );
+}
+
+#[test]
+fn rejects_invalid_gsom_factors() {
+    let invalid_factors = [Float::NAN, Float::NEG_INFINITY, 0., 1., Float::INFINITY];
+
+    for invalid_factor in invalid_factors {
+        for config in [
+            NetworkConfig { spread_factor: invalid_factor, ..create_config(2) },
+            NetworkConfig { distribution_factor: invalid_factor, ..create_config(2) },
+        ] {
+            let result = NetworkType::new(&(), vec![Data::new(1., 1., 1.)], config, Arc::new(IdentityRandom), |_| {
+                DataStorageFactory
+            });
+
+            assert_eq!(
+                result.err().map(|err| err.to_string()),
+                Some("GSOM spread and distribution factors must be finite and within (0, 1)".to_string())
+            );
+        }
+    }
+}
+
+#[test]
+fn can_use_initial_error_parameter() {
+    let network_without_error = create_uniform_network(false);
+    let network_with_error = create_uniform_network(true);
+
+    assert_eq!(network_without_error.size(), 4);
+    assert!(network_with_error.size() > network_without_error.size());
+}
+
+#[test]
+fn can_create_network_from_less_than_four_inputs() {
+    for data_size in 1..4 {
+        let initial_data = (1..=data_size).map(|value| Data::new(value as Float, 1., 1.)).collect::<Vec<_>>();
+        let config = NetworkConfig { has_initial_error: false, ..create_config(2) };
+        let network = NetworkType::new(&(), initial_data, config, Arc::new(IdentityRandom), |_| DataStorageFactory)
+            .expect("cannot create network");
+
+        assert_eq!(network.size(), 4);
+        assert_eq!(count_data_stored(&network.nodes), data_size);
     }
 }
 
@@ -108,6 +227,53 @@ fn can_update_min_max_weights() {
 }
 
 #[test]
+fn can_update_sparse_neighbourhood_with_negative_coordinates() {
+    let mut network = create_uniform_network(false);
+    network.nodes.clear();
+    [
+        (Coordinate(0, 0), 2.),
+        (Coordinate(-1, -1), 4.),
+        (Coordinate(2, 0), 6.),
+        (Coordinate(0, 1), 8.),
+        (Coordinate(3, 0), 10.),
+    ]
+    .into_iter()
+    .for_each(|(coordinate, error)| {
+        network.nodes.insert(coordinate, Node::new(coordinate, &[1., 1., 1.], error, 100, DataStorage::default()));
+    });
+    network.growing_threshold = 10.;
+    network.distribution_factor = 0.5;
+
+    network.distribute_error(&Coordinate(0, 0), 2);
+
+    assert_eq!(network.nodes[&Coordinate(0, 0)].error, 5.);
+    assert_eq!(network.nodes[&Coordinate(-1, -1)].error, 5.);
+    assert_eq!(network.nodes[&Coordinate(2, 0)].error, 7.5);
+    assert_eq!(network.nodes[&Coordinate(0, 1)].error, 12.);
+    assert_eq!(network.nodes[&Coordinate(3, 0)].error, 10.);
+
+    network.min_max_weights = MinMaxWeights::new(3);
+    network.learning_rate = 0.1;
+    network.adjust_weights(&Coordinate(0, 0), &[2., 3., 4.], 2, true);
+
+    let center_rate = 0.1 * (1. - 3.8 / 5.);
+    let distance_two_rate = center_rate / 2.;
+    assert_eq!(
+        network.nodes[&Coordinate(0, 0)].weights,
+        vec![1. + center_rate, 1. + 2. * center_rate, 1. + 3. * center_rate]
+    );
+    assert_eq!(
+        network.nodes[&Coordinate(-1, -1)].weights,
+        vec![1. + distance_two_rate, 1. + 2. * distance_two_rate, 1. + 3. * distance_two_rate]
+    );
+    assert_eq!(network.nodes[&Coordinate(2, 0)].weights, network.nodes[&Coordinate(-1, -1)].weights);
+    assert_eq!(network.nodes[&Coordinate(0, 1)].weights, network.nodes[&Coordinate(0, 0)].weights);
+    assert_eq!(network.nodes[&Coordinate(3, 0)].weights, vec![1., 1., 1.]);
+    assert_eq!(network.min_max_weights.min, network.nodes[&Coordinate(-1, -1)].weights);
+    assert_eq!(network.min_max_weights.max, network.nodes[&Coordinate(0, 0)].weights);
+}
+
+#[test]
 fn can_reset_min_max_weights() {
     let dimension = 3;
     let mut min_max_weights = MinMaxWeights::new(dimension);
@@ -122,6 +288,38 @@ fn can_reset_min_max_weights() {
     min_max_weights.reset();
     assert!(min_max_weights.is_reset);
     assert_eq!(min_max_weights.iter().collect::<Vec<_>>(), vec![(0.0, 1.0); dimension]);
+}
+
+#[test]
+fn can_refresh_normalization_from_retained_state() {
+    let mut network = create_uniform_network(false);
+
+    network.nodes.values_mut().for_each(|node| {
+        node.weights.fill(0.);
+        node.storage.data.clear();
+    });
+    let node = network.nodes.values_mut().next().unwrap();
+    node.storage.add(Data::new(1., 2., 3.));
+    node.storage.add(Data::new(4., 5., 6.));
+    network.min_max_weights.update(&[100., 200., 300.]);
+
+    network.refresh_normalization();
+
+    assert_eq!(network.min_max_weights.min, vec![0., 0., 0.]);
+    assert_eq!(network.min_max_weights.max, vec![4., 5., 6.]);
+}
+
+#[test]
+fn can_measure_distortion_without_obsolete_extremes() {
+    let mut network = create_test_network(false);
+
+    network.min_max_weights.update(&[1_000., 1_000., 1_000.]);
+    let stale_mse = network.mse();
+
+    network.refresh_normalization();
+    let refreshed_mse = network.mse();
+
+    assert!(refreshed_mse > stale_mse);
 }
 
 #[test]
@@ -142,10 +340,11 @@ fn can_create_network() {
 
     // Verify network properties
     assert_eq!(network.dimension, 3);
-    assert!((network.growing_threshold - -3. * 0.75_f64.log2()).abs() < 1e-6);
+    // GSOM defines the growth threshold as GT = -D * ln(SF).
+    assert!((network.growing_threshold - -3. * 0.75_f64.ln()).abs() < 1e-6);
     assert_eq!(network.distribution_factor, config.distribution_factor);
     assert_eq!(network.learning_rate, config.learning_rate);
-    assert_eq!(network.rebalance_memory, config.rebalance_memory);
+    assert_eq!(network.hit_memory_size, config.hit_memory_size);
 
     // Verify initial nodes setup
     assert!(network.size() >= 4); // Should have at least 4 initial nodes
@@ -168,13 +367,13 @@ fn can_create_initial_nodes() {
         Data::new(3., 3., 0.), //
         Data::new(4., 4., 0.),
     ];
-    let rebalance_memory = 5;
+    let hit_memory_size = 5;
     let storage_factory = DataStorageFactory;
     let random = create_test_random();
     let noise = Noise::new_with_ratio(1.0, (1., 1.), random);
 
     let (nodes, min_max_weights) =
-        NetworkType::create_initial_nodes(&context, data.clone(), rebalance_memory, &storage_factory, noise).unwrap();
+        NetworkType::create_initial_nodes(&context, data.clone(), hit_memory_size, &storage_factory, noise).unwrap();
 
     // Verify nodes
     assert!(nodes.len() >= 4);
@@ -191,7 +390,7 @@ fn can_create_initial_nodes() {
     // Verify node properties
     for node in nodes.values() {
         assert_eq!(node.weights.len(), 3, "weight dimension");
-        assert!(node.storage.size() <= rebalance_memory, "storage size");
+        assert!(node.storage.size() <= hit_memory_size, "storage size");
 
         // Check coordinate bounds based on grid size
         let grid_size = (nodes.len() as f64).sqrt().ceil() as i32;

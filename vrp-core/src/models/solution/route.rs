@@ -46,7 +46,7 @@ pub struct Place {
 }
 
 /// Represents activity which is needed to be performed.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Activity {
     /// Specifies activity details.
     pub place: Place,
@@ -97,17 +97,7 @@ impl Activity {
 
     /// Creates a deep copy of `Activity`.
     pub fn deep_copy(&self) -> Self {
-        Self {
-            place: Place {
-                idx: self.place.idx,
-                location: self.place.location,
-                duration: self.place.duration,
-                time: self.place.time.clone(),
-            },
-            schedule: self.schedule.clone(),
-            job: self.job.clone(),
-            commute: self.commute.clone(),
-        }
+        self.clone()
     }
 
     /// Checks whether activity has given job.

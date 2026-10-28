@@ -94,6 +94,16 @@ fn can_check_improvement() {
 }
 
 #[test]
+fn can_ignore_numerical_noise_in_improvement_state() {
+    let objective = Arc::new(VectorObjective::new(Arc::new(|data| data[0]), Arc::new(|data: &[Float]| data.to_vec())));
+    let mut population = Elitism::<_, _>::new(objective.clone(), Environment::default().random, 2, 1);
+
+    assert!(population.add(VectorSolution::new_with_objective(vec![1.], objective.as_ref())));
+    assert!(!population.add(VectorSolution::new_with_objective(vec![1. - Float::EPSILON], objective.as_ref())));
+    assert_eq!(get_best_fitness(&population), 1. - Float::EPSILON);
+}
+
+#[test]
 fn can_select_individuals() {
     let (objective, mut population) = create_objective_population(4, 3);
 

@@ -4,10 +4,10 @@ use rosomaxa::population::{Alternative, Rosomaxa, RosomaxaContext, RosomaxaSolut
 use rosomaxa::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::TypeId;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::ops::Range;
-use vrp_scientific::core::models::common::{Footprint, Shadow};
+use vrp_scientific::core::models::common::Shadow;
 
 /// Represents population state specific for supported types.
 #[allow(clippy::large_enum_variant)]
@@ -26,6 +26,9 @@ pub enum PopulationState {
         cols: Range<i32>,
         /// MSE distance.
         mse: Float,
+        /// Current GSOM learning rate.
+        #[serde(default)]
+        learning_rate: Float,
         /// Best fitness values.
         fitness_values: Vec<Float>,
         /// Overall fitness values data split into separate matrices.
@@ -69,6 +72,7 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
         rows,
         cols,
         mse: 0.,
+        learning_rate: network_state.learning_rate,
         fitness_values,
         fitness_matrices: Default::default(),
         u_matrix: Default::default(),
@@ -111,13 +115,26 @@ fn create_rosomaxa_state(network_state: NetworkState, fitness_values: Vec<Float>
     })
 }
 
-/// Search state result represented as (name idx, reward, (from state idx, to state idx), duration).
+/// Heuristic state result represented as
+/// (state idx, name idx, progress alpha, progress beta, effective mean, effective variance, calls,
+/// incumbent improvements, total duration, parent-progress mean, promotion mean, parent improvements).
+///
+/// The optional values keep saved states produced before exact aggregation and hierarchical learning readable.
 #[derive(Default, Serialize, Deserialize)]
-pub struct SearchResult(pub usize, pub Float, pub (usize, usize), pub usize);
-
-/// Heuristic state result represented as (state idx, name idx, alpha, beta, mu, v, n).
-#[derive(Default, Serialize, Deserialize)]
-pub struct HeuristicResult(pub usize, pub usize, pub Float, pub Float, pub Float, pub Float, pub usize);
+pub struct HeuristicResult(
+    pub usize,
+    pub usize,
+    pub Float,
+    pub Float,
+    pub Float,
+    pub Float,
+    pub usize,
+    #[serde(default)] pub Option<usize>,
+    #[serde(default)] pub Option<u64>,
+    #[serde(default)] pub Option<Float>,
+    #[serde(default)] pub Option<Float>,
+    #[serde(default)] pub Option<usize>,
+);
 
 /// Keeps track of dynamic selective hyper heuristic state.
 #[derive(Default, Serialize, Deserialize)]
@@ -126,10 +143,8 @@ pub struct HyperHeuristicState {
     pub names: HashMap<String, usize>,
     /// Unique state names.
     pub states: HashMap<String, usize>,
-    /// Search states at specific generations.
-    pub search_states: HashMap<usize, Vec<SearchResult>>,
     /// Heuristic states at specific generations.
-    pub heuristic_states: HashMap<usize, Vec<HeuristicResult>>,
+    pub heuristic_states: BTreeMap<usize, Vec<HeuristicResult>>,
 }
 
 impl HyperHeuristicState {
@@ -144,35 +159,9 @@ impl HyperHeuristicState {
                 map.entry(key).or_insert_with(|| length);
             };
 
-            let mut search_states = data.lines().skip(3).take_while(|line| *line != "heuristic:").fold(
-                HashMap::<_, Vec<_>>::new(),
-                |mut data, line| {
-                    let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
-                    let name = fields[0].clone();
-                    let generation = fields[1].parse().unwrap();
-                    let reward = fields[2].parse().unwrap();
-                    let from = fields[3].clone();
-                    let to = fields[4].clone();
-                    let duration = fields[5].parse().unwrap();
-
-                    insert_to_map(&mut names, name.clone());
-                    insert_to_map(&mut states, from.clone());
-                    insert_to_map(&mut states, to.clone());
-
-                    let name = names.get(&name).copied().unwrap();
-                    let from = states.get(&from).copied().unwrap();
-                    let to = states.get(&to).copied().unwrap();
-
-                    data.entry(generation).or_default().push(SearchResult(name, reward, (from, to), duration));
-
-                    data
-                },
-            );
-            search_states.values_mut().for_each(|states| states.sort_by_key(|SearchResult(a, ..)| *a));
-
             let mut heuristic_states =
                 data.lines().skip_while(|line| *line != "heuristic:").skip(2).take_while(|line| !line.is_empty()).fold(
-                    HashMap::<_, Vec<_>>::new(),
+                    BTreeMap::<_, Vec<_>>::new(),
                     |mut data, line| {
                         let fields: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
 
@@ -184,6 +173,11 @@ impl HyperHeuristicState {
                         let mu = fields[5].parse().unwrap();
                         let v = fields[6].parse().unwrap();
                         let n = fields[7].parse().unwrap();
+                        let successes = fields.get(8).and_then(|value| value.parse().ok());
+                        let duration = fields.get(9).and_then(|value| value.parse().ok());
+                        let progress_mean = fields.get(10).and_then(|value| value.parse().ok());
+                        let promotion_mean = fields.get(11).and_then(|value| value.parse().ok());
+                        let parent_improvements = fields.get(12).and_then(|value| value.parse().ok());
 
                         insert_to_map(&mut states, state.clone());
                         insert_to_map(&mut names, name.clone());
@@ -191,68 +185,76 @@ impl HyperHeuristicState {
                         let state = states.get(&state).copied().unwrap();
                         let name = names.get(&name).copied().unwrap();
 
-                        data.entry(generation).or_default().push(HeuristicResult(state, name, alpha, beta, mu, v, n));
+                        data.entry(generation).or_default().push(HeuristicResult(
+                            state,
+                            name,
+                            alpha,
+                            beta,
+                            mu,
+                            v,
+                            n,
+                            successes,
+                            duration,
+                            progress_mean,
+                            promotion_mean,
+                            parent_improvements,
+                        ));
 
                         data
                     },
                 );
             heuristic_states.values_mut().for_each(|states| states.sort_by_key(|HeuristicResult(_, a, ..)| *a));
 
-            Some(Self { names, states, search_states, heuristic_states })
+            Some(Self { names, states, heuristic_states })
         } else {
             None
         }
     }
 }
 
+/// Aggregate directed-edge footprint of the recorded VRP population.
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct FootprintState {
     repr: HashMap<FootprintKey, u8>,
+    #[serde(default)]
+    dimension: usize,
 }
 
 impl FootprintState {
-    pub fn apply(&mut self, shadow_state: &ShadowState) {
-        shadow_state.shadow.iter().flat_map(|shadow| shadow.iter()).for_each(|((from, to), bit)| {
+    pub(crate) fn apply_shadow(&mut self, shadow: &Shadow) {
+        self.dimension = self.dimension.max(shadow.dimension());
+        shadow.iter().for_each(|((from, to), bit)| {
             self.repr
                 .entry(FootprintKey(from, to))
                 .and_modify(|value| *value = value.saturating_add(bit as u8))
                 .or_insert(bit as u8);
-        })
+        });
     }
 
-    pub fn get(&self, from: usize, to: usize) -> u8 {
+    pub(crate) fn edge_count(&self) -> usize {
+        self.repr.values().filter(|value| **value > 0).count()
+    }
+
+    pub(crate) fn dimension(&self) -> usize {
+        if self.dimension > 0 {
+            self.dimension
+        } else {
+            self.repr.keys().map(|FootprintKey(from, to)| from.max(to) + 1).max().unwrap_or_default()
+        }
+    }
+
+    pub(crate) fn max_value(&self) -> u8 {
+        self.repr.values().copied().max().unwrap_or_default()
+    }
+
+    pub(crate) fn get(&self, from: usize, to: usize) -> u8 {
         self.repr.get(&FootprintKey(from, to)).copied().unwrap_or_default()
     }
-
-    pub fn desc(&self) -> String {
-        self.repr.iter().filter(|(_, v)| **v > 0).count().to_string()
-    }
 }
 
-impl From<&Footprint> for FootprintState {
-    fn from(footprint: &Footprint) -> Self {
-        Self { repr: footprint.iter().map(|((x, y), v)| (FootprintKey(x, y), v)).collect() }
-    }
-}
-
+/// Legacy serialized VRP observation kept so older experiment states remain readable.
 #[derive(Default, Serialize, Deserialize)]
-pub struct ShadowState {
-    // NOTE use original shadow as more space efficient representation.
-    #[serde(skip)]
-    shadow: Option<Shadow>,
-}
-
-impl From<&Shadow> for ShadowState {
-    fn from(shadow: &Shadow) -> Self {
-        Self { shadow: Some(shadow.clone()) }
-    }
-}
-
-impl ShadowState {
-    pub fn dimension(&self) -> usize {
-        self.shadow.as_ref().map(|shadow| shadow.dimension()).unwrap_or_default()
-    }
-}
+pub struct ShadowState {}
 
 // NOTE non-string keys requires some special handling
 #[derive(Clone, Default, Hash, Eq, PartialEq)]
@@ -286,5 +288,51 @@ impl<'de> Deserialize<'de> for FootprintKey {
         let x = parts[0].parse().map_err(serde::de::Error::custom)?;
         let y = parts[1].parse().map_err(serde::de::Error::custom)?;
         Ok(FootprintKey(x, y))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn infers_dimension_for_legacy_footprint() {
+        let state = FootprintState { repr: [(FootprintKey(1, 4), 1)].into_iter().collect(), dimension: 0 };
+
+        assert_eq!(state.dimension(), 5);
+    }
+
+    #[test]
+    fn parses_exact_operator_counters() {
+        let state = HyperHeuristicState::try_parse_all(
+            "TELEMETRY\nheuristic:\n\
+             generation,state,name,alpha,beta,mu,v,n,successes,duration_us\n\
+             10,best,operator,2,3,0.4,0.04,7,2,140\n",
+        )
+        .unwrap();
+        let HeuristicResult(_, _, _, _, _, _, calls, successes, duration, ..) = &state.heuristic_states[&10][0];
+
+        assert_eq!((*calls, *successes, *duration), (7, Some(2), Some(140)));
+    }
+
+    #[test]
+    fn reads_legacy_heuristic_result_without_exact_counters() {
+        let result: HeuristicResult = serde_json::from_str("[0,1,2.0,3.0,0.4,0.04,7]").unwrap();
+
+        assert_eq!((result.6, result.7, result.8, result.9, result.10, result.11), (7, None, None, None, None, None));
+    }
+
+    #[test]
+    fn parses_hierarchical_operator_counters() {
+        let state = HyperHeuristicState::try_parse_all(
+            "TELEMETRY\nheuristic:\n\
+             generation,state,name,alpha,beta,mu,v,n,successes,duration_us,progress_mu,promotion_mu,parent_improvements\n\
+             10,diverse,operator,4,6,0.12,0.01,20,2,140,0.4,0.3,8\n",
+        )
+        .unwrap();
+        let HeuristicResult(_, _, _, _, mean, _, _, _, _, progress, promotion, parent_improvements) =
+            &state.heuristic_states[&10][0];
+
+        assert_eq!((*mean, *progress, *promotion, *parent_improvements), (0.12, Some(0.4), Some(0.3), Some(8)));
     }
 }

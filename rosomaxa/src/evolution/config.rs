@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../../tests/unit/evolution/config_test.rs"]
+mod config_test;
+
 use crate::evolution::*;
 use crate::hyper::*;
 use crate::termination::*;
@@ -40,7 +44,10 @@ pub trait InitialOperator {
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution;
 }
 
-/// A collection of initial operators.
+/// A collection of initial operators with their names and repeat weights.
+///
+/// Operators are considered in their configured order while the initial pool is built. A zero weight
+/// keeps an operator in that first pass, but excludes it from later weighted sampling.
 pub type InitialOperators<C, O, S> =
     Vec<(String, Box<dyn InitialOperator<Context = C, Objective = O, Solution = S> + Send + Sync>, usize)>;
 
@@ -92,7 +99,8 @@ where
     strategy: Option<Box<dyn EvolutionStrategy<Context = C, Objective = O, Solution = S>>>,
 
     search_operators: Option<HeuristicSearchOperators<C, O, S>>,
-    diversify_operators: Option<HeuristicDiversifyOperators<C, O, S>>,
+    diversify_operators: HeuristicDiversifyOperators<C, O, S>,
+    intensify_operators: HeuristicIntensifyOperators<C, O, S>,
 
     objective: Option<Arc<dyn HeuristicObjective<Solution = S>>>,
 
@@ -118,7 +126,8 @@ where
             termination: None,
             strategy: None,
             search_operators: None,
-            diversify_operators: None,
+            diversify_operators: Vec::new(),
+            intensify_operators: Vec::new(),
             objective: None,
             initial: InitialConfig { operators: vec![], max_size: 4, quota: 0.05, individuals: vec![] },
             processing: ProcessingConfig { context: vec![], solution: vec![] },
@@ -224,9 +233,15 @@ where
         self
     }
 
-    /// Sets diversify operators for dynamic heuristic.
+    /// Sets diversification operators for the default dynamic heuristic.
     pub fn with_diversify_operators(mut self, diversify_operators: HeuristicDiversifyOperators<C, O, S>) -> Self {
-        self.diversify_operators = Some(diversify_operators);
+        self.diversify_operators = diversify_operators;
+        self
+    }
+
+    /// Sets intensification operators for the default dynamic heuristic.
+    pub fn with_intensify_operators(mut self, intensify_operators: HeuristicIntensifyOperators<C, O, S>) -> Self {
+        self.intensify_operators = intensify_operators;
         self
     }
 
@@ -304,8 +319,29 @@ where
     pub fn build(self) -> Result<EvolutionConfig<C, O, S>, GenericError> {
         let context = self.context.ok_or_else(|| "missing heuristic context".to_string())?;
         let logger = context.environment().logger.clone();
-        let termination =
-            Self::get_termination(&logger, self.max_generations, self.max_time, self.min_cv, self.target_proximity)?;
+
+        let has_phase_gated_variation = self.min_cv.as_ref().is_some_and(|(_, _, _, is_global, _)| {
+            !is_global && context.selection_phase() != SelectionPhase::Exploitation
+        });
+        let has_progress_limit = self.max_generations.is_some() || self.max_time.is_some();
+        let has_external_quota = context.environment().quota.is_some();
+
+        if self.termination.is_none() && has_phase_gated_variation && !has_progress_limit && !has_external_quota {
+            return Err(
+                "non-global variation termination requires max-generations, max-time, an external quota, or an exploitation-phase population"
+                    .into(),
+            );
+        }
+
+        let termination = match self.termination {
+            Some(termination) => {
+                (logger)("configured to use a custom termination");
+                termination
+            }
+            None => {
+                Self::get_termination(&logger, self.max_generations, self.max_time, self.min_cv, self.target_proximity)?
+            }
+        };
 
         Ok(EvolutionConfig {
             initial: self.initial,
@@ -317,12 +353,15 @@ where
                 _ => {
                     let heuristic = match self.heuristic {
                         Some(heuristic) => heuristic,
-                        _ => Box::new(DynamicSelective::new(
-                            self.search_operators.ok_or_else(|| "missing search operators or heuristic".to_string())?,
-                            self.diversify_operators
-                                .ok_or_else(|| "missing diversify operators or heuristic".to_string())?,
-                            context.environment(),
-                        )),
+                        _ => Box::new(
+                            DynamicSelective::new(
+                                self.search_operators
+                                    .ok_or_else(|| "missing search operators or heuristic".to_string())?,
+                                context.environment(),
+                            )
+                            .with_diversify_operators(self.diversify_operators)
+                            .with_intensify_operators(self.intensify_operators),
+                        ),
                     };
                     Box::new(strategies::Iterative::new(heuristic, 1))
                 }

@@ -46,3 +46,91 @@ fn can_use_exchange_inter_route_best_operator_impl(
 
     compare_with_ignore(get_customer_ids_from_routes(&new_insertion_ctx).as_slice(), expected_ids, "cX");
 }
+
+#[test]
+fn can_skip_locked_seed_job() {
+    let ints = [0, 1].into_iter().chain([16; 1024]).collect();
+    let reals = vec![1.; 1024];
+    let (problem, solution) = generate_matrix_routes_with_defaults(3, 3, true);
+    let insertion_ctx = promote_to_locked(
+        InsertionContext::new_from_solution(
+            Arc::new(problem),
+            (solution, None),
+            create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
+        ),
+        &["c0"],
+    );
+
+    let new_insertion_ctx = ExchangeInterRouteBest::default()
+        .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
+        .expect("cannot find new solution");
+
+    assert!(get_customer_ids_from_routes(&new_insertion_ctx)[0].iter().any(|job_id| job_id == "c0"));
+}
+
+#[test]
+fn can_search_many_routes_in_one_reduction() {
+    let ints = [0, 1].into_iter().chain([16; 4096]).collect();
+    let reals = vec![1.; 4096];
+    let (problem, solution) = generate_matrix_routes_with_defaults(2, 17, true);
+    let insertion_ctx = InsertionContext::new_from_solution(
+        Arc::new(problem),
+        (solution, None),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(ints, reals))),
+    );
+
+    let new_insertion_ctx = ExchangeInterRouteBest::default()
+        .explore(&create_default_refinement_ctx(insertion_ctx.problem.clone()), &insertion_ctx)
+        .expect("cannot find new solution");
+
+    assert_eq!(new_insertion_ctx.solution.routes.len(), 17);
+    assert_eq!(new_insertion_ctx.solution.get_jobs_amount(), insertion_ctx.solution.get_jobs_amount());
+}
+
+#[test]
+fn can_reuse_route_context_for_removals() {
+    let (problem, solution) = generate_matrix_routes_with_defaults(6, 1, true);
+    let insertion_ctx = InsertionContext::new_from_solution(
+        Arc::new(problem),
+        (solution, None),
+        create_test_environment_with_random(Arc::new(FakeRandom::new(vec![1; 1024], vec![1.; 1024]))),
+    );
+    let original = insertion_ctx.solution.routes.first().unwrap();
+    let jobs = original.route().tour.jobs().cloned().collect::<Vec<_>>();
+    let mut removal = RouteRemovalCursor::new(original);
+    let result_selector = BestResultSelector::default();
+
+    for job in jobs {
+        let reused = removal.remove(&insertion_ctx.problem.goal, &job).unwrap();
+        let mut fresh = original.deep_copy();
+        assert!(fresh.route_mut().tour.remove(&job));
+        insertion_ctx.problem.goal.accept_route_state(&mut fresh);
+
+        let route_key = |route_ctx: &RouteContext| {
+            route_ctx
+                .route()
+                .tour
+                .all_activities()
+                .map(|activity| {
+                    (
+                        activity.place.location,
+                        activity.schedule.arrival.to_bits(),
+                        activity.schedule.departure.to_bits(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(route_key(reused), route_key(&fresh));
+
+        let reused_success =
+            test_job_insertion(&insertion_ctx, reused, &job, &LegSelection::Exhaustive, &result_selector).unwrap();
+        let fresh_success =
+            test_job_insertion(&insertion_ctx, &fresh, &job, &LegSelection::Exhaustive, &result_selector).unwrap();
+
+        assert_eq!(reused_success.cost.cmp(&fresh_success.cost), std::cmp::Ordering::Equal);
+        assert_eq!(
+            reused_success.activities.iter().map(|(_, index)| *index).collect::<Vec<_>>(),
+            fresh_success.activities.iter().map(|(_, index)| *index).collect::<Vec<_>>()
+        );
+    }
+}

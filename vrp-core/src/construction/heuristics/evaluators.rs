@@ -45,6 +45,44 @@ pub fn eval_job_insertion_in_route(
     position: InsertionPosition,
     alternative: InsertionResult,
 ) -> InsertionResult {
+    eval_job_insertion(insertion_ctx, eval_ctx, route_ctx, position, alternative, |move_ctx| {
+        insertion_ctx.problem.goal.estimate(move_ctx)
+    })
+}
+
+/// Evaluates multiple positions, reusing route costs but checking constraints at each position.
+pub(crate) fn eval_job_insertions_in_route(
+    insertion_ctx: &InsertionContext,
+    eval_ctx: &EvaluationContext,
+    route_ctx: &RouteContext,
+    positions: impl IntoIterator<Item = InsertionPosition>,
+) -> InsertionResult {
+    let mut route_costs = None;
+
+    positions
+        .into_iter()
+        .map(|position| {
+            eval_job_insertion(
+                insertion_ctx,
+                eval_ctx,
+                route_ctx,
+                position,
+                InsertionResult::make_failure(),
+                |move_ctx| route_costs.get_or_insert_with(|| insertion_ctx.problem.goal.estimate(move_ctx)).clone(),
+            )
+        })
+        .reduce(|best, result| eval_ctx.result_selector.select_insertion(insertion_ctx, best, result))
+        .unwrap_or_else(InsertionResult::make_failure)
+}
+
+fn eval_job_insertion(
+    insertion_ctx: &InsertionContext,
+    eval_ctx: &EvaluationContext,
+    route_ctx: &RouteContext,
+    position: InsertionPosition,
+    alternative: InsertionResult,
+    estimate_route: impl FnOnce(&MoveContext<'_>) -> InsertionCost,
+) -> InsertionResult {
     // NOTE do not evaluate unassigned job in unmodified route if it has a concrete code
     match (route_ctx.is_stale(), insertion_ctx.solution.unassigned.get(eval_ctx.job)) {
         (false, Some(UnassignmentInfo::Simple(_))) | (false, Some(UnassignmentInfo::Detailed(_))) => {
@@ -53,17 +91,14 @@ pub fn eval_job_insertion_in_route(
         _ => {}
     }
 
-    let goal = &insertion_ctx.problem.goal;
-
-    if let Some(violation) = goal.evaluate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job)) {
-        return eval_ctx.result_selector.select_insertion(
-            insertion_ctx,
-            alternative,
-            InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone())),
-        );
+    let move_ctx = MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job);
+    // Infeasible search randomizes constraint checks, so even unchanged routes need a fresh check.
+    if let Some(violation) = insertion_ctx.problem.goal.evaluate(&move_ctx) {
+        let failure = InsertionResult::make_failure_with_code(violation.code, true, Some(eval_ctx.job.clone()));
+        return eval_ctx.result_selector.select_insertion(insertion_ctx, alternative, failure);
     }
 
-    let route_costs = goal.estimate(&MoveContext::route(&insertion_ctx.solution, route_ctx, eval_ctx.job));
+    let route_costs = estimate_route(&move_ctx);
 
     // analyze alternative and return it if it looks better based on routing cost comparison
     let (route_costs, best_known_cost) = match alternative.as_success() {
@@ -74,12 +109,17 @@ pub fn eval_job_insertion_in_route(
         _ => (route_costs, None),
     };
 
-    let solution_ctx = &insertion_ctx.solution;
-
     eval_ctx.result_selector.select_insertion(
         insertion_ctx,
         alternative,
-        eval_job_constraint_in_route(eval_ctx, solution_ctx, route_ctx, position, route_costs, best_known_cost),
+        eval_job_constraint_in_route(
+            eval_ctx,
+            &insertion_ctx.solution,
+            route_ctx,
+            position,
+            route_costs,
+            best_known_cost,
+        ),
     )
 }
 
@@ -244,7 +284,8 @@ fn analyze_insertion_in_route(
     route_costs: InsertionCost,
     init: SingleContext,
 ) -> SingleContext {
-    let mut analyze_leg_insertion = |leg: Leg<'_>, init| {
+    let start_time = route_ctx.route().tour.start().map_or(Timestamp::default(), |act| act.schedule.departure);
+    let mut analyze_leg_insertion = |leg: Leg<'_>, result: &mut SingleContext| {
         analyze_insertion_in_route_leg(
             eval_ctx,
             solution_ctx,
@@ -252,23 +293,23 @@ fn analyze_insertion_in_route(
             leg,
             single,
             target,
-            route_costs.clone(),
-            init,
+            &route_costs,
+            start_time,
+            result,
         )
     };
 
     match insertion_idx {
-        Some(idx) => match route_ctx.route().tour.legs().nth(idx) {
-            Some(leg) => analyze_leg_insertion(leg, init).unwrap_value(),
+        Some(idx) => match route_ctx.route().tour.leg(idx) {
+            Some(leg) => {
+                let mut result = init;
+                let _ = analyze_leg_insertion(leg, &mut result);
+                result
+            }
             _ => init,
         },
-        None => eval_ctx.leg_selection.sample_best(
-            route_ctx,
-            eval_ctx.job,
-            init.index,
-            init,
-            &mut |leg: Leg<'_>, init| analyze_leg_insertion(leg, init),
-            {
+        None => {
+            eval_ctx.leg_selection.sample_best(route_ctx, eval_ctx.job, init.index, init, &mut analyze_leg_insertion, {
                 let max_value = InsertionCost::max_value();
                 move |lhs: &SingleContext, rhs: &SingleContext| {
                     eval_ctx
@@ -276,8 +317,8 @@ fn analyze_insertion_in_route(
                         .select_cost(lhs.cost.as_ref().unwrap_or(max_value), rhs.cost.as_ref().unwrap_or(max_value))
                         .is_left()
                 }
-            },
-        ),
+            })
+        }
     }
 }
 
@@ -289,17 +330,16 @@ fn analyze_insertion_in_route_leg(
     leg: Leg,
     single: &Single,
     target: &mut Activity,
-    route_costs: InsertionCost,
-    mut single_ctx: SingleContext,
-) -> ControlFlow<SingleContext, SingleContext> {
+    route_costs: &InsertionCost,
+    start_time: Timestamp,
+    single_ctx: &mut SingleContext,
+) -> ControlFlow<()> {
     let (items, index) = leg;
     let (prev, next) = match items {
         [prev] => (prev, None),
         [prev, next] => (prev, Some(next)),
-        _ => return ControlFlow::Break(single_ctx),
+        _ => return ControlFlow::Break(()),
     };
-    let start_time = route_ctx.route().tour.start().map_or(Timestamp::default(), |act| act.schedule.departure);
-
     // iterate over places and times to find the next best insertion point
     for (place_idx, place) in single.places.iter().enumerate() {
         target.place.idx = place_idx;
@@ -318,14 +358,14 @@ fn analyze_insertion_in_route_leg(
                 single_ctx.violation = Some(violation);
                 if is_stopped {
                     // should stop processing this leg and next ones
-                    return ControlFlow::Break(single_ctx);
+                    return ControlFlow::Break(());
                 } else {
                     // can continue within the next place
                     continue;
                 }
             }
 
-            let costs = eval_ctx.goal.estimate(&move_ctx) + &route_costs;
+            let costs = eval_ctx.goal.estimate(&move_ctx) + route_costs;
             let other_costs = single_ctx.cost.as_ref().unwrap_or(InsertionCost::max_value());
 
             match eval_ctx.result_selector.select_cost(&costs, other_costs) {
@@ -341,7 +381,7 @@ fn analyze_insertion_in_route_leg(
         }
     }
 
-    ControlFlow::Continue(single_ctx)
+    ControlFlow::Continue(())
 }
 
 fn get_insertion_index(route_ctx: &RouteContext, position: InsertionPosition) -> Option<usize> {

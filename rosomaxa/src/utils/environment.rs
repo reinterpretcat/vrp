@@ -1,6 +1,6 @@
 //! Contains environment specific logic.
 
-use crate::utils::{DefaultRandom, Float, Random, ThreadPool, Timer};
+use crate::utils::{DefaultRandom, Float, Random, Timer};
 use std::sync::Arc;
 
 /// A logger type which is called with various information.
@@ -22,7 +22,7 @@ pub struct Environment {
     /// A global execution quota.
     pub quota: Option<Arc<dyn Quota>>,
 
-    /// Keeps data parallelism settings.
+    /// Describes CPU resources available to the algorithm.
     pub parallelism: Parallelism,
 
     /// An information logger.
@@ -84,52 +84,27 @@ impl Quota for TimeQuota {
     }
 }
 
-/// Specifies data parallelism settings.
+/// Describes CPU resources available to the algorithm.
 #[derive(Clone)]
 pub struct Parallelism {
     available_cpus: usize,
-    thread_pools: Option<Arc<Vec<ThreadPool>>>,
 }
 
 impl Default for Parallelism {
     fn default() -> Self {
-        Self { available_cpus: get_cpus(), thread_pools: None }
+        Self { available_cpus: get_cpus() }
     }
 }
 
 impl Parallelism {
-    /// Creates an instance of `Parallelism`.
-    pub fn new(num_thread_pools: usize, threads_per_pool: usize) -> Self {
-        let thread_pools = (0..num_thread_pools).map(|_| ThreadPool::new(threads_per_pool)).collect();
-        Self { available_cpus: get_cpus(), thread_pools: Some(Arc::new(thread_pools)) }
-    }
-
-    /// Creates an instance of `Parallelism` using available cpus as given.
+    /// Creates an instance of `Parallelism` using the given number of available CPUs.
     pub fn new_with_cpus(available_cpus: usize) -> Self {
-        Self { available_cpus, ..Self::default() }
+        Self { available_cpus }
     }
 
     /// Amount of total available CPUs.
     pub fn available_cpus(&self) -> usize {
         self.available_cpus
-    }
-
-    /// Executes operation on thread pool with given index. If there is no thread pool with such
-    /// an index, then execute it without using any of thread pools.
-    pub fn thread_pool_execute<OP, R>(&self, idx: usize, op: OP) -> R
-    where
-        OP: FnOnce() -> R + Send,
-        R: Send,
-    {
-        match self.thread_pools.as_ref().and_then(|tps| tps.get(idx % tps.len())) {
-            Some(thread_pool) => thread_pool.execute(op),
-            _ => op(),
-        }
-    }
-
-    /// Returns number of non-default thread pools. Returns zero if only default thread pool is used.
-    pub fn thread_pool_size(&self) -> usize {
-        self.thread_pools.as_ref().map_or(0, |tp| tp.len())
     }
 }
 

@@ -47,8 +47,8 @@ impl Random for FakeRandom {
         self.uniform_real(0., 1.) < probability
     }
 
-    fn weighted(&self, _: &[usize]) -> usize {
-        todo!()
+    fn weighted(&self, weights: &[usize]) -> usize {
+        self.uniform_int(0, weights.len() as i32 - 1) as usize
     }
 
     fn get_rng(&self) -> RandomGen {

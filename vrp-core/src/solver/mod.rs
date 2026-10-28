@@ -78,7 +78,7 @@ use rosomaxa::utils::Timer;
 use rosomaxa::{TelemetryHeuristicContext, get_default_population};
 use std::any::Any;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 pub mod processing;
 pub mod search;
@@ -94,8 +94,9 @@ pub struct RefinementContext {
     pub environment: Arc<Environment>,
     /// A collection of data associated with a refinement process.
     pub state: HashMap<String, Box<dyn Any + Sync + Send>>,
-    /// Keeps track of the initial footprint.
-    initial_footprint: Footprint,
+    /// Keeps track of the initial footprint. It is initialized lazily because nested refinement
+    /// contexts used by decomposition do not run initial operators and never need it.
+    initial_footprint: OnceLock<Footprint>,
     /// Provides some basic implementation of context functionality.
     inner_context: TelemetryHeuristicContext<GoalContext, InsertionContext>,
 }
@@ -118,10 +119,9 @@ impl RefinementContext {
         telemetry_mode: TelemetryMode,
         environment: Arc<Environment>,
     ) -> Self {
-        let initial_footprint = Footprint::new(&problem);
         let inner_context =
             TelemetryHeuristicContext::new(problem.goal.clone(), population, telemetry_mode, environment.clone());
-        Self { problem, environment, inner_context, state: Default::default(), initial_footprint }
+        Self { problem, environment, inner_context, state: Default::default(), initial_footprint: OnceLock::new() }
     }
 
     /// Consumes context and returns all individuals.
@@ -164,8 +164,10 @@ impl HeuristicContext for RefinementContext {
     }
 
     fn on_initial(&mut self, mut solution: Self::Solution, name: &str, item_time: Timer) {
-        self.initial_footprint.add(&Shadow::from(&solution));
-        solution.solution.state.set_footprint(self.initial_footprint.clone());
+        self.initial_footprint.get_or_init(|| Footprint::new(&self.problem));
+        let initial_footprint = self.initial_footprint.get_mut().unwrap();
+        initial_footprint.add(&Shadow::from(&solution));
+        solution.solution.state.set_footprint(initial_footprint.clone());
 
         self.inner_context.on_initial(solution, name, item_time)
     }
@@ -215,7 +217,9 @@ impl InitialOperator for RecreateInitialOperator {
 
     fn create(&self, heuristic_ctx: &Self::Context) -> Self::Solution {
         let mut insertion_ctx = InsertionContext::new(heuristic_ctx.problem.clone(), heuristic_ctx.environment.clone());
-        insertion_ctx.solution.state.set_footprint(heuristic_ctx.initial_footprint.clone());
+        insertion_ctx.solution.state.set_footprint(
+            heuristic_ctx.initial_footprint.get_or_init(|| Footprint::new(&heuristic_ctx.problem)).clone(),
+        );
 
         self.recreate.run(heuristic_ctx, insertion_ctx)
     }

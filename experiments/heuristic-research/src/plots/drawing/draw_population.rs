@@ -1,7 +1,6 @@
 use super::*;
 use itertools::{Itertools, MinMaxResult};
 use rosomaxa::prelude::Float;
-use std::cmp::Ordering;
 
 /// Draws rosomaxa population state.
 pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
@@ -9,40 +8,52 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
     config: &PopulationDrawConfig,
 ) -> DrawResult<()> {
     #![allow(clippy::unnecessary_cast)]
+    const CAPTION_FONT_SIZE: u32 = 10;
+
     match &config.series {
         PopulationSeries::Rosomaxa {
+            generation,
+            is_stale,
             rows,
             cols,
-            fitness_values,
             fitness_matrices,
             mse,
+            learning_rate,
             u_matrix,
             t_matrix,
             l_matrix,
             m_matrix,
         } => {
-            let _fitness_values = fitness_values;
             let plots = fitness_matrices.len() + 5;
-            let cols_size = plots / 2 + usize::from(plots % 2 == 1);
+            let width = area.dim_in_pixel().0;
+            let cols_size = if plots > 6 && width < 850 {
+                3
+            } else if width < 700 {
+                2
+            } else {
+                plots.div_ceil(2)
+            };
+            let rows_size = plots.div_ceil(cols_size);
 
-            let rows = rows.start..(rows.end + 1);
-            let cols = cols.start..(cols.end + 1);
+            let rows = rows.clone();
+            let cols = cols.clone();
 
-            let mut sub_areas = area.split_evenly((2, cols_size));
+            let mut sub_areas = area.split_evenly((rows_size, cols_size));
             // draw series using colored rectangles
             let draw_series2d = |area: &mut DrawingArea<B, Shift>,
                                  caption_fn: &dyn Fn(Float, Float) -> String,
                                  series: &Series2D|
              -> DrawResult<()> {
-                let matrix: MatrixData = (series.matrix_fn)();
-                let (min, max, size) = match matrix.iter().minmax_by(|(_, a), (_, b)| a.total_cmp(b)) {
-                    MinMaxResult::OneElement((_, &value)) if value != 0. => (value, value, value),
-                    MinMaxResult::MinMax((_, &min), (_, &max)) => (min, max, max - min),
-                    _ => (1., 1., 1.),
+                let matrix = &series.matrix;
+                let (min, max) = match matrix.iter().minmax_by(|(_, a), (_, b)| a.total_cmp(b)) {
+                    MinMaxResult::OneElement((_, &value)) => (value, value),
+                    MinMaxResult::MinMax((_, &min), (_, &max)) => (min, max),
+                    _ => (0., 0.),
                 };
+                let span = max - min;
 
                 let mut chart = ChartBuilder::on(area)
-                    .caption(caption_fn(min, max).as_str(), ("sans-serif", 12))
+                    .caption(caption_fn(min, max).as_str(), ("sans-serif", CAPTION_FONT_SIZE))
                     .margin(5)
                     .build_cartesian_2d(rows.clone(), cols.clone())?;
 
@@ -51,10 +62,11 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 chart.draw_series(rows.clone().cartesian_product(cols.clone()).map(|(x, y)| {
                     let points = [(x, y), (x + 1, y + 1)];
 
-                    if let Some(v) = matrix.get(&Coordinate(x, y)).cloned() {
+                    if let Some(v) = matrix.get(&Coordinate(x, y)).copied() {
+                        let ratio = if span.abs() <= Float::EPSILON { 0.5 } else { (v - min) / span };
                         Rectangle::new(
                             points,
-                            HSLColor((240. / 360. - 240. / 360. * (v - min) / size) as f64, 1., 0.7).filled(),
+                            HSLColor((240. / 360. - 240. / 360. * ratio.clamp(0., 1.)) as f64, 1., 0.7).filled(),
                         )
                     } else {
                         Rectangle::new(points, WHITE)
@@ -64,12 +76,10 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                 Ok(())
             };
 
-            // draw series like gradients (but these are not gradients)
-            let draw_gradients = |area: &mut DrawingArea<B, Shift>,
-                                  _caption: &str,
-                                  series: &Vec<Series2D>|
-             -> DrawResult<()> {
-                let vertical_offset = 21;
+            // Draw the discrete fitness watershed induced by occupied cardinal neighbours.
+            let draw_basins = |area: &mut DrawingArea<B, Shift>, series: &Vec<Series2D>| -> DrawResult<()> {
+                const PERSISTENT_BASIN_SIZE: usize = 8;
+                let vertical_offset = 18;
                 let (w, h) = area.dim_in_pixel();
                 let h = h - vertical_offset;
 
@@ -78,46 +88,29 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
 
                 area.fill(&WHITE)?;
 
-                let get_fitness = |coord: &Coordinate| {
-                    (series[0].matrix_fn)().get(coord).cloned().map(|v| {
-                        std::iter::once(v)
-                            .chain((1..series.len()).map(move |idx| *((series[idx].matrix_fn)().get(coord).unwrap())))
-                            .collect::<Vec<_>>()
-                    })
-                };
+                if series.is_empty() {
+                    return Ok(());
+                }
 
-                let compare_fitness = |left: &[Float], right: &[Float]| {
-                    (left.iter())
-                        .zip(right.iter())
-                        .map(|(lhs, rhs)| lhs.total_cmp(rhs))
-                        .find_or_first(|ord| *ord != Ordering::Equal)
-                        .unwrap_or(Ordering::Equal)
-                };
-
-                let to_relation = |left: &Coordinate, right: &Coordinate| {
-                    get_fitness(left)
-                        .zip(get_fitness(right))
-                        .map(|(left, right)| compare_fitness(left.as_slice(), right.as_slice()))
-                };
+                let matrices = series.iter().map(|series| &series.matrix).collect::<Vec<_>>();
+                let basins = get_persistent_fitness_basins(matrices.as_slice(), PERSISTENT_BASIN_SIZE);
+                let max_depth = basins.depth_by_coordinate.values().copied().max().unwrap_or_default().max(1);
+                let caption =
+                    format!("persistent basins {}→{} · red x = retained", basins.raw_sinks.len(), basins.sinks.len());
+                area.draw(&Text::new(caption, (5, 12), ("sans-serif", CAPTION_FONT_SIZE).into_font().color(&BLACK)))?;
 
                 let to_points = |left: &Coordinate, right: &Coordinate| {
-                    to_relation(left, right).filter(|ord| *ord == Ordering::Greater).map(|_| {
-                        let x_step = x_step.round() as i32;
-                        let y_step = y_step.round() as i32;
+                    let x_step = x_step.round() as i32;
+                    let y_step = y_step.round() as i32;
 
-                        let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
-                            (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
-                            (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
-                            (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
-                            (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
-                            _ => unreachable!(),
-                        };
-                        (line, direction.get_points(1.))
-                    })
-                };
-
-                let get_neighbours = |x: i32, y: i32| {
-                    [Coordinate(x, y + 1), Coordinate(x, y - 1), Coordinate(x + 1, y), Coordinate(x - 1, y)]
+                    let (direction, line) = match (left.0 - right.0, left.1 - right.1) {
+                        (0, 1) => (ArrowDirection::Bottom, [(0, 0), (0, y_step)]),
+                        (0, -1) => (ArrowDirection::Top, [(0, 0), (0, -y_step)]),
+                        (1, 0) => (ArrowDirection::Left, [(0, 0), (-x_step, 0)]),
+                        (-1, 0) => (ArrowDirection::Right, [(0, 0), (x_step, 0)]),
+                        _ => unreachable!(),
+                    };
+                    (line, direction.get_points(1.))
                 };
 
                 let translate = |x: i32, y: i32| {
@@ -133,50 +126,46 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
                     (x, y)
                 };
 
-                // draw arrows
-                rows.clone()
-                    .cartesian_product(cols.clone())
-                    .filter_map(|(x, y)| {
-                        let current = Coordinate(x, y);
+                // Basin hue identifies the sink; lighter cells are farther uphill from it.
+                basins.sink_by_coordinate.iter().try_for_each(|(coordinate, sink)| {
+                    let basin_idx = basins.sinks.binary_search(sink).expect("basin sink is indexed");
+                    let depth = basins.depth_by_coordinate[coordinate];
+                    let hue = ((basin_idx * 137) % 360) as f64 / 360.;
+                    let lightness = 0.78 + 0.16 * depth as f64 / max_depth as f64;
+                    let (x, y) = translate(coordinate.0, coordinate.1);
+                    let half_x = (x_step / 2.).round() as i32;
+                    let half_y = (y_step / 2.).round() as i32;
 
-                        let arrows = get_neighbours(x, y)
-                            .map(|coordinate| to_points(&current, &coordinate))
-                            .into_iter()
-                            .flatten()
-                            .collect::<Vec<_>>();
+                    area.draw(&Rectangle::new(
+                        [(x - half_x, y - half_y), (x + half_x, y + half_y)],
+                        HSLColor(hue, 0.55, lightness).filled(),
+                    ))
+                })?;
 
-                        if arrows.is_empty() { None } else { Some(((x, y), arrows)) }
-                    })
-                    .flat_map(|(coord, arrows)| arrows.into_iter().map(move |arrow| (coord, arrow)))
-                    .try_for_each(|((x, y), (line, arrow))| {
-                        let (x, y) = translate(x, y);
+                // One arrow per node follows its steepest lexicographic descent.
+                basins.next.iter().filter(|(coordinate, next)| coordinate != next).try_for_each(
+                    |(coordinate, next)| {
+                        let (line, arrow) = to_points(coordinate, next);
+                        let (x, y) = translate(coordinate.0, coordinate.1);
 
                         let figure = EmptyElement::at((x, y))
                             + PathElement::new(line, BLUE)
                             + Polygon::new(arrow.map(|(x, y)| (x + line[1].0, y + line[1].1)), BLUE);
 
                         area.draw(&figure)
-                    })?;
+                    },
+                )?;
 
-                // draw local optimum markers
-                rows.clone()
-                    .cartesian_product(cols.clone())
-                    .filter(|&(x, y)| (series[0].matrix_fn)().contains_key(&Coordinate(x, y)))
-                    .filter(|&(x, y)| {
-                        get_neighbours(x, y)
-                            .map(|coordinate| to_relation(&Coordinate(x, y), &coordinate))
-                            .into_iter()
-                            .flatten()
-                            .all(|ord| ord != Ordering::Greater)
-                    })
-                    .map(|(x, y)| translate(x, y))
-                    .try_for_each(|(x, y)| {
+                // Mark the unique sink of each equal-fitness plateau.
+                basins.sinks.iter().map(|coordinate| translate(coordinate.0, coordinate.1)).try_for_each(
+                    |(x, y)| {
                         let size = 12;
                         let coord = (x - size / 2, y - size / 2);
                         let style = ("sans-serif", size).into_font().color(&RED);
 
                         area.draw(&Text::new("x", coord, style))
-                    })?;
+                    },
+                )?;
 
                 Ok(())
             };
@@ -192,18 +181,25 @@ pub(crate) fn draw_on_area<B: DrawingBackend + 'static>(
 
             let len = fitness_matrices.len();
 
-            draw_series2d(sub_areas.get_mut(len).unwrap(), &get_caption_float("ud"), u_matrix)?;
-            draw_gradients(sub_areas.get_mut(len + 1).unwrap(), "grd", fitness_matrices)?;
-            draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("th"), t_matrix)?;
-            draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("lh"), l_matrix)?;
+            let snapshot =
+                if *is_stale { format!(" · gen {generation}, inactive") } else { format!(" · gen {generation}") };
+            draw_series2d(
+                sub_areas.get_mut(len).unwrap(),
+                &get_caption_float(format!("map distance{snapshot}").as_str()),
+                u_matrix,
+            )?;
+            draw_basins(sub_areas.get_mut(len + 1).unwrap(), fitness_matrices)?;
+            draw_series2d(sub_areas.get_mut(len + 2).unwrap(), &get_caption_usize("total hits"), t_matrix)?;
+            draw_series2d(sub_areas.get_mut(len + 3).unwrap(), &get_caption_usize("recent hits"), l_matrix)?;
             draw_series2d(
                 sub_areas.get_mut(len + 4).unwrap(),
-                &get_caption_float(format!("mse ({:.2})", *mse).as_str()),
+                &get_caption_float(format!("node error · MSE {:.2} · lr {:.3}", *mse, *learning_rate).as_str()),
                 m_matrix,
             )?;
 
             fitness_matrices.iter().enumerate().try_for_each(|(idx, objective)| {
-                draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(""), objective)
+                let label = config.fitness_labels.get(idx).map(String::as_str).unwrap_or("objective");
+                draw_series2d(sub_areas.get_mut(idx).unwrap(), &get_caption_float(label), objective)
             })?;
         }
         PopulationSeries::Unknown => {}

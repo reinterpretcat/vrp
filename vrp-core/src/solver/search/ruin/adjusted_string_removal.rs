@@ -163,17 +163,15 @@ fn preserved_string<'a>(
         .filter_map(move |i| seed_tour.0.get(i).and_then(|a| a.retrieve_job()))
 }
 
-/// Returns range of possible lower bounds.
-#[allow(clippy::manual_clamp)]
+/// Returns the inclusive range of string starts which include the seed and fit within the tour.
 fn lower_bounds(string_crd: usize, tour_crd: usize, index: usize) -> (usize, usize) {
-    let string_crd = string_crd as i32;
-    let tour_crd = tour_crd as i32;
-    let index = index as i32;
+    debug_assert!((1..=tour_crd).contains(&string_crd));
+    debug_assert!((1..=tour_crd).contains(&index));
 
-    let start = (index - string_crd).max(1);
-    let end = (index + string_crd).min(tour_crd - string_crd).max(start);
+    let start = index.saturating_sub(string_crd - 1).max(1);
+    let end = index.min(tour_crd - string_crd + 1);
 
-    (start as usize, end as usize)
+    (start, end)
 }
 
 /// Calculates preserved substring cardinality.

@@ -21,20 +21,26 @@ fn get_population<C, O, S>(
     objective: Arc<O>,
     environment: Arc<Environment>,
     selection_size: usize,
+    generations: usize,
 ) -> Box<dyn HeuristicPopulation<Objective = O, Individual = S> + Send + Sync>
 where
     C: RosomaxaContext<Solution = S> + 'static,
     O: HeuristicObjective<Solution = S> + Alternative + 'static,
     S: RosomaxaSolution<Context = C> + 'static,
 {
+    let logger = environment.logger.clone();
     match population_type {
-        "greedy" => Box::new(ProxyPopulation::new(Greedy::new(objective, 1, None))),
-        "elitism" => {
-            Box::new(ProxyPopulation::new(Elitism::new(objective, environment.random.clone(), 2, selection_size)))
-        }
+        "greedy" => Box::new(ProxyPopulation::new(Greedy::new(objective, 1, None), generations, logger)),
+        "elitism" => Box::new(ProxyPopulation::new(
+            Elitism::new(objective, environment.random.clone(), 2, selection_size),
+            generations,
+            logger,
+        )),
         "rosomaxa" => Box::new(ProxyPopulation::new(
             Rosomaxa::new(context, objective, environment, RosomaxaConfig::new_with_defaults(selection_size))
                 .expect("cannot create rosomaxa with default configuration"),
+            generations,
+            logger,
         )),
         _ => unreachable!(),
     }

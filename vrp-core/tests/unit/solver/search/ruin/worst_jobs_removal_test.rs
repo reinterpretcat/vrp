@@ -11,16 +11,19 @@ parameterized_test! {can_ruin_solution_with_matrix_routes, (matrix, ints, expect
     can_ruin_solution_with_matrix_routes_impl(matrix, ints, expected_ids);
 }}
 
+// NOTE: the removal order depends on `routes_savings.shuffle`, which draws from the repeatable RNG rather
+// than from the scripted `ints`. These ids are therefore pinned to the generator's stream and were refreshed
+// for rand 0.9; the invariant under test is the removed job count implied by `ints[0]`.
 can_ruin_solution_with_matrix_routes! {
-    case_01: ((5, 3), vec![4, 2, 0, 0, 0], vec!["c3", "c4", "c8", "c9"]),
-    case_02: ((5, 3), vec![6, 2, 0, 0, 0], vec!["c14", "c2", "c3", "c4", "c8", "c9"]),
+    case_01: ((5, 3), vec![4, 2, 0, 0, 0], vec!["c13", "c14", "c8", "c9"]),
+    case_02: ((5, 3), vec![6, 2, 0, 0, 0], vec!["c12", "c13", "c14", "c4", "c8", "c9"]),
 }
 
 fn can_ruin_solution_with_matrix_routes_impl(matrix: (usize, usize), ints: Vec<i32>, expected_ids: Vec<&str>) {
     let reals = vec![];
 
     let (problem, solution) = generate_matrix_routes_with_defaults(matrix.0, matrix.1, false);
-    let limits = RemovalLimits { removed_activities_range: 10..10, affected_routes_range: 2..2 };
+    let limits = RemovalLimits { removed_activities_range: 10..=10, affected_routes_range: 2..=2 };
     let insertion_ctx: InsertionContext = InsertionContext::new_from_solution(
         Arc::new(problem),
         (solution, None),

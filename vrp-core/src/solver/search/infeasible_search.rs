@@ -1,9 +1,12 @@
+#[cfg(test)]
+#[path = "../../../tests/unit/solver/search/infeasible_search_test.rs"]
+mod infeasible_search_test;
+
 use crate::construction::heuristics::*;
 use crate::construction::probing::repair_solution_from_unknown;
 use crate::models::problem::Job;
 use crate::models::*;
 use crate::solver::*;
-use rosomaxa::population::Alternative;
 use std::sync::Arc;
 
 /// A mutation operator which performs search in infeasible space.
@@ -21,14 +24,14 @@ impl InfeasibleSearch {
         inner_search: TargetSearchOperator,
         recovery_operator: Arc<dyn Recreate>,
         max_repeat_count: usize,
-        shuffle_objectives_probability: (Float, Float),
+        alternative_objectives_probability: (Float, Float),
         skip_constraint_check_probability: (Float, Float),
     ) -> Self {
         Self {
             inner_search,
             recovery_operator,
             max_repeat_count,
-            alternative_objectives_probability: shuffle_objectives_probability,
+            alternative_objectives_probability,
             skip_constraint_check_probability,
         }
     }
@@ -125,8 +128,11 @@ fn create_modified_variant(
     skip_probability: Float,
     alternative_probability: Float,
 ) -> Arc<GoalContext> {
-    let alternative =
-        if random.is_hit(alternative_probability) { original.maybe_new(random.as_ref()) } else { original.clone() };
+    let alternative = if random.is_hit(alternative_probability) {
+        original.get_random_alternative(random.as_ref()).unwrap_or_else(|| original.clone())
+    } else {
+        original.clone()
+    };
 
     let constraints = alternative.constraints().map(|constraint| {
         let skip_probability = if random.is_head_not_tails() { 1. } else { skip_probability };

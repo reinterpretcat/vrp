@@ -4,6 +4,84 @@ mod slot_machine_test;
 
 use crate::utils::{DistributionSampler, Float};
 
+const PRIOR_BETA: Float = 1.;
+const MAX_EVIDENCE: Float = 100.;
+
+/// State of a Beta posterior over a Bernoulli outcome.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct BernoulliParams {
+    pub alpha: Float,
+    pub beta: Float,
+    pub mean: Float,
+    pub variance: Float,
+    pub observations: usize,
+}
+
+/// A capped Beta posterior used to learn a non-stationary Bernoulli outcome.
+#[derive(Clone)]
+pub(crate) struct BernoulliPosterior<S> {
+    prior_alpha: Float,
+    alpha: Float,
+    beta: Float,
+    observations: usize,
+    sampler: S,
+}
+
+impl<S> BernoulliPosterior<S>
+where
+    S: DistributionSampler + Clone,
+{
+    pub fn new(prior_alpha: Float, sampler: S) -> Self {
+        assert!(prior_alpha.is_finite() && prior_alpha > 0.);
+
+        Self { prior_alpha, alpha: prior_alpha, beta: PRIOR_BETA, observations: 0, sampler }
+    }
+
+    /// Samples the probability of success from the posterior.
+    pub fn sample(&self) -> Float {
+        // A Beta sample can be obtained from two independent Gamma samples. Keeping the shapes positive
+        // also protects very old posteriors whose unsuccessful evidence has driven alpha to underflow.
+        let alpha = self.sampler.gamma(self.alpha.max(Float::EPSILON), 1.);
+        let beta = self.sampler.gamma(self.beta.max(Float::EPSILON), 1.);
+        let total = alpha + beta;
+
+        if total.is_finite() && total > 0. { alpha / total } else { self.params().mean }
+    }
+
+    /// Restores the initial posterior.
+    pub fn reset(&mut self) {
+        self.alpha = self.prior_alpha;
+        self.beta = PRIOR_BETA;
+    }
+
+    /// Updates the posterior and limits its confidence to the most recent effective evidence.
+    pub fn update(&mut self, is_success: bool) {
+        let success = if is_success { 1. } else { 0. };
+
+        if self.alpha + self.beta >= MAX_EVIDENCE {
+            // Discount the posterior after reaching the evidence cap. This bounds how much old evidence
+            // a changed success rate has to overcome.
+            let scale = MAX_EVIDENCE / (self.alpha + self.beta + 1.);
+            self.alpha = (self.alpha + success) * scale;
+            self.beta = MAX_EVIDENCE - self.alpha;
+        } else {
+            self.alpha += success;
+            self.beta += 1. - success;
+        }
+
+        self.observations = self.observations.saturating_add(1);
+    }
+
+    /// Returns the current posterior parameters.
+    pub fn params(&self) -> BernoulliParams {
+        let total = self.alpha + self.beta;
+        let mean = self.alpha / total;
+        let variance = self.alpha * self.beta / (total.powi(2) * (total + 1.));
+
+        BernoulliParams { alpha: self.alpha, beta: self.beta, mean, variance, observations: self.observations }
+    }
+}
+
 /// Represents an action on slot machine.
 pub trait SlotAction {
     /// An environment context.
@@ -11,36 +89,24 @@ pub trait SlotAction {
     /// A feedback from taking slot action.
     type Feedback: SlotFeedback;
 
-    /// Take an action for given context and return reward.
+    /// Takes an action for the given context and returns its feedback.
     fn take(&self, context: Self::Context) -> Self::Feedback;
 }
 
-/// Provides a feedback for taking an action on a slot.
+/// Provides feedback for taking an action on a slot.
 pub trait SlotFeedback {
-    /// A reward for taking an action on a slot machine.
-    fn reward(&self) -> Float;
+    /// Returns whether the action produced the outcome learned by the slot machine.
+    fn is_success(&self) -> bool;
 }
 
-/// Simulates a slot machine using Non-Stationary Thompson Sampling.
+/// Selects an action using non-stationary Thompson sampling with a Beta posterior.
 ///
-/// This implementation uses a Normal-Inverse-Gamma (NIG) conjugate prior to model
-/// the unknown mean and variance of the reward distribution. It employs exponential
-/// decay (weighted likelihood) to handle non-stationary environments where the
-/// effectiveness of operators changes over time (e.g., VRP search phases).
+/// The posterior models a binary outcome. Its evidence is capped to keep the selector responsive when
+/// action effectiveness changes during the search.
 #[derive(Clone)]
 pub struct SlotMachine<A, S> {
-    /// The number of times this slot machine has been used (telemetry only).
-    n: usize,
-    /// Shape parameter (α) of the Inverse-Gamma distribution (tracks sample count/confidence).
-    alpha: Float,
-    /// Rate parameter (β) of the Inverse-Gamma distribution (tracks sum of squared errors).
-    beta: Float,
-    /// Estimated mean (μ) of the Normal distribution.
-    mu: Float,
-    /// Estimated variance (E[σ²]) derived from α and β.
-    v: Float,
-    /// Sampler used to draw values from the estimated distribution.
-    sampler: S,
+    /// Learned outcome distribution.
+    posterior: BernoulliPosterior<S>,
     /// The actual action associated with this slot.
     action: A,
 }
@@ -50,38 +116,14 @@ where
     A: SlotAction + Clone,
     S: DistributionSampler + Clone,
 {
-    /// Creates a new instance with Universal Priors.
-    pub fn new(prior_mean: Float, action: A, sampler: S) -> Self {
-        // Universal priors for a Standard Normal distribution N(0, 1):
-        // Alpha = 2.0 implies a weak prior belief with mathematically defined variance.
-        // Beta = 1.0 combined with Alpha=2.0 implies an expected variance of ~1.0.
-        let alpha = 2.0;
-        let beta = 1.0;
-
-        // Prior mean is clamped to a reasonable reward range [0.1, 2.0].
-        let mu = prior_mean.clamp(0.1, 2.0);
-
-        // Variance expectation v = Beta / (Alpha - 1) = 1.0.
-        // This implies we are "uncertain" by about +/- 1.0 standard deviation unit,
-        // which allows the bandit to explore even if one operator starts ahead.
-        let v = beta / (alpha - 1.0);
-
-        Self { n: 0, alpha, beta, mu, v, action, sampler }
+    /// Creates a new instance with the specified successful-outcome prior.
+    pub fn new(prior_alpha: Float, action: A, sampler: S) -> Self {
+        Self { posterior: BernoulliPosterior::new(prior_alpha, sampler), action }
     }
 
-    /// Samples a reward prediction from the estimated Normal-Inverse-Gamma distribution.
-    ///
-    /// 1. Samples precision (τ) from Gamma(α, β).
-    /// 2. Samples reward from Normal(μ, 1/√(τ)).
+    /// Samples the probability of success from the Beta posterior.
     pub fn sample(&self) -> Float {
-        // Sample precision from Gamma distribution
-        let precision = self.sampler.gamma(self.alpha, 1. / self.beta);
-
-        // Safety: If precision is numerically zero (rare), fallback to high variance
-        let precision = if precision == 0. || self.n == 0 { 0.001 } else { precision };
-        let variance = 1. / precision;
-
-        self.sampler.normal(self.mu, variance.sqrt())
+        self.posterior.sample()
     }
 
     /// Plays the slot machine by executing the action within the given context.
@@ -89,67 +131,18 @@ where
         self.action.take(context)
     }
 
-    /// Updates the internal Bayesian state with a new reward observation.
-    ///
-    /// The update logic performs two key functions:
-    /// 1. **Decay:** Forgets old observations to adapt to the changing search landscape.
-    /// 2. **Bayesian Update:** Refines estimates of Mean and Variance using the new data.
-    ///
-    /// `reward` is expected to be a normalized relative value (e.g., success ≈ 1.0, failure = 0.0).
-    pub fn update(&mut self, feedback: &A::Feedback) {
-        let reward = feedback.reward();
-
-        // 1. Memory Decay (Non-Stationarity)
-
-        // A decay factor of 0.995 implies a "memory horizon" of ~200 samples.
-        // This faster forgetting prevents operator monopolies and allows the agent
-        // to adapt more quickly when search dynamics change between phases.
-        const DECAY_FACTOR: Float = 0.995;
-
-        // Decay the sufficient statistics.
-        // We clamp alpha to >= 2.0. The variance of the Inverse-Gamma
-        // distribution is defined as Beta / (Alpha - 1). If Alpha <= 1, variance is undefined.
-        // Keeping Alpha >= 2.0 ensures numerical stability and prevents division by zero.
-        self.alpha = (self.alpha * DECAY_FACTOR).max(2.0);
-        self.beta *= DECAY_FACTOR;
-
-        // Increment usage counter (purely for human telemetry/diagnostics).
-        // We do not decay this value so we can track total lifetime usage.
-        self.n += 1;
-
-        // 2. Bayesian Update (Normal-Gamma)
-
-        // Standard update adds 0.5 to Alpha for each new observation n=1.
-        self.alpha += 0.5;
-        let old_mu = self.mu;
-
-        // Calculate Effective N derived from shape parameter.
-        // In Normal-Gamma, Alpha grows by 0.5 per sample, so N ~ 2 * Alpha.
-        // This avoids maintaining a separate floating-point 'n' variable for the math.
-        let effective_n = self.alpha * 2.0;
-
-        // Update Mean (Mu)
-        // Uses linear interpolation based on the effective sample size.
-        let learning_rate = 1.0 / effective_n;
-        self.mu += learning_rate * (reward - self.mu);
-
-        // Update Variance (Beta)
-        // This is the Bayesian adaptation of Welford's online variance algorithm.
-        // It incrementally updates the sum of squared errors.
-        // The term `effective_n / (effective_n + 1.0)` weights the new sample's
-        // contribution to the variance relative to prior knowledge.
-        self.beta += 0.5 * (reward - old_mu).powi(2) * effective_n / (effective_n + 1.0);
-
-        // 3. Variance Estimation
-
-        // Calculate expected variance E[σ²] = Beta / (Alpha - 1).
-        // Since we enforced Alpha >= 2.0 (decayed) + 0.5 (update) = 2.5,
-        // the denominator is guaranteed to be >= 1.5. Safe division.
-        self.v = self.beta / (self.alpha - 1.0);
+    /// Restores the initial posterior while preserving the lifetime usage counter.
+    pub fn reset(&mut self) {
+        self.posterior.reset();
     }
 
-    /// Gets learned params (alpha, beta, mean, variance) and usage amount.
-    pub fn get_params(&self) -> (Float, Float, Float, Float, usize) {
-        (self.alpha, self.beta, self.mu, self.v, self.n)
+    /// Updates the posterior and limits its confidence to the most recent effective evidence.
+    pub fn update(&mut self, feedback: &A::Feedback) {
+        self.posterior.update(feedback.is_success());
+    }
+
+    /// Gets learned posterior parameters and lifetime usage.
+    pub(crate) fn get_params(&self) -> BernoulliParams {
+        self.posterior.params()
     }
 }

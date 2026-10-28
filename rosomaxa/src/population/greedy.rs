@@ -29,8 +29,12 @@ where
     type Individual = S;
 
     fn add_all(&mut self, individuals: Vec<Self::Individual>) -> bool {
-        #[allow(clippy::unnecessary_fold)]
-        individuals.into_iter().fold(false, |acc, individual| acc || self.add(individual))
+        let mut is_improved = false;
+        for individual in individuals {
+            is_improved = self.add(individual) || is_improved;
+        }
+
+        is_improved
     }
 
     fn add(&mut self, individual: Self::Individual) -> bool {

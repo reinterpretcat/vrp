@@ -3,9 +3,11 @@
 mod exchange_inter_route_test;
 
 use super::*;
+use crate::models::GoalContext;
 use crate::models::problem::Job;
+use crate::models::solution::Activity;
 use crate::solver::RefinementContext;
-use crate::solver::search::{LocalOperator, TabuList, select_seed_job_with_tabu_list};
+use crate::solver::search::{LocalOperator, TabuList, select_seed_job};
 use crate::utils::Noise;
 use rosomaxa::utils::map_reduce;
 
@@ -82,6 +84,57 @@ impl LocalOperator for ExchangeInterRouteRandom {
 
 type InsertionSuccessPair = ((InsertionSuccess, Option<RouteContext>), (InsertionSuccess, Option<RouteContext>));
 
+struct ExchangeCandidate {
+    seed_success: InsertionSuccess,
+    test_success: InsertionSuccess,
+    test_route_idx: usize,
+    // Small route sets keep job-level parallelism and retain the evaluated route. Route-level
+    // reduction leaves it empty and rebuilds only the winner from the immutable original.
+    test_route: Option<RouteContext>,
+}
+
+/// Reuses route storage while evaluating different single-job removals from the same original route.
+/// Feature state is still fully refreshed after every removal.
+struct RouteRemovalCursor<'a> {
+    original: &'a RouteContext,
+    route: RouteContext,
+    removed_activities: Vec<(Activity, usize)>,
+}
+
+impl<'a> RouteRemovalCursor<'a> {
+    fn new(original: &'a RouteContext) -> Self {
+        Self { original, route: original.deep_copy(), removed_activities: Vec::with_capacity(2) }
+    }
+
+    fn remove(&mut self, goal: &GoalContext, job: &Job) -> Option<&RouteContext> {
+        self.removed_activities.drain(..).for_each(|(activity, index)| {
+            self.route.route_mut().tour.insert_at(activity, index);
+        });
+        self.removed_activities.extend(
+            self.original
+                .route()
+                .tour
+                .all_activities()
+                .enumerate()
+                .filter(|(_, activity)| activity.has_same_job(job))
+                .map(|(index, activity)| (activity.deep_copy(), index)),
+        );
+
+        if self.removed_activities.is_empty() || !self.route.route_mut().tour.remove(job) {
+            self.removed_activities.clear();
+            return None;
+        }
+
+        goal.accept_route_state(&mut self.route);
+
+        Some(&self.route)
+    }
+}
+
+// Route-level tasks can reuse removal storage when the search already has enough independent work.
+// With fewer routes, job-level tasks provide better parallelism.
+const ROUTE_REMOVAL_REUSE_THRESHOLD: usize = 16;
+
 fn find_best_insertion_pair(
     insertion_ctx: &InsertionContext,
     noise: Noise,
@@ -89,70 +142,93 @@ fn find_best_insertion_pair(
     filter_jobs_indices: Box<dyn Fn(usize) -> bool + Send + Sync>,
 ) -> Option<InsertionContext> {
     let mut tabu_list = TabuList::from(insertion_ctx);
+    let locked = &insertion_ctx.solution.locked;
+    let seed = select_seed_job(
+        insertion_ctx.solution.routes.as_slice(),
+        insertion_ctx.environment.random.as_ref(),
+        &|route_ctx| !tabu_list.is_actor_tabu(route_ctx.route().actor.as_ref()),
+        &|job| !tabu_list.is_job_tabu(job) && !locked.contains(job),
+    );
 
-    if let Some((_, seed_route_idx, seed_job)) = select_seed_job_with_tabu_list(insertion_ctx, &tabu_list) {
-        let locked = &insertion_ctx.solution.locked;
-
-        // bad luck: cannot move locked job
-        if locked.contains(&seed_job) {
-            return None;
-        }
-
+    if let Some((_, seed_route_idx, seed_job)) = seed {
         let new_insertion_ctx = get_new_insertion_ctx(insertion_ctx, &seed_job, seed_route_idx).unwrap();
         let seed_route = new_insertion_ctx.solution.routes.get(seed_route_idx).unwrap();
         let leg_selection = LegSelection::Stochastic(insertion_ctx.environment.random.clone());
         let result_selector = NoiseResultSelector::new(noise.clone());
 
-        let insertion_pair = new_insertion_ctx
+        let routes = new_insertion_ctx
             .solution
             .routes
             .iter()
             .enumerate()
-            .filter(|(idx, _)| *idx != seed_route_idx && filter_route_indices(*idx))
-            .fold(Option::<InsertionSuccessPair>::None, |acc, (_, test_route)| {
-                let new_result = map_reduce(
+            .filter(|(idx, _)| *idx != seed_route_idx && filter_route_indices(*idx));
+        let evaluate = |test_route_idx: usize, test_route: &RouteContext, test_job: &Job| {
+            evaluate_exchange_candidate(
+                &new_insertion_ctx,
+                seed_route,
+                &seed_job,
+                test_route_idx,
+                test_route,
+                test_job,
+                &leg_selection,
+                &result_selector,
+            )
+        };
+        let insertion_pair = if new_insertion_ctx.solution.routes.len() <= ROUTE_REMOVAL_REUSE_THRESHOLD {
+            routes.fold(Option::<ExchangeCandidate>::None, |acc, (test_route_idx, test_route)| {
+                let test_jobs = test_route
+                    .route()
+                    .tour
+                    .jobs()
+                    .enumerate()
+                    .filter(|(idx, job)| !locked.contains(*job) && filter_jobs_indices(*idx))
+                    .collect::<Vec<_>>();
+                let result = map_reduce(
+                    test_jobs.as_slice(),
+                    |(_, test_job)| evaluate(test_route_idx, test_route, test_job),
+                    || None,
+                    |left, right| reduce_candidate_with_noise(left, right, &noise),
+                );
+
+                reduce_candidate_with_noise(acc, result, &noise)
+            })
+        } else {
+            let routes = routes.collect::<Vec<_>>();
+
+            map_reduce(
+                routes.as_slice(),
+                |(test_route_idx, test_route)| {
+                    let mut removal = RouteRemovalCursor::new(test_route);
+
                     test_route
                         .route()
                         .tour
                         .jobs()
                         .enumerate()
                         .filter(|(idx, job)| !locked.contains(*job) && filter_jobs_indices(*idx))
-                        .collect::<Vec<_>>()
-                        .as_slice(),
-                    |(_, test_job)| {
-                        // try to insert test job into seed tour
-                        let seed_success = test_job_insertion(
-                            &new_insertion_ctx,
-                            seed_route,
-                            test_job,
-                            &leg_selection,
-                            &result_selector,
-                        )?;
+                        .fold(None, |best, (_, test_job)| {
+                            let candidate = evaluate_exchange_candidate_reusing_route(
+                                &new_insertion_ctx,
+                                seed_route,
+                                &seed_job,
+                                *test_route_idx,
+                                test_job,
+                                &mut removal,
+                                &leg_selection,
+                                &result_selector,
+                            );
 
-                        // try to insert seed job into test route
-                        let mut test_route = test_route.deep_copy();
-                        // NOTE would be nice to add job to list of required
-                        test_route.route_mut().tour.remove(test_job);
-                        new_insertion_ctx.problem.goal.accept_route_state(&mut test_route);
+                            reduce_candidate_with_noise(best, candidate, &noise)
+                        })
+                },
+                || None,
+                |left, right| reduce_candidate_with_noise(left, right, &noise),
+            )
+        };
 
-                        let test_success = test_job_insertion(
-                            &new_insertion_ctx,
-                            &test_route,
-                            &seed_job,
-                            &leg_selection,
-                            &result_selector,
-                        )?;
-
-                        Some(((seed_success, None), (test_success, Some(test_route))))
-                    },
-                    || None,
-                    |left, right| reduce_pair_with_noise(left, right, &noise),
-                );
-
-                reduce_pair_with_noise(acc, new_result, &noise)
-            });
-
-        if let Some(insertion_pair) = insertion_pair {
+        if let Some(insertion_pair) =
+            insertion_pair.and_then(|candidate| materialize_insertion_pair(&new_insertion_ctx, candidate))
+        {
             let mut new_insertion_ctx = new_insertion_ctx;
 
             for (success, _) in [&insertion_pair.0, &insertion_pair.1] {
@@ -170,6 +246,71 @@ fn find_best_insertion_pair(
     }
 
     None
+}
+
+// NOTE: every parameter is a distinct input of the exchange evaluation; bundling them would add an
+// indirection type purely to satisfy an arbitrary argument-count threshold.
+#[allow(clippy::too_many_arguments)]
+fn evaluate_exchange_candidate(
+    insertion_ctx: &InsertionContext,
+    seed_route: &RouteContext,
+    seed_job: &Job,
+    test_route_idx: usize,
+    test_route: &RouteContext,
+    test_job: &Job,
+    leg_selection: &LegSelection,
+    result_selector: &dyn ResultSelector,
+) -> Option<ExchangeCandidate> {
+    // try to insert test job into seed tour
+    let seed_success = test_job_insertion(insertion_ctx, seed_route, test_job, leg_selection, result_selector)?;
+
+    // try to insert seed job into test route
+    let mut test_route = test_route.deep_copy();
+    // NOTE would be nice to add job to list of required
+    test_route.route_mut().tour.remove(test_job);
+    insertion_ctx.problem.goal.accept_route_state(&mut test_route);
+
+    let test_success = test_job_insertion(insertion_ctx, &test_route, seed_job, leg_selection, result_selector)?;
+
+    Some(ExchangeCandidate { seed_success, test_success, test_route_idx, test_route: Some(test_route) })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_exchange_candidate_reusing_route(
+    insertion_ctx: &InsertionContext,
+    seed_route: &RouteContext,
+    seed_job: &Job,
+    test_route_idx: usize,
+    test_job: &Job,
+    removal: &mut RouteRemovalCursor,
+    leg_selection: &LegSelection,
+    result_selector: &dyn ResultSelector,
+) -> Option<ExchangeCandidate> {
+    let seed_success = test_job_insertion(insertion_ctx, seed_route, test_job, leg_selection, result_selector)?;
+    let test_route = removal.remove(&insertion_ctx.problem.goal, test_job)?;
+    let test_success = test_job_insertion(insertion_ctx, test_route, seed_job, leg_selection, result_selector)?;
+
+    Some(ExchangeCandidate { seed_success, test_success, test_route_idx, test_route: None })
+}
+
+fn materialize_insertion_pair(
+    insertion_ctx: &InsertionContext,
+    candidate: ExchangeCandidate,
+) -> Option<InsertionSuccessPair> {
+    let ExchangeCandidate { seed_success, test_success, test_route_idx, test_route } = candidate;
+    let test_route = match test_route {
+        Some(test_route) => test_route,
+        None => {
+            let mut test_route = insertion_ctx.solution.routes.get(test_route_idx)?.deep_copy();
+            if !test_route.route_mut().tour.remove(&seed_success.job) {
+                return None;
+            }
+            insertion_ctx.problem.goal.accept_route_state(&mut test_route);
+            test_route
+        }
+    };
+
+    Some(((seed_success, None), (test_success, Some(test_route))))
 }
 
 fn test_job_insertion(
@@ -195,19 +336,19 @@ fn test_job_insertion(
     }
 }
 
-fn get_insertion_cost_with_noise_from_pair(pair: &InsertionSuccessPair, noise: &Noise) -> InsertionCost {
-    noise.generate_multi((&pair.0.0.cost + &pair.1.0.cost).iter()).collect()
+fn get_insertion_cost_with_noise(candidate: &ExchangeCandidate, noise: &Noise) -> InsertionCost {
+    noise.generate_multi((&candidate.seed_success.cost + &candidate.test_success.cost).iter()).collect()
 }
 
-fn reduce_pair_with_noise(
-    left_result: Option<InsertionSuccessPair>,
-    right_result: Option<InsertionSuccessPair>,
+fn reduce_candidate_with_noise(
+    left_result: Option<ExchangeCandidate>,
+    right_result: Option<ExchangeCandidate>,
     noise: &Noise,
-) -> Option<InsertionSuccessPair> {
+) -> Option<ExchangeCandidate> {
     match (&left_result, &right_result) {
         (Some(left), Some(right)) => {
-            let left_cost = get_insertion_cost_with_noise_from_pair(left, noise);
-            let right_cost = get_insertion_cost_with_noise_from_pair(right, noise);
+            let left_cost = get_insertion_cost_with_noise(left, noise);
+            let right_cost = get_insertion_cost_with_noise(right, noise);
 
             if left_cost < right_cost { left_result } else { right_result }
         }

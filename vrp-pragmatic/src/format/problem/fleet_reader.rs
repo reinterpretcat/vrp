@@ -5,7 +5,6 @@ mod fleet_reader_test;
 use super::*;
 use crate::Location as ApiLocation;
 use crate::format::UnknownLocationFallback;
-use crate::get_unique_locations;
 use crate::utils::get_approx_transportation;
 use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
@@ -96,7 +95,11 @@ pub(super) fn create_transport_costs(
     }
 }
 
-pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, coord_index: &CoordIndex) -> CoreFleet {
+pub(super) fn read_fleet(
+    api_problem: &ApiProblem,
+    props: &ProblemProperties,
+    coord_index: &CoordIndex,
+) -> Result<CoreFleet, MultiFormatError> {
     let profile_indices = get_profile_index_map(api_problem);
     let mut vehicles: Vec<Arc<Vehicle>> = Default::default();
 
@@ -256,15 +259,32 @@ pub(super) fn read_fleet(api_problem: &ApiProblem, props: &ProblemProperties, co
         details: vec![],
     })];
 
-    CoreFleet::new(drivers, vehicles, |actors| {
+    // NOTE: `CoreFleet::new` requires at least one vehicle. Reject an empty fleet here rather than
+    // letting that invariant trip an assertion, so that a definition which parses but cannot be
+    // solved is reported like any other format problem. Validation normally catches this first and
+    // says which vehicle type is at fault; this is the backstop for anything it does not cover.
+    if vehicles.is_empty() {
+        return Err(vec![FormatError::new(
+            "E1312".to_string(),
+            "fleet has no vehicles".to_string(),
+            "add a vehicle type with at least one vehicle id and one shift".to_string(),
+        )]
+        .into());
+    }
+
+    Ok(CoreFleet::new(drivers, vehicles, |actors| {
         create_typed_actor_groups(actors, |a| {
             a.vehicle.dimens.get_vehicle_type().cloned().expect("vehicle has no type defined")
         })
-    })
+    }))
 }
 
 /// Creates a matrices using approximation.
 pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
+    create_approx_matrices_with_index(problem, &CoordIndex::new(problem))
+}
+
+pub(super) fn create_approx_matrices_with_index(problem: &ApiProblem, coord_index: &CoordIndex) -> Vec<Matrix> {
     const DEFAULT_SPEED: Float = 10.;
     // get each speed value once
     let speeds = problem
@@ -276,7 +296,8 @@ pub fn create_approx_matrices(problem: &ApiProblem) -> Vec<Matrix> {
         .collect::<HashSet<_>>();
     let speeds = speeds.into_iter().map(Float::from_bits).collect::<Vec<_>>();
 
-    let locations = get_unique_locations(problem)
+    let locations = coord_index
+        .unique()
         .into_iter()
         .filter(|location| !matches!(location, ApiLocation::Custom { .. }))
         .collect::<Vec<_>>();

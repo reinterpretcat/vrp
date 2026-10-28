@@ -32,7 +32,7 @@ fn can_set_and_get_start() {
     let mut tour = Tour::default();
 
     tour.set_start(activity);
-    let pointer = get_memory_address(&tour.activities[0]);
+    let pointer = get_memory_address(tour.get(0).unwrap());
 
     assert_eq!(pointer, get_memory_address(tour.start().unwrap()));
     assert_eq!(tour.job_activity_count(), 0);
@@ -46,7 +46,7 @@ fn can_set_and_get_end() {
     tour.set_start(ActivityBuilder::default().job(None).build());
 
     tour.set_end(activity);
-    let pointer = get_memory_address(&tour.activities[1]);
+    let pointer = get_memory_address(tour.get(1).unwrap());
 
     assert_eq!(pointer, get_memory_address(tour.end().unwrap()));
     assert_eq!(tour.job_activity_count(), 0);
@@ -103,7 +103,7 @@ fn can_get_activities_for_job() {
     let job = Job::Single(activity.job.clone().unwrap());
 
     tour.insert_at(activity, 2);
-    let pointer = get_memory_address(&tour.activities[2]);
+    let pointer = get_memory_address(tour.get(2).unwrap());
 
     let result: Vec<&Activity> = tour.job_activities(&job).collect();
 
@@ -128,16 +128,49 @@ fn can_get_legs() {
     let legs: Vec<(Vec<usize>, usize)> =
         tour.legs().map(|(leg, index)| (leg.iter().map(get_memory_address).collect(), index)).collect();
 
-    let start_ptr = get_memory_address(&tour.activities[0]);
-    let end_ptr = get_memory_address(&tour.activities[3]);
-    let a1_ptr = get_memory_address(&tour.activities[1]);
-    let a2_ptr = get_memory_address(&tour.activities[2]);
+    let start_ptr = get_memory_address(tour.get(0).unwrap());
+    let end_ptr = get_memory_address(tour.get(3).unwrap());
+    let a1_ptr = get_memory_address(tour.get(1).unwrap());
+    let a2_ptr = get_memory_address(tour.get(2).unwrap());
 
     // (s,a1) (a1,a2) (a2,e)
     assert_eq!(legs.len(), 3);
     compare_legs(legs.first().unwrap(), &(vec![start_ptr, a1_ptr], 0));
     compare_legs(legs.get(1).unwrap(), &(vec![a1_ptr, a2_ptr], 1));
     compare_legs(legs.get(2).unwrap(), &(vec![a2_ptr, end_ptr], 2));
+}
+
+parameterized_test! {can_get_leg_by_index, (has_start, is_closed, job_count), {
+    can_get_leg_by_index_impl(has_start, is_closed, job_count);
+}}
+
+can_get_leg_by_index! {
+    empty: (false, false, 0),
+    start_only: (true, false, 0),
+    start_and_end: (true, true, 0),
+    open_one_job: (true, false, 1),
+    closed_one_job: (true, true, 1),
+    open_many_jobs: (true, false, 17),
+    closed_many_jobs: (true, true, 17),
+}
+
+fn can_get_leg_by_index_impl(has_start: bool, is_closed: bool, job_count: usize) {
+    let mut tour = Tour::default();
+    if has_start {
+        tour.set_start(ActivityBuilder::default().job(None).build());
+    }
+    if is_closed {
+        tour.set_end(ActivityBuilder::default().job(None).build());
+    }
+    for _ in 0..job_count {
+        tour.insert_last(ActivityBuilder::default().build());
+    }
+
+    for index in (0..=tour.total() + 1).chain(std::iter::once(usize::MAX)) {
+        let identify_leg = |(activities, index): Leg<'_>| (activities.as_ptr(), activities.len(), index);
+
+        assert_eq!(tour.leg(index).map(identify_leg), tour.legs().nth(index).map(identify_leg), "leg {index}");
+    }
 }
 
 #[test]
@@ -184,6 +217,21 @@ fn can_get_start_and_end() {
     tour.insert_last(ActivityBuilder::default().build());
     tour.insert_last(ActivityBuilder::default().build());
 
-    assert_eq!(get_memory_address(tour.start().unwrap()), get_memory_address(&tour.activities[0]));
-    assert_eq!(get_memory_address(tour.end().unwrap()), get_memory_address(&tour.activities[3]));
+    assert_eq!(get_memory_address(tour.start().unwrap()), get_memory_address(tour.get(0).unwrap()));
+    assert_eq!(get_memory_address(tour.end().unwrap()), get_memory_address(tour.get(3).unwrap()));
+}
+
+#[test]
+fn can_modify_deep_copy_independently() {
+    let tour = get_test_tour();
+    let mut copy = tour.deep_copy();
+    let job = copy.jobs().next().cloned().unwrap();
+
+    assert!(copy.remove(&job));
+    copy.get_mut(0).unwrap().place.location = 42;
+
+    assert_eq!(tour.job_count(), 2);
+    assert_ne!(tour.start().unwrap().place.location, 42);
+    assert_eq!(copy.job_count(), 1);
+    assert_eq!(copy.start().unwrap().place.location, 42);
 }
