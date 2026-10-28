@@ -123,3 +123,113 @@ fn territory_objective_reads_quota_shares_and_pools() {
         other => unreachable!("expected a territory objective carrying shares and pools, got {other:?}"),
     }
 }
+
+fn read_problem_with_objective(objective: Objective) -> Result<vrp_core::models::Problem, MultiFormatError> {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", (2., 0.)), create_delivery_job("job2", (8., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                vehicle_ids: vec!["v1_1".to_string()],
+                shifts: vec![create_default_vehicle_shift_with_locations((0., 0.), (0., 0.))],
+                ..create_vehicle_with_capacity("v1", vec![10])
+            }],
+            ..create_default_fleet()
+        },
+        objectives: Some(vec![Objective::MinimizeUnassigned { breaks: None }, objective, Objective::MinimizeCost]),
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    (problem, vec![matrix]).read_pragmatic()
+}
+
+#[test]
+fn route_targets_objective_reads_the_full_contract() {
+    let json = r#"{
+        "type": "route-targets",
+        "aggregate": "max",
+        "targets": [
+            { "metric": "distance", "span": "depot-to-depot", "points": [[10000, 0], [20000, 1]] },
+            { "metric": "driving-time", "span": "depot-to-last-job", "points": [[3600, 0], [7200, 1]] },
+            { "metric": "duration", "span": "first-job-to-depot", "breaks": "include", "points": [[0, 0], [1, 1]] },
+            { "metric": "service-time", "per": "hour", "points": [[1800, 1], [3600, 0]] },
+            { "metric": "value", "per": "activity", "points": [[0, 2], [100, 0]] },
+            { "metric": "activities", "points": [[0, 3], [10, 0]] }
+        ]
+    }"#;
+
+    let objective = serde_json::from_str::<Objective>(json).unwrap();
+
+    let Objective::RouteTargets { targets, aggregate: Some(RouteTargetAggregateJson::Max) } = &objective else {
+        unreachable!("expected a route-targets objective with the max aggregate, got {objective:?}");
+    };
+    assert_eq!(targets.len(), 6);
+    assert!(matches!(targets[0].span, Some(RouteCostSpan::DepotToDepot)));
+    assert!(matches!(targets[1].span, Some(RouteCostSpan::DepotToLastJob)));
+    assert_eq!(targets[1].metric, RouteTargetMetricJson::DrivingTime);
+    assert_eq!(targets[2].breaks, Some(RouteTargetBreaksJson::Include));
+    assert_eq!(targets[3].per, Some(RouteTargetPerJson::Hour));
+    assert_eq!(targets[4].per, Some(RouteTargetPerJson::Activity));
+    assert_eq!(targets[5].points, vec![(0., 3.), (10., 0.)]);
+    assert!(read_problem_with_objective(objective).is_ok());
+}
+
+#[test]
+fn route_targets_objective_leaves_omitted_options_to_their_defaults() {
+    let json = r#"{"type": "route-targets", "targets": [{"metric": "distance", "points": [[0, 0], [1, 1]]}]}"#;
+
+    match serde_json::from_str::<Objective>(json).unwrap() {
+        Objective::RouteTargets { targets, aggregate: None } => {
+            assert!(targets[0].span.is_none() && targets[0].breaks.is_none() && targets[0].per.is_none());
+        }
+        other => unreachable!("expected a route-targets objective without options, got {other:?}"),
+    }
+}
+
+#[test]
+fn route_targets_objective_accepts_total_distance() {
+    let json = r#"{"type": "route-targets", "aggregate": "sum", "targets": [
+        {"metric": "total-distance", "points": [[0, 0], [10000, 1]]}
+    ]}"#;
+
+    let objective = serde_json::from_str::<Objective>(json).unwrap();
+
+    assert!(matches!(
+        &objective,
+        Objective::RouteTargets { targets, aggregate: Some(RouteTargetAggregateJson::Sum) }
+            if targets[0].metric == RouteTargetMetricJson::TotalDistance
+    ));
+    assert!(read_problem_with_objective(objective).is_ok());
+}
+
+parameterized_test! {route_targets_objective_refuses_invalid_curve, (points, expected_message), {
+    route_targets_objective_refuses_invalid_curve_impl(points, expected_message);
+}}
+
+route_targets_objective_refuses_invalid_curve! {
+    case01_single_point: (vec![(0., 0.)], "at least two points"),
+    case02_descending: (vec![(20., 0.), (10., 1.)], "strictly ascending"),
+    case03_repeated_value: (vec![(10., 0.), (10., 1.)], "strictly ascending"),
+}
+
+fn route_targets_objective_refuses_invalid_curve_impl(points: Vec<(Float, Float)>, expected_message: &str) {
+    let objective = Objective::RouteTargets {
+        targets: vec![RouteTargetJson {
+            metric: RouteTargetMetricJson::Distance,
+            span: None,
+            breaks: None,
+            per: None,
+            points,
+        }],
+        aggregate: None,
+    };
+
+    let Err(errors) = read_problem_with_objective(objective) else {
+        panic!("expected an invalid curve to be refused");
+    };
+    let message = errors.to_string();
+    assert!(message.contains("route-targets objective, target 0"), "unexpected error: {message}");
+    assert!(message.contains(expected_message), "unexpected error: {message}");
+}

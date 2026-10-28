@@ -374,6 +374,7 @@ fn get_objective_feature_layer(
             Arc::new(is_stop),
         ),
         Objective::HierarchicalAreas { levels } => get_hierarchical_areas_feature(blocks, *levels),
+        Objective::RouteTargets { targets, aggregate } => get_route_targets_feature(blocks, targets, *aggregate),
         Objective::Territory {
             proximity,
             balance,
@@ -440,6 +441,68 @@ fn get_objective_feature_layer(
     }?;
 
     Ok(FeatureLayer::Single(feature))
+}
+
+fn get_route_targets_feature(
+    blocks: &ProblemBlocks,
+    targets: &[RouteTargetJson],
+    aggregate: Option<RouteTargetAggregateJson>,
+) -> GenericResult<Feature> {
+    use vrp_core::models::problem::RouteCostSpan as CoreRouteCostSpan;
+
+    if targets.is_empty() {
+        return Err("route-targets objective: at least one target is required".into());
+    }
+
+    let targets = targets
+        .iter()
+        .enumerate()
+        .map(|(index, target)| {
+            let (metric, span) = match target.metric {
+                RouteTargetMetricJson::Distance => (RouteMetric::Distance, None),
+                RouteTargetMetricJson::TotalDistance => (RouteMetric::Distance, Some(CoreRouteCostSpan::DepotToDepot)),
+                RouteTargetMetricJson::DrivingTime => (RouteMetric::DrivingTime, None),
+                RouteTargetMetricJson::Duration => (RouteMetric::Duration, None),
+                RouteTargetMetricJson::ServiceTime => (RouteMetric::ServiceTime, None),
+                RouteTargetMetricJson::Value => (RouteMetric::Value, None),
+                RouteTargetMetricJson::Activities => (RouteMetric::Activities, None),
+            };
+            let span = span.unwrap_or(match target.span {
+                Some(RouteCostSpan::DepotToDepot) => CoreRouteCostSpan::DepotToDepot,
+                Some(RouteCostSpan::DepotToLastJob) => CoreRouteCostSpan::DepotToLastJob,
+                Some(RouteCostSpan::FirstJobToDepot) => CoreRouteCostSpan::FirstJobToDepot,
+                Some(RouteCostSpan::FirstJobToLastJob) | None => CoreRouteCostSpan::FirstJobToLastJob,
+            });
+            let target = RouteTarget {
+                metric,
+                span,
+                include_breaks: matches!(target.breaks, Some(RouteTargetBreaksJson::Include)),
+                per: match target.per {
+                    Some(RouteTargetPerJson::Route) | None => RouteTargetPer::Route,
+                    Some(RouteTargetPerJson::Activity) => RouteTargetPer::Activity,
+                    Some(RouteTargetPerJson::Hour) => RouteTargetPer::Hour,
+                },
+                points: target.points.clone(),
+            };
+
+            target
+                .validate()
+                .map(|_| target)
+                .map_err(|err| GenericError::from(format!("route-targets objective, target {index}: {err}")))
+        })
+        .collect::<GenericResult<Vec<_>>>()?;
+
+    RouteTargetsBuilder::new("route_targets")
+        .set_transport(blocks.transport.clone())
+        .set_targets(targets)
+        .set_aggregate(match aggregate {
+            Some(RouteTargetAggregateJson::Sum) => RouteTargetAggregate::Sum,
+            Some(RouteTargetAggregateJson::Max) => RouteTargetAggregate::Max,
+            Some(RouteTargetAggregateJson::SumOfSquares) | None => RouteTargetAggregate::SumOfSquares,
+        })
+        .set_job_value_fn(|job| job.dimens().get_production_value().copied().unwrap_or(0.))
+        .set_is_break_fn(|single| single.dimens.get_job_type().is_some_and(|job_type| job_type == "break"))
+        .build()
 }
 
 fn get_hierarchical_areas_feature(blocks: &ProblemBlocks, levels: usize) -> GenericResult<Feature> {
