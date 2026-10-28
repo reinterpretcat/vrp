@@ -324,3 +324,47 @@ fn can_serve_job_when_it_starts_late() {
     assert!(solution.unassigned.is_none());
     assert!(!solution.tours.is_empty());
 }
+
+/// A required break due right as the day's last job ends is priced on the drive home: reserved time
+/// is charged at the latest start of its window, and the job (200..260) only touches the window
+/// starting at 260. On a span that ends at the last job that drive is unpaid, so the tour is paid for
+/// 60s against a cap of 400. `RescheduleReservedTime` used to move the break off the road into the
+/// job's departure afterwards, which put all 500s of it inside the paid stretch: the checker read
+/// 560 against the cap, with the solver long past the point of weighing it. This is the shape of a
+/// production tour (a 6h block due at 13:00 behind a 12:00..13:00 job) that came out 432s over.
+#[test]
+fn can_keep_break_due_after_last_job_out_of_span_ending_at_last_job() {
+    for span in [RouteCostSpan::FirstJobToLastJob, RouteCostSpan::DepotToLastJob] {
+        let mut vehicle = VehicleType {
+            shifts: vec![VehicleShift {
+                breaks: Some(vec![VehicleBreak::Required {
+                    time: VehicleRequiredBreakTime::ExactTime {
+                        earliest: format_time(259.),
+                        latest: format_time(260.),
+                    },
+                    duration: 500.,
+                }]),
+                ..create_default_vehicle_shift()
+            }],
+            ..create_vehicle_type_with_max_duration_limit(400.)
+        };
+        vehicle.costs.span = Some(span.clone());
+        let problem = Problem {
+            plan: Plan {
+                jobs: vec![create_delivery_job_with_times("job1", (20., 0.), vec![(200, 300)], 60.)],
+                ..create_empty_plan()
+            },
+            fleet: Fleet { vehicles: vec![vehicle], ..create_default_fleet() },
+            ..create_empty_problem()
+        };
+        let matrix = create_matrix_from_problem(&problem);
+
+        // the checker runs here, and it is what reported the break as paid time
+        let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+        assert!(solution.unassigned.is_none(), "{span:?}: job1 fits the cap on the stretch it is paid for");
+        assert_eq!(served_job_ids(&solution.tours[0]), ["job1".to_string()]);
+        let job_stop = &solution.tours[0].stops[1];
+        assert_eq!(job_stop.schedule().departure, format_time(260.), "{span:?}: the break must stay on the drive home");
+    }
+}

@@ -87,6 +87,15 @@ fn create_feature_and_route(
     activities: Vec<ActivityData>,
     reserved_time: ReservedTimeSpan,
 ) -> (ReservedTimesFn, Feature, RouteContext) {
+    create_feature_and_route_with_span(vehicle_detail_data, activities, reserved_time, None)
+}
+
+fn create_feature_and_route_with_span(
+    vehicle_detail_data: VehicleData,
+    activities: Vec<ActivityData>,
+    reserved_time: ReservedTimeSpan,
+    span: Option<RouteCostSpan>,
+) -> (ReservedTimesFn, Feature, RouteContext) {
     let (location_start, location_end, time_start, time_end) = vehicle_detail_data;
 
     let activities = activities.into_iter().map(|(loc, (start, end), dur)| {
@@ -94,12 +103,16 @@ fn create_feature_and_route(
     });
     let fleet = FleetBuilder::default()
         .add_driver(test_driver())
-        .add_vehicles(vec![
-            TestVehicleBuilder::default()
+        .add_vehicles(vec![{
+            let mut vehicle = TestVehicleBuilder::default()
                 .id("v1")
                 .details(vec![create_detail((Some(location_start), Some(location_end)), Some((time_start, time_end)))])
-                .build(),
-        ])
+                .build();
+            if let Some(span) = span {
+                vehicle.dimens.set_route_cost_span(span);
+            }
+            vehicle
+        }])
         .build();
     let reserved_times_idx =
         vec![(fleet.actors.first().unwrap().clone(), vec![reserved_time])].into_iter().collect::<HashMap<_, _>>();
@@ -262,26 +275,49 @@ fn can_evaluate_activity_impl(
     }
 }
 
-parameterized_test! {can_avoid_reserved_time_when_driving, (vehicle_detail_data, reserved_time, activities, expected_schedules), {
-    can_avoid_reserved_time_when_driving_impl(vehicle_detail_data, reserved_time, activities, expected_schedules);
+parameterized_test! {can_avoid_reserved_time_when_driving, (vehicle_detail_data, reserved_time, span, activities, expected_schedules), {
+    can_avoid_reserved_time_when_driving_impl(vehicle_detail_data, reserved_time, span, activities, expected_schedules);
 }}
 
 can_avoid_reserved_time_when_driving! {
     case01_should_move_duration_to_serving: (
-        (0, 0, 0., 100.), (10., 40., 5.),
+        (0, 0, 0., 100.), (10., 40., 5.), None,
         vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
         vec![(0., 0.), (10., 25.), (65., 75.), (125., 125.)]
     ),
     case02_should_keep_duration_at_driving: (
-        (0, 0, 0., 100.), (30., 40., 5.),
+        (0, 0, 0., 100.), (30., 40., 5.), None,
         vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
         vec![(0., 0.), (10., 20.), (65., 75.), (125., 125.)]
+    ),
+    case03_should_move_duration_from_drive_home_to_last_job: (
+        (0, 0, 0., 100.), (60., 80., 5.), None,
+        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
+        vec![(0., 0.), (10., 20.), (60., 75.), (125., 125.)]
+    ),
+    // a `FirstJobTo*` span anchors an offset at the first job's arrival (10), so these sit where the
+    // cases above put theirs
+    case04_should_keep_duration_at_drive_home_when_span_ends_at_last_job: (
+        (0, 0, 0., 100.), (50., 70., 5.), Some(RouteCostSpan::FirstJobToLastJob),
+        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
+        vec![(0., 0.), (10., 20.), (60., 70.), (125., 125.)]
+    ),
+    case05_should_keep_duration_at_drive_home_when_span_runs_from_depot_to_last_job: (
+        (0, 0, 0., 100.), (60., 80., 5.), Some(RouteCostSpan::DepotToLastJob),
+        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
+        vec![(0., 0.), (10., 20.), (60., 70.), (125., 125.)]
+    ),
+    case06_should_move_duration_between_jobs_when_span_ends_at_last_job: (
+        (0, 0, 0., 100.), (0., 30., 5.), Some(RouteCostSpan::FirstJobToLastJob),
+        vec![(10, (0., 100.), 10.), (50, (0., 100.), 10.)],
+        vec![(0., 0.), (10., 25.), (65., 75.), (125., 125.)]
     ),
 }
 
 fn can_avoid_reserved_time_when_driving_impl(
     vehicle_detail_data: VehicleData,
     reserved_time: (Timestamp, Timestamp, Duration),
+    span: Option<RouteCostSpan>,
     activities: Vec<ActivityData>,
     expected_schedules: Vec<(Timestamp, Timestamp)>,
 ) {
@@ -290,7 +326,7 @@ fn can_avoid_reserved_time_when_driving_impl(
         duration: reserved_time.2,
     };
     let (reserved_times_fn, _, mut route_ctx) =
-        create_feature_and_route(vehicle_detail_data, activities, reserved_time);
+        create_feature_and_route_with_span(vehicle_detail_data, activities, reserved_time, span);
 
     avoid_reserved_time_when_driving(route_ctx.route_mut(), &reserved_times_fn);
 

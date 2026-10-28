@@ -4,7 +4,7 @@ mod reserved_time_test;
 
 use crate::construction::enablers::get_offset_anchor;
 use crate::models::common::*;
-use crate::models::problem::{ActivityCost, Actor, TransportCost, TravelTime};
+use crate::models::problem::{ActivityCost, Actor, RouteCostSpan, RouteCostSpanDimension, TransportCost, TravelTime};
 use crate::models::solution::{Activity, Route};
 use rosomaxa::prelude::GenericError;
 use std::collections::HashMap;
@@ -160,7 +160,18 @@ pub(crate) fn optimize_reserved_times_schedule(route: &mut Route, reserved_times
     reduce_waiting_by_reserved_time(route, reserved_times_fn);
 }
 
+/// Moves reserved time that falls on a drive into the departure of the activity the drive leaves,
+/// so the break is taken at the stop instead of on the road.
+///
+/// The drive home after the last job is left alone when the shift's span ends at the last job. That
+/// span is measured to the last job's departure (`calculate_route_duration`), and the move pushes
+/// exactly that departure by the whole break: a break the search priced on the unpaid drive home
+/// lands inside the paid stretch, after `maxDuration` and the overtime cost have had their last say.
+/// A 6h break due right as the day's last job ends turned a 4h tour into one 432s over its 10h cap.
 fn avoid_reserved_time_when_driving(route: &mut Route, reserved_times_fn: &ReservedTimesFn) {
+    let span = route.actor.vehicle.dimens.get_route_cost_span().copied().unwrap_or_default();
+    let is_span_ending_at_last_job = matches!(span, RouteCostSpan::DepotToLastJob | RouteCostSpan::FirstJobToLastJob);
+
     // NOTE assume reserved times has no intersection
     let schedule_shifts = route
         .tour
@@ -169,6 +180,8 @@ fn avoid_reserved_time_when_driving(route: &mut Route, reserved_times_fn: &Reser
             &[from, to] => Some((from, to, idx)),
             _ => None,
         })
+        // only the end depot has no job behind it on the far side of a leg
+        .filter(|(_, to, _)| !(is_span_ending_at_last_job && to.job.is_none()))
         .filter_map(|(from, to, idx)| {
             let travel_tw = TimeWindow::new(from.schedule.departure, to.schedule.arrival);
             reserved_times_fn(route, &travel_tw).map(|reserved_time| (idx, from, reserved_time))
