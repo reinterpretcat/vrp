@@ -233,8 +233,13 @@ impl TransportConstraint {
 
         // A non-stale route already has the arrival on its existing prev -> next leg. Reuse it
         // instead of repeating a potentially expensive transport lookup for every insertion candidate.
+        // That arrival is the one from prev's CURRENT departure: in front of the first job the
+        // insertion may depart earlier (`departure_for_insertion`), and the arrival the route has is
+        // then later than the one the insertion can count on. With reserved time the latest arrival
+        // can sit below that arrival on a feasible route, and the `fail` below would then take every
+        // position of the route away from the job.
         let arr_time_at_next = match (route_ctx.is_stale(), next) {
-            (false, Some(next)) => next.schedule.arrival,
+            (false, Some(next)) if departure == prev.schedule.departure => next.schedule.arrival,
             _ => {
                 departure
                     + self.transport.duration(

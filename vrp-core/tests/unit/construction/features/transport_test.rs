@@ -324,6 +324,81 @@ mod timing {
         assert_eq!(result, None);
     }
 
+    /// The latest arrival a route keeps for its activities can sit below the arrival the route
+    /// already has: on a shift with reserved time `DynamicActivityCost::estimate_arrival` takes the
+    /// break off the latest arrival whenever it lies anywhere between the arrival and the latest
+    /// departure, and clamps to the window's start. A first job reached at the end of its window
+    /// then reads as already late, although the route is feasible and the break has hours of room.
+    ///
+    /// An insertion in front of that job departs from the shift's earliest
+    /// (`departure_for_insertion`), not from the departure the route has now, so it has to be
+    /// measured from there. Reading the arrival the route already has on that leg instead failed the
+    /// whole route for the job — `fail` stops the evaluation of every later position as well, the
+    /// afternoon included.
+    ///
+    /// The job is served 115..190 in its window 100..115 and the 30s break due at 300 leaves its
+    /// latest arrival at 100. Departing at 0, the new job is done at 6 and the first job is reached
+    /// at 11, well in time.
+    #[test]
+    fn can_insert_in_front_of_a_first_job_whose_latest_arrival_a_break_pulls_below_its_arrival() {
+        let fleet = FleetBuilder::default()
+            .add_driver(test_driver())
+            .add_vehicles(vec![
+                TestVehicleBuilder::default()
+                    .id("v1")
+                    .details(vec![create_detail((Some(0), Some(0)), Some((0., 1000.)))])
+                    .build(),
+            ])
+            .build();
+        let reserved_times_idx = vec![(
+            fleet.actors.first().unwrap().clone(),
+            vec![ReservedTimeSpan { time: TimeSpan::Window(TimeWindow::new(300., 300.)), duration: 30. }],
+        )]
+        .into_iter()
+        .collect::<std::collections::HashMap<_, _>>();
+        let feature = TransportFeatureBuilder::new("transport")
+            .set_violation_code(VIOLATION_CODE)
+            .set_transport_cost(Arc::new(
+                DynamicTransportCost::new(reserved_times_idx.clone(), TestTransportCost::new_shared()).unwrap(),
+            ))
+            .set_activity_cost(Arc::new(DynamicActivityCost::new(reserved_times_idx).unwrap()))
+            .build_minimize_cost()
+            .unwrap();
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .with_vehicle(&fleet, "v1")
+                    .add_activity(
+                        ActivityBuilder::default()
+                            .place(Place { idx: 0, location: 10, duration: 75., time: TimeWindow::new(100., 115.) })
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build();
+        route_ctx.route_mut().tour.get_mut(0).unwrap().schedule.departure = 105.;
+        feature.state.as_ref().unwrap().accept_route_state(&mut route_ctx);
+        // an accepted route is what the search evaluates insertions against
+        route_ctx.mark_stale(false);
+        assert_eq!(route_ctx.route().tour.get(1).unwrap().schedule.arrival, 115.);
+        assert_eq!(route_ctx.state().get_schedule_at(1).map(|state| state.latest_arrival), Some(100.));
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+        let target = ActivityBuilder::default()
+            .place(Place { idx: 0, location: 5, duration: 1., time: TimeWindow::new(0., 1000.) })
+            .build();
+        let activity_ctx = ActivityContext {
+            index: 0,
+            prev: route_ctx.route().tour.get(0).unwrap(),
+            target: &target,
+            next: route_ctx.route().tour.get(1),
+        };
+
+        let result =
+            feature.constraint.unwrap().evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx));
+
+        assert_eq!(result, None);
+    }
+
     #[test]
     fn can_stop_with_time_route_constraint() {
         let fleet = FleetBuilder::default()
