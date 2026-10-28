@@ -243,7 +243,7 @@ fn can_refuse_a_later_departure_a_break_makes_infeasible() {
 
 /// Moving a departure forward normally shortens a tour, so only the receding side ever weighed the
 /// duration limit. With reserved time it can lengthen one, and the two callers that move a departure
-/// - the `AdvanceDeparture` post-processing and the reschedule local operator - both run after the
+/// (the `AdvanceDeparture` post-processing and the reschedule local operator) both run after the
 /// duration constraint has had its last word. A tour pushed past its cap there would never be seen
 /// again.
 ///

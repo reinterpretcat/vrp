@@ -727,6 +727,8 @@ pub struct Fleet {
 // region Objective
 
 /// Specifies objective function types.
+// NOTE: boxing the territory options would change the public type for a value read once per solve
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Deserialize, Debug, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "kebab-case")]

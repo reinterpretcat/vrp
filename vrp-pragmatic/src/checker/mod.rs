@@ -38,6 +38,7 @@ pub struct CheckerContext {
 
 /// Represents all possible activity types.
 #[allow(dead_code)] // NOTE: keep data in each variant for future use
+#[allow(clippy::large_enum_variant)]
 enum ActivityType {
     Terminal,
     Job(Job),

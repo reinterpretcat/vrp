@@ -289,10 +289,10 @@ fn check_e1309_vehicle_job_times(ctx: &ValidationContext) -> Result<(), FormatEr
 
             let (earliest, latest) = (earliest.and_then(Result::ok), latest.and_then(Result::ok));
 
-            if let (Some(earliest), Some(latest)) = (earliest, latest) {
-                if earliest >= latest {
-                    return false;
-                }
+            if let (Some(earliest), Some(latest)) = (earliest, latest)
+                && earliest >= latest
+            {
+                return false;
             }
 
             shift_time.is_none_or(|shift_time| {

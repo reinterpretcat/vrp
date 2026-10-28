@@ -253,11 +253,6 @@ impl TerritoryFeatureBuilder {
         self
     }
 
-    /// Sets per-driver boundary weights `w_i` used to form power cells: a job's power distance to
-    /// a driver is `proximity − w_i`, and a job is assigned overlap-free to the driver minimizing
-    /// it. A larger weight enlarges that driver's cell (so a sparse-value driver can reach further
-    /// for equal value). Defaults to `0.0` per driver, which makes power distance equal to raw
-    /// nearest-anchor proximity. Keyed like anchors (driver id, else vehicle id).
     /// Sets how much a DEFICIT costs, as a fraction of the same gap billed as a surplus. `0.0` (the
     /// default) is PUSH as it has always been: a driver below its band is a destination for other
     /// drivers' surplus and is never billed itself.
@@ -274,6 +269,11 @@ impl TerritoryFeatureBuilder {
         self
     }
 
+    /// Sets per-driver boundary weights `w_i` used to form power cells: a job's power distance to
+    /// a driver is `proximity − w_i`, and a job is assigned overlap-free to the driver minimizing
+    /// it. A larger weight enlarges that driver's cell (so a sparse-value driver can reach further
+    /// for equal value). Defaults to `0.0` per driver, which makes power distance equal to raw
+    /// nearest-anchor proximity. Keyed like anchors (driver id, else vehicle id).
     pub fn set_weights(mut self, w: HashMap<String, Float>) -> Self {
         self.weights = w;
         self
@@ -848,20 +848,6 @@ impl TerritoryShared {
             _ => self.job_metric(job),
         }
     }
-
-    /// What one job is worth to the balance, as an ESTIMATE for the insertion marginal and for
-    /// `avg_metric`'s unit conversion.
-    ///
-    /// ⚠️ `Duration` deliberately estimates a job at its SERVICE time alone, though its route load
-    /// is service plus drive. Inserting a job into a route adds its service exactly and its drive
-    /// only as a DETOUR — a few minutes between two neighbours, not the round trip from a depot
-    /// this function can see. Carrying the round trip made the estimate large, roughly equal for
-    /// every job, and therefore almost free of the discrimination a marginal exists to provide,
-    /// while mis-scaling it against PULL. Service alone is the part that is exactly knowable here,
-    /// and it is the part that dominates.
-    ///
-    /// `Distance` keeps the round trip: there the drive IS the load, so an estimate without it
-    /// would be zero.
 
     /// What the job itself adds to the balance quantity, beside the travel to reach it.
     ///

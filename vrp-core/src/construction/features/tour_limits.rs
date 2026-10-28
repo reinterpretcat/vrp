@@ -72,6 +72,7 @@ fn counted_job_activities(job: &Job, is_counted: &ActivityCountFn) -> usize {
 /// `reserved_times_index` names the actors whose shift carries reserved time (a required break).
 /// Pass an empty index when the problem has none: the duration limit then keeps its cheap estimate
 /// and no route pays for the lookup.
+#[allow(clippy::too_many_arguments)]
 pub fn create_travel_limit_feature(
     name: &str,
     transport: Arc<dyn TransportCost>,
