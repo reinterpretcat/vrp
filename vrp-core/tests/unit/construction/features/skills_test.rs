@@ -21,7 +21,7 @@ fn create_vehicle_with_skills(skills: Option<Vec<&str>>) -> Vehicle {
     let mut builder = TestVehicleBuilder::default();
 
     if let Some(skills) = skills {
-        let skills: HashSet<String> = HashSet::from_iter(skills.iter().map(|s| s.to_string()));
+        let skills: FxHashSet<String> = FxHashSet::from_iter(skills.iter().map(|s| s.to_string()));
         builder.dimens_mut().set_vehicle_skills(skills);
     }
 

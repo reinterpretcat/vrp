@@ -17,7 +17,9 @@ use super::vehicle_distance::get_job_location;
 use super::*;
 use crate::construction::enablers::{PaidWorkingDurationTourState, TotalDistanceTourState};
 use crate::models::problem::{JobIdDimension, driver_key};
+use rustc_hash::FxHashMap;
 use std::collections::HashMap;
+use std::hash::BuildHasher;
 
 pub use crate::construction::features::vehicle_distance::ActorJobCompatibilityFn;
 
@@ -434,16 +436,16 @@ struct TerritoryShared {
     /// The nearest anchor and nearest-spare anchor are pure functions of the (static) fleet anchors
     /// and job compatibility, so they are computed once here instead of rescanning every actor on
     /// each hot-loop insertion `estimate` — the scan was the fleet-scale construction bottleneck.
-    job_anchor_ranking: HashMap<String, Vec<(DriverKey, Float)>>,
+    job_anchor_ranking: FxHashMap<String, Vec<(DriverKey, Float)>>,
     /// Precomputed per job id: the minimum power distance `min_d (prox(loc, anchor_d) − w_d)` over
     /// its compatible drivers — the overlap-penalty reference, static because anchors and weights
     /// are fixed at build time.
-    job_nearest_power: HashMap<String, Float>,
+    job_nearest_power: FxHashMap<String, Float>,
     /// Precomputed per job id: the *second* smallest power distance over its compatible anchors
     /// (`+∞` when a job has only one compatible anchor). With `job_nearest_power` this gives the
     /// per-job power gap — how much deeper a job sits in its own cell than in the next-best one —
     /// which the location-aware PUSH marginal uses to prefer shedding boundary jobs over deep ones.
-    job_second_power: HashMap<String, Float>,
+    job_second_power: FxHashMap<String, Float>,
     /// The average balance metric per job (`total_metric / job_count`, floored positive). Divides
     /// the raw job metric in the PUSH marginal AND the surplus in the PUSH fitness, so both live on
     /// the same (distance) scale as PULL instead of `value × distance`, which otherwise dwarfs PULL
@@ -458,7 +460,7 @@ struct TerritoryShared {
     /// same unit, which two places need: [`Self::compute_avg_metric`], to express PUSH's surplus in
     /// jobs' worth so [`PUSH_CONVEXITY_GAIN`] means the same thing whatever is balanced, and
     /// [`Self::push_marginal`]'s value factor. Static, so `avg_metric` stays a build-time constant.
-    job_travel_estimate: HashMap<String, Float>,
+    job_travel_estimate: FxHashMap<String, Float>,
     /// The PUSH marginal's reach: the median per-job power gap. A job whose gap exceeds this sits
     /// too deep in its cell to be worth shedding for balance, so its PUSH marginal is zero (it stays
     /// home); jobs within reach of a boundary are the ones balance may push to a neighbour.
@@ -520,10 +522,10 @@ impl TerritoryShared {
             shares_supplied,
             quotas_supplied,
             reference: 1.0,
-            job_anchor_ranking: HashMap::new(),
-            job_travel_estimate: HashMap::new(),
-            job_nearest_power: HashMap::new(),
-            job_second_power: HashMap::new(),
+            job_anchor_ranking: FxHashMap::default(),
+            job_travel_estimate: FxHashMap::default(),
+            job_nearest_power: FxHashMap::default(),
+            job_second_power: FxHashMap::default(),
             avg_metric: 1.0,
             push_reach: 0.0,
             caps: HashMap::new(),
@@ -633,7 +635,7 @@ impl TerritoryShared {
     /// - derived, `allow_idle_drivers` on: quotas re-based over the *used* drivers (load > 0), so
     ///   idle drivers carry no quota and never count as a deficit, while the used drivers stay
     ///   balanced among themselves.
-    fn effective_quotas(&self, loads: &HashMap<DriverKey, Float>) -> HashMap<DriverKey, Float> {
+    fn effective_quotas<S: BuildHasher>(&self, loads: &HashMap<DriverKey, Float, S>) -> HashMap<DriverKey, Float> {
         if self.shares_supplied {
             return self.quotas_from_shares(loads);
         }
@@ -669,7 +671,7 @@ impl TerritoryShared {
     ///
     /// Walked in `driver_order` so both sums fold in a fixed order — a float sum rounds by the
     /// order it is folded in, and every quota is scaled by these totals.
-    fn quotas_from_shares(&self, loads: &HashMap<DriverKey, Float>) -> HashMap<DriverKey, Float> {
+    fn quotas_from_shares<S: BuildHasher>(&self, loads: &HashMap<DriverKey, Float, S>) -> HashMap<DriverKey, Float> {
         let mut pool_load: HashMap<&str, Float> = HashMap::new();
 
         for key in self.driver_order.iter() {
@@ -779,7 +781,7 @@ impl TerritoryShared {
 
     /// Precompute, per job id, its minimum power distance over compatible anchors (static input to
     /// the overlap penalty). Reuses `job_anchor_ranking`, so it must run after it.
-    fn compute_job_nearest_power(&self) -> HashMap<String, Float> {
+    fn compute_job_nearest_power(&self) -> FxHashMap<String, Float> {
         self.job_anchor_ranking
             .iter()
             .map(|(id, ranking)| {
@@ -794,7 +796,7 @@ impl TerritoryShared {
     /// (`+∞` when fewer than two). Reuses `job_anchor_ranking`, so it must run after it. Note the
     /// ranking is sorted by raw proximity; with per-driver weights the power order can differ, so
     /// the powers are re-sorted here.
-    fn compute_job_second_power(&self) -> HashMap<String, Float> {
+    fn compute_job_second_power(&self) -> FxHashMap<String, Float> {
         self.job_anchor_ranking
             .iter()
             .map(|(id, ranking)| {
@@ -808,7 +810,7 @@ impl TerritoryShared {
     /// See [`Self::job_travel_estimate`]. Compatibility-aware, so a job counts only the vehicles
     /// that may actually serve it; a job no vehicle may serve estimates at 0.0 and never enters a
     /// route anyway.
-    fn compute_job_travel_estimate(&self, jobs: &Jobs) -> HashMap<String, Float> {
+    fn compute_job_travel_estimate(&self, jobs: &Jobs) -> FxHashMap<String, Float> {
         jobs.all()
             .iter()
             .filter_map(|job| {
@@ -949,7 +951,7 @@ impl TerritoryShared {
     }
 
     /// Precompute, per job id, its sorted compatible-anchor list — the static hot-loop input.
-    fn compute_job_anchor_ranking(&self, jobs: &Jobs) -> HashMap<String, Vec<(DriverKey, Float)>> {
+    fn compute_job_anchor_ranking(&self, jobs: &Jobs) -> FxHashMap<String, Vec<(DriverKey, Float)>> {
         jobs.all()
             .iter()
             .filter_map(|job| {
@@ -985,8 +987,8 @@ impl TerritoryShared {
 
     /// Current per-driver load: the sum of the balance metric across all jobs on that driver's
     /// route(s) in the given solution. Includes every driver with a quota, even if idle.
-    fn loads(&self, solution: &SolutionContext) -> HashMap<DriverKey, Float> {
-        let mut loads: HashMap<DriverKey, Float> = self.quota_keys().map(|k| (k.clone(), 0.0)).collect();
+    fn loads(&self, solution: &SolutionContext) -> FxHashMap<DriverKey, Float> {
+        let mut loads: FxHashMap<DriverKey, Float> = self.quota_keys().map(|k| (k.clone(), 0.0)).collect();
         for route_ctx in solution.routes.iter() {
             let key = driver_key(&route_ctx.route().actor);
             *loads.entry(key).or_insert(0.0) += self.route_load(route_ctx);

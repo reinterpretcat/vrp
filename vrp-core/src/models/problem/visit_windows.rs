@@ -1,7 +1,7 @@
 //! Per-shift windows a tagged visit has to lie in, and the tag a visit carries.
 
 use crate::models::common::{Dimensions, Timestamp};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 /// A named window a tagged visit lies entirely inside: service starts at or after `earliest` and
 /// the visit is departed at or before `latest`.
@@ -21,8 +21,9 @@ pub struct VisitWindow {
 /// without a tag is fixed: its own time window and the shift's job times bind it, no visit window does.
 #[derive(Clone, Debug, Default)]
 pub struct VisitWindows {
-    /// The windows by name.
-    pub windows: HashMap<String, VisitWindow>,
+    /// The windows by name. Read for every visit the schedule estimates, so the tag is hashed with
+    /// FxHash rather than SipHash.
+    pub windows: FxHashMap<String, VisitWindow>,
 }
 
 impl VisitWindows {

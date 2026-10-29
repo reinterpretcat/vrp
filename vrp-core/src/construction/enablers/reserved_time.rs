@@ -215,8 +215,10 @@ pub(crate) fn create_reserved_times_fn(
         return Ok(Arc::new(|_, _| None));
     }
 
+    // looked up on every travel leg and service the schedule estimates: the actor key hashes its
+    // address, which SipHash spent far longer on than the lookup itself
     let reserved_times = reserved_times_index.into_iter().try_fold(
-        HashMap::<_, PartitionedSpans>::new(),
+        rustc_hash::FxHashMap::<_, PartitionedSpans>::default(),
         |mut acc, (actor, times)| -> Result<_, GenericError> {
             // Partition into window and offset groups
             let (mut window_spans, mut offset_spans): (Vec<_>, Vec<_>) =

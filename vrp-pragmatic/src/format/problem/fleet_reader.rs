@@ -189,7 +189,7 @@ pub(super) fn read_fleet(
                 }
 
                 if let Some(skills) = vehicle.skills.as_ref() {
-                    dimens.set_vehicle_skills(skills.iter().cloned().collect::<HashSet<_>>());
+                    dimens.set_vehicle_skills(skills.iter().cloned().collect());
                 }
 
                 if let Some(span) = vehicle.costs.span.as_ref() {

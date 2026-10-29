@@ -5,6 +5,7 @@ use crate::models::problem::*;
 use crate::models::solution::*;
 use crate::models::{LockOrder, Problem, Solution};
 use rosomaxa::prelude::Environment;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -12,10 +13,10 @@ type ActivityPlace = crate::models::solution::Place;
 
 /// Creates insertion context from existing solution.
 pub fn create_insertion_context(problem: Arc<Problem>, environment: Arc<Environment>) -> InsertionContext {
-    let mut locked: HashSet<Job> = Default::default();
+    let mut locked: FxHashSet<Job> = Default::default();
     let mut reserved: HashSet<Job> = Default::default();
     let mut ignored: HashSet<Job> = Default::default();
-    let mut unassigned: HashMap<Job, UnassignmentInfo> = Default::default();
+    let mut unassigned: FxHashMap<Job, UnassignmentInfo> = Default::default();
     let mut routes: Vec<RouteContext> = Default::default();
     let mut registry = Registry::new(&problem.fleet, environment.random.clone());
     let state = Default::default();
@@ -126,7 +127,7 @@ pub fn create_insertion_context_from_solution(
     environment: Arc<Environment>,
 ) -> InsertionContext {
     let required = solution.0.unassigned.iter().map(|(job, _)| job).cloned().collect();
-    let locked = problem.locks.iter().fold(HashSet::new(), |mut acc, lock| {
+    let locked = problem.locks.iter().fold(FxHashSet::default(), |mut acc, lock| {
         acc.extend(lock.details.iter().flat_map(|d| d.jobs.iter().cloned()));
         acc
     });

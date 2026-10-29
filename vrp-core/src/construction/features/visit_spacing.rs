@@ -1,7 +1,7 @@
 //! A feature keeping the visits of one rhythm apart by their interval, give or take a tolerance.
 
 use super::*;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/construction/features/visit_spacing_test.rs"]
@@ -26,7 +26,7 @@ pub struct VisitSpacing {
 }
 
 custom_dimension!(pub VisitSpacing typeof VisitSpacing);
-custom_tour_state!(CurrentSpacedVisits typeof HashMap<String, Vec<(usize, Option<i64>)>>);
+custom_tour_state!(CurrentSpacedVisits typeof FxHashMap<String, Vec<(usize, Option<i64>)>>);
 
 const SECONDS_PER_DAY: Float = 86_400.;
 
@@ -167,9 +167,9 @@ impl FeatureState for VisitSpacingState {
     }
 }
 
-fn collect_spaced_visits(route_ctx: &RouteContext) -> HashMap<String, Vec<(usize, Option<i64>)>> {
+fn collect_spaced_visits(route_ctx: &RouteContext) -> FxHashMap<String, Vec<(usize, Option<i64>)>> {
     route_ctx.route().tour.jobs().filter_map(|job| job.dimens().get_visit_spacing()).fold(
-        HashMap::default(),
+        FxHashMap::default(),
         |mut visits, spacing| {
             visits.entry(spacing.group.clone()).or_default().push((spacing.order, spacing.min_offset_days));
             visits
