@@ -10,7 +10,7 @@
 mod visit_window_overflow_test;
 
 use super::*;
-use crate::construction::enablers::{IsAppointmentFn, own_window_on};
+use crate::construction::enablers::{IsAppointmentFn, bridge_window, own_window_on, untagged_visit_span};
 use crate::models::solution::{Activity, Route};
 use std::ops::ControlFlow;
 
@@ -58,7 +58,17 @@ impl VisitWindowOverflowObjective {
     /// the job's own time window may have held service back past the arrival.
     fn overflow(&self, route: &Route, windows: &VisitWindows, activity: &Activity, departure: Timestamp) -> Cost {
         let Some(own) = own_window(windows, activity) else { return Cost::default() };
-        let (earliest, latest) = own_window_on(route, own, &self.is_visit);
+
+        self.overflow_within(own_window_on(route, own, &self.is_visit), activity, departure)
+    }
+
+    /// `overflow` for a visit whose own window on the route is already known.
+    fn overflow_within(
+        &self,
+        (earliest, latest): (Timestamp, Timestamp),
+        activity: &Activity,
+        departure: Timestamp,
+    ) -> Cost {
         let start = departure - activity.place.duration;
         let outside = ((earliest - start).max(0.) + (departure - latest).max(0.)).min(departure - start);
 
@@ -80,12 +90,19 @@ impl FeatureObjective for VisitWindowOverflowObjective {
                 let windows = route_ctx.route().actor.vehicle.dimens.get_visit_windows()?;
 
                 let route = route_ctx.route();
+                // every bridged window of the route reaches out to the same visits: walking the route
+                // for each tagged visit made this quadratic in the route, and the population compares
+                // stored solutions through it after every generation
+                let span = untagged_visit_span(route, &self.is_visit);
 
                 Some(
                     route
                         .tour
                         .all_activities()
-                        .map(|activity| self.overflow(route, windows, activity, activity.schedule.departure))
+                        .filter_map(|activity| {
+                            let own = own_window(windows, activity)?;
+                            Some(self.overflow_within(bridge_window(own, span), activity, activity.schedule.departure))
+                        })
                         .sum::<Cost>(),
                 )
             })

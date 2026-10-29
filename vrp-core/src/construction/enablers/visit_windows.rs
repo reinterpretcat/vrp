@@ -110,6 +110,13 @@ pub fn own_window_on(route: &Route, window: &VisitWindow, is_visit: &IsAppointme
         return (window.earliest, window.latest);
     }
 
+    bridge_window(window, untagged_visit_span(route, is_visit))
+}
+
+/// The earliest window start and the latest window end among the untagged visits on `route` that
+/// have a time window, or `None` when there is none: what every bridged window on the route reaches
+/// out to. It depends on the route alone, so a caller weighing many visits of one route takes it once.
+pub fn untagged_visit_span(route: &Route, is_visit: &IsAppointmentFn) -> Option<Window> {
     route
         .tour
         .all_activities()
@@ -120,9 +127,16 @@ pub fn own_window_on(route: &Route, window: &VisitWindow, is_visit: &IsAppointme
                 && single.dimens.get_visit_window_tag().is_none()
                 && activity.place.time.end < Timestamp::MAX
         })
-        .fold((window.earliest, window.latest), |(earliest, latest), (activity, _)| {
-            (earliest.min(activity.place.time.start), latest.max(activity.place.time.end))
-        })
+        .map(|(activity, _)| (activity.place.time.start, activity.place.time.end))
+        .reduce(|(earliest, latest), (start, end)| (earliest.min(start), latest.max(end)))
+}
+
+/// The own window `own_window_on` gives for `span`, the route's `untagged_visit_span`.
+pub fn bridge_window(window: &VisitWindow, span: Option<Window>) -> Window {
+    match span {
+        Some((earliest, latest)) if window.bridge => (window.earliest.min(earliest), window.latest.max(latest)),
+        _ => (window.earliest, window.latest),
+    }
 }
 
 impl ActivityCost for VisitWindowsActivityCost {
