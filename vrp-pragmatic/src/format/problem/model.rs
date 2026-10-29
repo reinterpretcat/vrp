@@ -819,6 +819,17 @@ pub enum Objective {
     /// An objective to control order of job activities in the tour.
     TourOrder,
 
+    /// An objective to score every route against caller-stated targets, each a piecewise linear
+    /// curve from a route metric to penalty points, and to minimize the summed points of all routes.
+    /// An empty route scores nothing.
+    RouteTargets {
+        /// The targets, at least one.
+        targets: Vec<RouteTargetJson>,
+        /// How a route's points combine: `sum`, `sum-of-squares` (the default) or `max`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        aggregate: Option<RouteTargetAggregateJson>,
+    },
+
     /// An objective to minimize tour size violations (routes with fewer activities than min_tour_size).
     /// Only relevant when vehicles have min_tour_size limits defined.
     MinimizeTourSizeViolation,
@@ -990,6 +1001,82 @@ pub enum BalancePeriodMetric {
 
     /// Balances total job production value (the `productionValue` job property).
     ProductionValue,
+}
+
+/// One target of the `route-targets` objective: a metric and its curve of `[value, points]` pairs.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct RouteTargetJson {
+    /// What is measured.
+    pub metric: RouteTargetMetricJson,
+    /// The part of the route measured by `distance`, `driving-time` and `duration`. Default is
+    /// `first-job-to-last-job`; ignored by the other metrics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub span: Option<RouteCostSpan>,
+    /// Whether the breaks inside the span count for `duration`. Default is `exclude`; ignored by the
+    /// other metrics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub breaks: Option<RouteTargetBreaksJson>,
+    /// What the metric is divided by: `route` (the default), `activity` or `hour`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub per: Option<RouteTargetPerJson>,
+    /// The curve: at least two `[value, points]` pairs, strictly ascending by value. Linear between
+    /// points, the outer slopes continue beyond the ends, never below zero.
+    pub points: Vec<(Float, Float)>,
+}
+
+/// What a route target measures.
+#[derive(Clone, Copy, Deserialize, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RouteTargetMetricJson {
+    /// Travelled distance over the span, in meters.
+    Distance,
+    /// Kept for earlier problems: `distance` over `depot-to-depot`.
+    TotalDistance,
+    /// Driving time over the span, in seconds.
+    DrivingTime,
+    /// Elapsed time over the span, waiting included, in seconds.
+    Duration,
+    /// The summed service durations of the route's jobs, in seconds.
+    ServiceTime,
+    /// The summed production value (the `productionValue` job property) of the route's jobs.
+    Value,
+    /// The number of job activities, breaks not counted.
+    Activities,
+}
+
+/// Whether the breaks inside a route target's span count for `duration`.
+#[derive(Clone, Copy, Deserialize, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RouteTargetBreaksJson {
+    /// Break time is taken out.
+    Exclude,
+    /// Break time counts.
+    Include,
+}
+
+/// What a route target's metric is divided by.
+#[derive(Clone, Copy, Deserialize, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RouteTargetPerJson {
+    /// Nothing: the route's total.
+    Route,
+    /// The route's number of job activities.
+    Activity,
+    /// The route's working hours, first job to last job with breaks taken out. A route without
+    /// working time scores nothing on the target.
+    Hour,
+}
+
+/// How the points of a route's targets combine.
+#[derive(Clone, Copy, Deserialize, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RouteTargetAggregateJson {
+    /// Their sum.
+    Sum,
+    /// The sum of their squares.
+    SumOfSquares,
+    /// The worst one.
+    Max,
 }
 
 /// What the visit-window overflow objective measures.

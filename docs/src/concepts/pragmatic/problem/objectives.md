@@ -76,6 +76,24 @@ These objectives provide some extra control on job assignment:
 - `minimize-tour-size-violation`: penalizes solutions where routes have fewer activities than the `min_tour_size`
   limit defined on vehicles. Empty routes (with zero activities) are not penalized. This objective should be used
   when vehicles have `min_tour_size` limits defined in their `limits` property.
+- `route-targets`: scores every route against caller-stated targets and minimizes the summed points of all routes.
+  An empty route scores nothing. Parameters:
+  - `targets` (mandatory): a list of targets, each with:
+    - `metric`: `distance` (meters), `driving-time` (seconds), `duration` (elapsed seconds, waiting included),
+      `service-time` (summed service durations of the route's jobs, in seconds), `value` (summed `productionValue`
+      job property) or `activities` (number of job activities, breaks not counted). `total-distance` is kept for
+      earlier problems and means `distance` over `depot-to-depot`
+    - `span` (optional): the part of the route measured by `distance`, `driving-time` and `duration`, one of
+      `first-job-to-last-job` (default), `depot-to-depot`, `depot-to-last-job` or `first-job-to-depot`
+    - `breaks` (optional): whether break time inside the span counts for `duration`, `exclude` (default) or `include`
+    - `per` (optional): `route` (default), `activity` (divided by the number of job activities) or `hour` (divided by
+      the working hours from the first job to the last one, breaks excluded; a route without working time scores
+      nothing on such a target)
+    - `points`: the curve, at least two `[value, points]` pairs strictly ascending by value. The penalty is linear
+      between points, the outer segments' slopes continue beyond the ends and it never drops below zero, for example
+      `[[10000, 0], [20000, 1], [30000, 3]]`
+  - `aggregate` (optional): how a route's target points combine, `sum`, `sum-of-squares` (default) or `max` (the
+    route's worst target)
 
 ### Work balance objectives
 

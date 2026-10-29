@@ -29,6 +29,11 @@ are already published. So, I stick to it for now.
 
 ### Added
 
+* add the `route-targets` objective: every route is scored against caller-stated `targets`, each a `metric`
+  (`distance`, `driving-time`, `duration`, `service-time`, `value` or `activities`) read over a `span`, optionally
+  with `breaks` included and `per` activity or hour, on a piecewise linear curve of `[value, points]` pairs; a route's
+  points combine by `aggregate` (`sum`, `sum-of-squares` or `max`) and the plan minimizes their sum, an empty route
+  scoring nothing
 * add the territory option `dayPatch` (default `false`): a route is measured against ONE of its driver's anchors, the
   one with the smallest summed proximity to its jobs, instead of each job against the nearest of them, so a day stays
   in one patch of a driver holding several anchors far apart
