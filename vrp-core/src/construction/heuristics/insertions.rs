@@ -440,6 +440,11 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
     // schedule to break.
     // A job inserted in front of the first one was accepted against the shift's earliest departure
     // (`departure_for_insertion`), so the route departs that early again before it is advanced anew.
+    // Both advance only as far as the first job allows (`consider_whole_tour = false`), which is the
+    // departure the duration limit replays from. Pushing it on by the waiting further down the tour
+    // would spend the slack later insertions need: a pickup slid into its window refused the next
+    // job, and lc101 needed twice the tours of the stock heuristic. Post-processing still advances
+    // over the whole tour.
     if inserted_in_front {
         let problem = insertion_ctx.problem.clone();
         if let Some(route_ctx) = insertion_ctx.solution.routes.get_mut(route_index) {
@@ -449,7 +454,7 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
             if let Some((earliest, _)) = earliest.zip(departure).filter(|(earliest, departure)| earliest < departure) {
                 update_route_departure(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), earliest);
                 problem.goal.accept_route_state(route_ctx);
-                advance_departure_time(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), true);
+                advance_departure_time(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), false);
                 problem.goal.accept_route_state(route_ctx);
             }
         }
@@ -459,7 +464,7 @@ pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, succ
         let problem = insertion_ctx.problem.clone();
         if let Some(route_ctx) = insertion_ctx.solution.routes.get_mut(route_index) {
             let departure_before = route_ctx.route().tour.start().map(|start| start.schedule.departure);
-            advance_departure_time(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), true);
+            advance_departure_time(route_ctx, problem.activity.as_ref(), problem.transport.as_ref(), false);
             let departure_after = route_ctx.route().tour.start().map(|start| start.schedule.departure);
 
             // only re-accept when the departure actually moved: `accept_route_state` clears the stale
