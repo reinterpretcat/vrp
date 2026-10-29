@@ -37,4 +37,8 @@ impl ActivityCost for OnlyVehicleActivityCost {
     ) -> ControlFlow<Timestamp, Timestamp> {
         self.inner.estimate_arrival(route, activity, departure)
     }
+
+    fn estimate_service_start(&self, route: &Route, activity: &Activity, arrival: Timestamp) -> Timestamp {
+        self.inner.estimate_service_start(route, activity, arrival)
+    }
 }

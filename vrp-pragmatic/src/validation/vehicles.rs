@@ -3,9 +3,9 @@
 mod vehicles_test;
 
 use super::*;
+use crate::parse_time_safe;
 use crate::utils::combine_error_results;
 use crate::validation::common::get_time_windows;
-use crate::{parse_time, parse_time_safe};
 use std::collections::HashSet;
 use vrp_core::models::common::TimeWindow;
 
@@ -73,18 +73,26 @@ fn check_e1303_vehicle_breaks_time_is_correct(ctx: &ValidationContext) -> Result
                 .breaks
                 .as_ref()
                 .map(|breaks| {
+                    // OffsetTime breaks: only structural validation (no absolute time computation
+                    // against shift start, since the actual anchor is unknown at validation time)
+                    let offset_valid = breaks.iter().all(|b| match b {
+                        VehicleBreak::Required {
+                            time: VehicleRequiredBreakTime::OffsetTime { earliest, latest },
+                            duration,
+                        } => *earliest >= 0. && *latest >= 0. && *earliest <= *latest && *duration > 0.,
+                        _ => true,
+                    });
+
+                    if !offset_valid {
+                        return false;
+                    }
+
+                    // ExactTime and optional breaks: validate against shift time windows as before
                     let tws = breaks
                         .iter()
                         .filter_map(|b| match b {
                             VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeWindow(tw), .. } => {
                                 Some(get_time_window_from_vec(tw))
-                            }
-                            VehicleBreak::Required {
-                                time: VehicleRequiredBreakTime::OffsetTime { earliest, latest },
-                                duration,
-                            } => {
-                                let departure = parse_time(&shift.start.earliest);
-                                Some(Some(TimeWindow::new(departure + *earliest, departure + *latest + *duration)))
                             }
                             VehicleBreak::Required {
                                 time: VehicleRequiredBreakTime::ExactTime { earliest, latest },
@@ -151,12 +159,12 @@ fn check_e1304_vehicle_reload_time_is_correct(ctx: &ValidationContext) -> Result
 /// Checks that the fleet defines at least one vehicle type.
 ///
 /// Without one there is nothing to route with, and the problem cannot be solved at all.
-fn check_e1309_fleet_has_vehicle_types(ctx: &ValidationContext) -> Result<(), FormatError> {
+fn check_e1312_fleet_has_vehicle_types(ctx: &ValidationContext) -> Result<(), FormatError> {
     if ctx.vehicles().next().is_some() {
         Ok(())
     } else {
         Err(FormatError::new(
-            "E1309".to_string(),
+            "E1312".to_string(),
             "fleet has no vehicle types".to_string(),
             "add at least one vehicle type to the fleet".to_string(),
         ))
@@ -190,7 +198,9 @@ fn check_e1305_vehicle_types_have_vehicle_ids(ctx: &ValidationContext) -> Result
 fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), FormatError> {
     let type_ids = ctx
         .vehicles()
-        .filter(|vehicle| vehicle.costs.time == 0. && vehicle.costs.distance == 0.)
+        .filter(|vehicle| {
+            vehicle.costs.time == 0. && vehicle.costs.distance == 0. && vehicle.costs.overtime.unwrap_or(0.) == 0.
+        })
         .map(|vehicle| vehicle.type_id.to_string())
         .collect::<Vec<_>>();
 
@@ -201,46 +211,8 @@ fn check_e1306_vehicle_has_no_zero_costs(ctx: &ValidationContext) -> Result<(), 
             "E1306".to_string(),
             "time and duration costs are zeros".to_string(),
             format!(
-                "ensure that either time or distance cost is non-zero, \
+                "ensure that time, distance, or overtime cost is non-zero, \
                  vehicle type ids: '{}'",
-                type_ids.join(", ")
-            ),
-        ))
-    }
-}
-
-fn check_e1307_vehicle_offset_break_rescheduling(ctx: &ValidationContext) -> Result<(), FormatError> {
-    let type_ids = get_invalid_type_ids(
-        ctx,
-        Box::new(|_, shift, _| {
-            shift
-                .breaks
-                .as_ref()
-                .map(|breaks| {
-                    let has_time_offset = breaks.iter().any(|br| {
-                        matches!(
-                            br,
-                            VehicleBreak::Required { time: VehicleRequiredBreakTime::OffsetTime { .. }, .. }
-                                | VehicleBreak::Optional { time: VehicleOptionalBreakTime::TimeOffset { .. }, .. }
-                        )
-                    });
-                    let has_rescheduling =
-                        shift.start.latest.as_ref().is_none_or(|latest| *latest != shift.start.earliest);
-
-                    !(has_time_offset && has_rescheduling)
-                })
-                .unwrap_or(true)
-        }),
-    );
-
-    if type_ids.is_empty() {
-        Ok(())
-    } else {
-        Err(FormatError::new(
-            "E1307".to_string(),
-            "time offset interval for break is used with departure rescheduling".to_string(),
-            format!(
-                "when time offset is used, start.latest should be set equal to start.earliest in the shift, check vehicle type ids: '{}'",
                 type_ids.join(", ")
             ),
         ))
@@ -296,6 +268,173 @@ fn check_e1308_vehicle_reload_resources(ctx: &ValidationContext) -> Result<(), F
     }
 }
 
+/// Checks that a shift's job times are a usable pair: both readable timestamps,
+/// `latest_last` after `earliest_first`, and both inside the shift's own time
+/// window. A pair that cannot be met makes every job on the shift unassignable,
+/// which is a refused problem rather than a plan of nothing.
+fn check_e1309_vehicle_job_times(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(|_, shift, shift_time| {
+            let Some(job_times) = shift.job_times.as_ref() else { return true };
+
+            // Validation runs before anything has checked the format, and `parse_time` unwraps:
+            // a bound that is not a timestamp has to be reported as E1309, not kill the process.
+            let earliest = job_times.earliest_first.as_ref().map(|time| parse_time_safe(time));
+            let latest = job_times.latest_last.as_ref().map(|time| parse_time_safe(time));
+
+            if earliest.as_ref().is_some_and(Result::is_err) || latest.as_ref().is_some_and(Result::is_err) {
+                return false;
+            }
+
+            let (earliest, latest) = (earliest.and_then(Result::ok), latest.and_then(Result::ok));
+
+            if let (Some(earliest), Some(latest)) = (earliest, latest)
+                && earliest >= latest
+            {
+                return false;
+            }
+
+            shift_time.is_none_or(|shift_time| {
+                earliest.is_none_or(|earliest| shift_time.contains(earliest))
+                    && latest.is_none_or(|latest| shift_time.contains(latest))
+            })
+        }),
+    );
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1309".to_string(),
+            "invalid job times in vehicle shift".to_string(),
+            format!(
+                "ensure that earliest first job is before latest last job and both are inside the shift, vehicle type ids: {}",
+                type_ids.join(", ")
+            ),
+        ))
+    }
+}
+
+/// Checks that every named visit window of a shift parses, runs forwards and lies inside the shift,
+/// that its fallback names another window of the shift without a cycle, and that every job's tag
+/// names a window of every shift that has windows. A window outside its shift would bound visits by
+/// hours the vehicle is not working; an unknown tag would silently leave a job unbound. A fallback
+/// need not contain the window it backs: how windows relate is the caller's business.
+fn check_e1310_vehicle_visit_windows(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let type_ids = get_invalid_type_ids(
+        ctx,
+        Box::new(|_, shift, shift_time| {
+            let Some(windows) = shift.visit_windows.as_ref() else { return true };
+
+            let is_valid_window = |window: &VisitWindowJson| {
+                // `parse_time` unwraps: a bound that is not a timestamp is an E1310, not a panic.
+                match (parse_time_safe(&window.earliest), parse_time_safe(&window.latest)) {
+                    (Ok(earliest), Ok(latest)) => {
+                        earliest < latest
+                            && shift_time
+                                .as_ref()
+                                .is_none_or(|shift_time| shift_time.contains(earliest) && shift_time.contains(latest))
+                    }
+                    _ => false,
+                }
+            };
+
+            let has_valid_fallback = |name: &String| {
+                let mut seen = HashSet::new();
+                let mut next = Some(name);
+
+                while let Some(current) = next {
+                    if !seen.insert(current) {
+                        return false;
+                    }
+
+                    match windows.get(current) {
+                        Some(window) => next = window.fallback.as_ref(),
+                        None => return false,
+                    }
+                }
+
+                true
+            };
+
+            windows.iter().all(|(name, window)| is_valid_window(window) && has_valid_fallback(name))
+        }),
+    );
+
+    let job_ids = ctx
+        .jobs()
+        .filter(|job| {
+            job.visit_window.as_deref().is_some_and(|tag| {
+                ctx.problem
+                    .fleet
+                    .vehicles
+                    .iter()
+                    .flat_map(|vehicle| vehicle.shifts.iter())
+                    .filter_map(|shift| shift.visit_windows.as_ref())
+                    .any(|windows| !windows.contains_key(tag))
+            })
+        })
+        .map(|job| job.id.clone())
+        .collect::<Vec<_>>();
+
+    if type_ids.is_empty() && job_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1310".to_string(),
+            "invalid visit windows".to_string(),
+            format!(
+                "ensure every named visit window is a pair of timestamps inside the shift, its fallback names another window without a cycle, and every job's visitWindow names a window of the shifts, vehicle type ids: '{}', job ids: '{}'",
+                type_ids.join(", "),
+                job_ids.join(", ")
+            ),
+        ))
+    }
+}
+
+fn check_e1311_vehicle_regular_hours(ctx: &ValidationContext) -> Result<(), FormatError> {
+    let invalid_hours = get_invalid_type_ids(
+        ctx,
+        Box::new(|_, shift, shift_time| {
+            let Some(hours) = shift.regular_hours.as_ref() else { return true };
+
+            // `parse_time` unwraps: a bound that is not a timestamp is an E1311, not a panic.
+            match (parse_time_safe(&hours.earliest), parse_time_safe(&hours.latest)) {
+                (Ok(earliest), Ok(latest)) => {
+                    earliest < latest
+                        && shift_time
+                            .as_ref()
+                            .is_none_or(|shift_time| shift_time.contains(earliest) && shift_time.contains(latest))
+                }
+                _ => false,
+            }
+        }),
+    );
+
+    // a rate with no regular hours on any shift of the type can never apply: a mistake, not a no-op.
+    let rate_without_hours = ctx
+        .vehicles()
+        .filter(|vehicle| vehicle.costs.off_hours.is_some())
+        .filter(|vehicle| vehicle.shifts.iter().all(|shift| shift.regular_hours.is_none()))
+        .map(|vehicle| vehicle.type_id.clone());
+
+    let type_ids = invalid_hours.into_iter().chain(rate_without_hours).collect::<Vec<_>>();
+
+    if type_ids.is_empty() {
+        Ok(())
+    } else {
+        Err(FormatError::new(
+            "E1311".to_string(),
+            "invalid regular hours".to_string(),
+            format!(
+                "ensure regular hours are a pair of timestamps, earliest before latest, inside the shift, and an off-hours rate is only set on a vehicle type with regular hours, vehicle type ids: '{}'",
+                type_ids.join(", ")
+            ),
+        ))
+    }
+}
+
 type CheckShiftFn = Box<dyn Fn(&VehicleType, &VehicleShift, Option<TimeWindow>) -> bool>;
 
 fn get_invalid_type_ids(ctx: &ValidationContext, check_shift_fn: CheckShiftFn) -> Vec<String> {
@@ -338,9 +477,11 @@ pub fn validate_vehicles(ctx: &ValidationContext) -> Result<(), MultiFormatError
         check_e1304_vehicle_reload_time_is_correct(ctx),
         check_e1305_vehicle_types_have_vehicle_ids(ctx),
         check_e1306_vehicle_has_no_zero_costs(ctx),
-        check_e1307_vehicle_offset_break_rescheduling(ctx),
         check_e1308_vehicle_reload_resources(ctx),
-        check_e1309_fleet_has_vehicle_types(ctx),
+        check_e1309_vehicle_job_times(ctx),
+        check_e1310_vehicle_visit_windows(ctx),
+        check_e1311_vehicle_regular_hours(ctx),
+        check_e1312_fleet_has_vehicle_types(ctx),
     ])
     .map_err(From::from)
 }

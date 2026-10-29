@@ -554,6 +554,18 @@ impl<'a> ShadowContext<'a> {
         }
 
         if let Either::Right(ref mut route_ctx) = self.ctx {
+            // In front of the first job the activity was accepted against the shift's earliest
+            // departure (`departure_for_insertion`), and `apply_insertion_success` recedes the route
+            // to it. The copy has to depart that early too, otherwise the job's next activity is
+            // judged from a start the advanced departure left behind, and every multi job whose
+            // first activity has to go in front is refused.
+            if index == 0 && route_ctx.route().tour.job_count() > 0 {
+                let earliest = route_ctx.route().actor.detail.start.as_ref().and_then(|start| start.time.earliest);
+                if let Some((start, earliest)) = route_ctx.route_mut().tour.get_mut(0).zip(earliest) {
+                    start.schedule.departure = start.schedule.departure.min(earliest);
+                }
+            }
+
             route_ctx.route_mut().tour.insert_at(activity.deep_copy(), index + 1);
             self.goal.accept_route_state(route_ctx);
         }

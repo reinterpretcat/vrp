@@ -26,7 +26,7 @@ This example demonstrates how to use optional vehicle break with time window and
 </p></details>
 
 
-## Required break (experimental)
+## Required break
 
 This example demonstrates how to use required vehicle break which has to be scheduled at specific time during travel
 between two stops.
@@ -49,5 +49,7 @@ between two stops.
 
 </p></details>
 
-Please note, that departure rescheduling is disabled by setting `shift.start.earliest` equal to `shift.start.latest`.
-At the moment, this is a hard requirement when such break type is used.
+When using `OffsetTime` breaks, the offset is relative to the route cost span anchor: for `depot-to-depot` and
+`depot-to-last-job` spans, the anchor is the departure time; for `first-job-to-depot` and `first-job-to-last-job`
+spans, the anchor is the first job's arrival time. Flexible start times (where `shift.start.earliest` differs from
+`shift.start.latest`) are supported.

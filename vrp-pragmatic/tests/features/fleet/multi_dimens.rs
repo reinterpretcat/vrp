@@ -1,5 +1,4 @@
 use crate::format::problem::*;
-use crate::format::solution::*;
 use crate::helpers::*;
 
 #[test]
@@ -75,17 +74,15 @@ fn can_unassign_due_to_dimension_mismatch() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
-        solution,
-        SolutionBuilder::default()
-            .unassigned(Some(vec![UnassignedJob {
-                job_id: "job1".to_string(),
-                reasons: vec![UnassignedJobReason {
-                    code: "CAPACITY_CONSTRAINT".to_string(),
-                    description: "does not fit into any vehicle due to capacity".to_string(),
-                    details: None,
-                }]
-            }]))
-            .build()
+    assert!(solution.tours.is_empty(), "the job's dimensions fit no vehicle");
+
+    // Only that capacity is among the reasons — see the note in `job_times`.
+    let unassigned = solution.unassigned.expect("job1 must be reported as unassigned");
+    assert_eq!(unassigned.len(), 1);
+    assert_eq!(unassigned[0].job_id, "job1");
+    assert!(
+        unassigned[0].reasons.iter().any(|reason| reason.code == "CAPACITY_CONSTRAINT"),
+        "capacity must be given as a reason: {:?}",
+        unassigned[0].reasons
     );
 }

@@ -47,106 +47,28 @@ fn can_use_two_strict_relations_with_two_vehicles_with_new_jobs() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
-        solution,
-        SolutionBuilder::default()
-            .tour(
-                TourBuilder::default()
-                    .stops(vec![
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
-                            .load(vec![5])
-                            .build_departure(),
-                        StopBuilder::default()
-                            .coordinate((1., 0.))
-                            .schedule_stamp(1., 2.)
-                            .load(vec![4])
-                            .distance(1)
-                            .build_single("job1", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((6., 0.))
-                            .schedule_stamp(7., 8.)
-                            .load(vec![3])
-                            .distance(6)
-                            .build_single("job6", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((4., 0.))
-                            .schedule_stamp(10., 11.)
-                            .load(vec![2])
-                            .distance(8)
-                            .build_single("job4", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((8., 0.))
-                            .schedule_stamp(15., 16.)
-                            .load(vec![1])
-                            .distance(12)
-                            .build_single("job8", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((9., 0.))
-                            .schedule_stamp(17., 18.)
-                            .load(vec![0])
-                            .distance(13)
-                            .build_single("job9", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(27., 27.)
-                            .load(vec![0])
-                            .distance(22)
-                            .build_arrival(),
-                    ])
-                    .statistic(StatisticBuilder::default().driving(22).serving(5).build())
-                    .build()
-            )
-            .tour(
-                TourBuilder::default()
-                    .vehicle_id("my_vehicle_2")
-                    .stops(vec![
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
-                            .load(vec![5])
-                            .build_departure(),
-                        StopBuilder::default()
-                            .coordinate((2., 0.))
-                            .schedule_stamp(2., 3.)
-                            .load(vec![4])
-                            .distance(2)
-                            .build_single("job2", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((3., 0.))
-                            .schedule_stamp(4., 5.)
-                            .load(vec![3])
-                            .distance(3)
-                            .build_single("job3", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((5., 0.))
-                            .schedule_stamp(7., 8.)
-                            .load(vec![2])
-                            .distance(5)
-                            .build_single("job5", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((7., 0.))
-                            .schedule_stamp(10., 11.)
-                            .load(vec![1])
-                            .distance(7)
-                            .build_single("job7", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((10., 0.))
-                            .schedule_stamp(14., 15.)
-                            .load(vec![0])
-                            .distance(10)
-                            .build_single("job10", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(25., 25.)
-                            .load(vec![0])
-                            .distance(20)
-                            .build_arrival(),
-                    ])
-                    .statistic(StatisticBuilder::default().driving(20).serving(5).build())
-                    .build()
-            )
-            .build()
-    );
+    assert!(solution.unassigned.is_none(), "every job must be served");
+    assert_eq!(solution.tours.len(), 2);
+
+    // What the relations claim: each vehicle serves its listed jobs, in the listed order, ahead of
+    // anything else it picks up.
+    let first = served_job_ids(tour_of(&solution, "my_vehicle_1"));
+    let second = served_job_ids(tour_of(&solution, "my_vehicle_2"));
+
+    assert_eq!(first[..4], ["job1", "job6", "job4", "job8"].map(String::from));
+    assert_eq!(second[..4], ["job2", "job3", "job5", "job7"].map(String::from));
+
+    // `job9` and `job10` are in no relation, and with a capacity of 5 against four related jobs
+    // each vehicle takes exactly one of them. Which one is a tie the solver may break either way —
+    // the two are one unit apart, so the total is the same and only that total is asserted.
+    assert_eq!(first.len(), 5);
+    assert_eq!(second.len(), 5);
+
+    let mut free = vec![first[4].clone(), second[4].clone()];
+    free.sort();
+    assert_eq!(free, vec!["job10".to_string(), "job9".to_string()]);
+
+    assert_eq!(solution.statistic.distance, 42);
+    assert_eq!(solution.statistic.duration, 52);
+    assert_eq!(solution.statistic.cost, 114.);
 }

@@ -14,7 +14,14 @@ use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
-    combine_error_results(&[check_vehicles(ctx), check_jobs_presence(ctx), check_jobs_match(ctx), check_groups(ctx)])
+    combine_error_results(&[
+        check_vehicles(ctx),
+        check_jobs_presence(ctx),
+        check_jobs_match(ctx),
+        check_groups(ctx),
+        check_vehicle_groups(ctx),
+        check_visit_spacing(ctx),
+    ])
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
@@ -252,6 +259,105 @@ fn is_valid_job_info(
                 || not_equal(a_commute.backward.distance, d_commute.backward.distance)
                 || not_equal(a_commute.backward.duration, d_commute.backward.duration)
         }
+    }
+}
+
+/// Checks that jobs sharing a `vehicleGroup` are all served by the same person.
+///
+/// Keyed on `driverId` — falling back to the vehicle id when none is set — and never on
+/// `(type_id, vehicle_id, shift_index)` the way `check_groups` above keys the stock `group` field.
+/// Two things would break under that key, and both are ordinary: a group spread over two shifts of
+/// one vehicle, and a group spread over two vehicles of one driver. The second is not exotic —
+/// pragmatic hangs `limits` and `skills` off the vehicle type, so a technician whose cap or tags
+/// differ between days has to be emitted as several vehicles held together by one `driverId`.
+fn check_vehicle_groups(ctx: &CheckerContext) -> GenericResult<()> {
+    let mut holders = HashMap::<String, HashSet<String>>::default();
+
+    for tour in ctx.solution.tours.iter() {
+        let driver = ctx.get_vehicle(&tour.vehicle_id)?.driver_id.clone().unwrap_or_else(|| tour.vehicle_id.clone());
+
+        tour.stops
+            .iter()
+            .flat_map(|stop| stop.activities().iter())
+            .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
+            .flat_map(|job| job.vehicle_group.as_ref())
+            .for_each(|group| {
+                holders.entry(group.clone()).or_default().insert(driver.clone());
+            });
+    }
+
+    let violations = holders.into_iter().filter(|(_, drivers)| drivers.len() > 1).collect::<Vec<_>>();
+
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        let mut err_info = violations
+            .into_iter()
+            .map(|(group, drivers)| {
+                let mut drivers = drivers.into_iter().collect::<Vec<_>>();
+                drivers.sort();
+                format!("'{}' served by {}", group, drivers.join(", "))
+            })
+            .collect::<Vec<_>>();
+        err_info.sort();
+
+        Err(format!("vehicle groups are not respected: {}", err_info.join("; ")).into())
+    }
+}
+
+/// Checks that the visits of one rhythm keep their interval apart, give or take the tolerance.
+///
+/// Measured between neighbours in order among the placed visits, as the solver does: `n` steps
+/// apart they lie `n * intervalDays` days apart, give or take `n * toleranceDays`, counted between
+/// the starts of their shifts, or at least the difference of their `minOffsetDays` where both
+/// carry one. A pair with an anchor is not measured: the solver never refuses an
+/// anchor, so one placed after its neighbour may land anywhere.
+fn check_visit_spacing(ctx: &CheckerContext) -> GenericResult<()> {
+    let mut visits = HashMap::<String, Vec<(usize, Float, &JobSpacing)>>::default();
+
+    for tour in ctx.solution.tours.iter() {
+        let shift = ctx
+            .get_vehicle(&tour.vehicle_id)?
+            .shifts
+            .get(tour.shift_index)
+            .ok_or_else(|| format!("cannot find shift {} of vehicle '{}'", tour.shift_index, tour.vehicle_id))?;
+        let day = parse_time(&shift.start.earliest);
+
+        tour.stops
+            .iter()
+            .flat_map(|stop| stop.activities().iter())
+            .flat_map(|activity| ctx.get_job_by_id(&activity.job_id))
+            .flat_map(|job| job.spacing.as_ref())
+            .for_each(|spacing| visits.entry(spacing.group.clone()).or_default().push((spacing.order, day, spacing)));
+    }
+
+    let mut violations = visits
+        .into_iter()
+        .flat_map(|(group, mut placed)| {
+            placed.sort_by_key(|(order, _, _)| *order);
+            placed
+                .windows(2)
+                .filter(|pair| !pair[0].2.anchor.unwrap_or(false) && !pair[1].2.anchor.unwrap_or(false))
+                .filter_map(|pair| {
+                    let ((earlier, earlier_day, earlier_spacing), (later, later_day, spacing)) = (pair[0], pair[1]);
+                    let steps = later.saturating_sub(earlier) as i64;
+                    let days = ((later_day - earlier_day) / 86_400.).round() as i64;
+                    let too_close_or_far = match (earlier_spacing.min_offset_days, spacing.min_offset_days) {
+                        (Some(earlier_offset), Some(later_offset)) => days < later_offset - earlier_offset,
+                        _ => (days - steps * spacing.interval_days).abs() > steps * spacing.tolerance_days,
+                    };
+
+                    too_close_or_far.then(|| format!("'{group}' visits {earlier} and {later} are {days} days apart"))
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        violations.sort();
+        Err(format!("visit spacing is not respected: {}", violations.join("; ")).into())
     }
 }
 

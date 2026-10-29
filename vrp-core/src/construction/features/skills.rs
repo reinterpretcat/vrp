@@ -5,25 +5,26 @@
 mod skills_test;
 
 use super::*;
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 custom_dimension!(pub JobSkills typeof JobSkills);
-custom_dimension!(pub VehicleSkills typeof HashSet<String>);
+// Skills are checked for every job against every vehicle a search tries, as string sets: FxHash.
+custom_dimension!(pub VehicleSkills typeof FxHashSet<String>);
 
 /// A job skills limitation for a vehicle.
 pub struct JobSkills {
     /// Vehicle should have all of these skills defined.
-    pub all_of: Option<HashSet<String>>,
+    pub all_of: Option<FxHashSet<String>>,
     /// Vehicle should have at least one of these skills defined.
-    pub one_of: Option<HashSet<String>>,
+    pub one_of: Option<FxHashSet<String>>,
     /// Vehicle should have none of these skills defined.
-    pub none_of: Option<HashSet<String>>,
+    pub none_of: Option<FxHashSet<String>>,
 }
 
 impl JobSkills {
     /// Creates a new instance of [`JobSkills`].
     pub fn new(all_of: Option<Vec<String>>, one_of: Option<Vec<String>>, none_of: Option<Vec<String>>) -> Self {
-        let map: fn(Option<Vec<_>>) -> Option<HashSet<_>> =
+        let map: fn(Option<Vec<_>>) -> Option<FxHashSet<_>> =
             |skills| skills.and_then(|v| if v.is_empty() { None } else { Some(v.into_iter().collect()) });
 
         Self { all_of: map(all_of), one_of: map(one_of), none_of: map(none_of) }
@@ -63,14 +64,15 @@ impl FeatureConstraint for SkillsConstraint {
         let source_skills = source.dimens().get_job_skills();
         let candidate_skills = candidate.dimens().get_job_skills();
 
-        let check_skill_sets = |source_set: Option<&HashSet<String>>, candidate_set: Option<&HashSet<String>>| match (
-            source_set,
-            candidate_set,
-        ) {
-            (Some(_), None) | (None, None) => true,
-            (None, Some(_)) => false,
-            (Some(source_skills), Some(candidate_skills)) => candidate_skills.is_subset(source_skills),
-        };
+        let check_skill_sets =
+            |source_set: Option<&FxHashSet<String>>, candidate_set: Option<&FxHashSet<String>>| match (
+                source_set,
+                candidate_set,
+            ) {
+                (Some(_), None) | (None, None) => true,
+                (None, Some(_)) => false,
+                (Some(source_skills), Some(candidate_skills)) => candidate_skills.is_subset(source_skills),
+            };
 
         let has_comparable_skills = match (source_skills, candidate_skills) {
             (Some(_), None) | (None, None) => true,
@@ -86,7 +88,14 @@ impl FeatureConstraint for SkillsConstraint {
     }
 }
 
-fn check_all_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String>>) -> bool {
+/// Checks whether a job's skill requirements are compatible with a vehicle's skills.
+pub fn is_job_skills_compatible(job_skills: &JobSkills, vehicle_skills: &Option<&FxHashSet<String>>) -> bool {
+    check_all_of(job_skills, vehicle_skills)
+        && check_one_of(job_skills, vehicle_skills)
+        && check_none_of(job_skills, vehicle_skills)
+}
+
+fn check_all_of(job_skills: &JobSkills, vehicle_skills: &Option<&FxHashSet<String>>) -> bool {
     match (job_skills.all_of.as_ref(), vehicle_skills) {
         (Some(job_skills), Some(vehicle_skills)) => job_skills.is_subset(vehicle_skills),
         (Some(skills), None) if skills.is_empty() => true,
@@ -95,7 +104,7 @@ fn check_all_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String>
     }
 }
 
-fn check_one_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String>>) -> bool {
+fn check_one_of(job_skills: &JobSkills, vehicle_skills: &Option<&FxHashSet<String>>) -> bool {
     match (job_skills.one_of.as_ref(), vehicle_skills) {
         (Some(job_skills), Some(vehicle_skills)) => job_skills.iter().any(|skill| vehicle_skills.contains(skill)),
         (Some(skills), None) if skills.is_empty() => true,
@@ -104,7 +113,7 @@ fn check_one_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String>
     }
 }
 
-fn check_none_of(job_skills: &JobSkills, vehicle_skills: &Option<&HashSet<String>>) -> bool {
+fn check_none_of(job_skills: &JobSkills, vehicle_skills: &Option<&FxHashSet<String>>) -> bool {
     match (job_skills.none_of.as_ref(), vehicle_skills) {
         (Some(job_skills), Some(vehicle_skills)) => job_skills.is_disjoint(vehicle_skills),
         _ => true,

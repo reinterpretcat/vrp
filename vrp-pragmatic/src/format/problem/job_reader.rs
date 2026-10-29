@@ -1,18 +1,21 @@
 use crate::format::coord_index::CoordIndex;
+use crate::format::dimensions::JobDueDateDimension;
 use crate::format::problem::JobSkills as ApiJobSkills;
 use crate::format::problem::*;
 use crate::format::{JobIndex, Location};
+use crate::parse_time;
 use crate::utils::VariableJobPermutation;
 use std::collections::HashMap;
 use std::sync::Arc;
 use vrp_core::{
     construction::features::{
         BreakPolicy, JobCompatibilityDimension, JobDemandDimension, JobGroupDimension, JobSkills as FeatureJobSkills,
-        JobSkillsDimension,
+        JobSkillsDimension, VehicleGroupDimension, VisitSpacing, VisitSpacingDimension,
     },
     models::common::*,
     models::problem::{
         Actor, Fleet, Job, JobIdDimension, Jobs, Multi, Place, Single, TransportCost, VehicleIdDimension,
+        VisitWindowTagDimension,
     },
     models::{Lock, LockDetail, LockOrder, LockPosition},
 };
@@ -134,7 +137,15 @@ fn read_required_jobs(
             .map(|p| (Some(p.location.clone()), p.duration, parse_times(&p.times), p.tag.clone()))
             .collect();
 
-        get_single_with_dimens(places, demand, &task.order, activity_type, has_multi_dimens, coord_index)
+        get_single_with_dimens(
+            places,
+            demand,
+            &task.order,
+            &task.due_date,
+            activity_type,
+            has_multi_dimens,
+            coord_index,
+        )
     };
 
     api_problem.plan.jobs.iter().for_each(|job| {
@@ -162,6 +173,18 @@ fn read_required_jobs(
                 .collect::<Vec<_>>();
 
         assert!(!singles.is_empty());
+
+        // the cost that keeps a visit in its window reads the tag from the activity's single, so
+        // every task of a multi job carries it, not only the multi job itself.
+        let singles = singles
+            .into_iter()
+            .map(|mut single| {
+                if let Some(tag) = job.visit_window.as_ref() {
+                    single.dimens.set_visit_window_tag(tag.clone());
+                }
+                single
+            })
+            .collect::<Vec<_>>();
 
         let problem_job = if singles.len() > 1 {
             let deliveries_start_index = job.pickups.as_ref().map_or(0, |p| p.len());
@@ -386,6 +409,7 @@ fn get_single_with_dimens(
     places: Vec<PlaceData>,
     demand: Demand<MultiDimLoad>,
     order: &Option<i32>,
+    due_date: &Option<String>,
     activity_type: &str,
     has_multi_dimens: bool,
     coord_index: &CoordIndex,
@@ -407,6 +431,10 @@ fn get_single_with_dimens(
         dimens.set_job_order(*order);
     }
 
+    if let Some(due_date) = due_date {
+        dimens.set_job_due_date(parse_time(due_date));
+    }
+
     single
 }
 
@@ -417,8 +445,27 @@ fn fill_dimens(job: &ApiJob, dimens: &mut Dimensions) {
         dimens.set_job_value(value);
     }
 
+    if let Some(production_value) = job.production_value {
+        dimens.set_production_value(production_value);
+    }
+
     if let Some(group) = job.group.clone() {
         dimens.set_job_group(group);
+    }
+
+    if let Some(vehicle_group) = job.vehicle_group.clone() {
+        dimens.set_vehicle_group(vehicle_group);
+    }
+
+    if let Some(spacing) = job.spacing.as_ref() {
+        dimens.set_visit_spacing(VisitSpacing {
+            group: spacing.group.clone(),
+            order: spacing.order,
+            interval_days: spacing.interval_days,
+            tolerance_days: spacing.tolerance_days,
+            anchor: spacing.anchor.unwrap_or(false),
+            min_offset_days: spacing.min_offset_days,
+        });
     }
 
     if let Some(compat) = job.compatibility.clone() {

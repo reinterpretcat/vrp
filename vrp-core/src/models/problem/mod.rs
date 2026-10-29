@@ -11,3 +11,6 @@ pub use self::fleet::*;
 
 mod jobs;
 pub use self::jobs::*;
+
+mod visit_windows;
+pub use self::visit_windows::*;

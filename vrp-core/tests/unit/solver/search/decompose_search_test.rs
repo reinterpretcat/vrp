@@ -184,8 +184,10 @@ fn can_partition_locked_jobs() {
 
     let expected = individual.solution.locked.clone();
     let individuals = create_multiple_insertion_contexts(&individual, environment, (2, 2)).unwrap();
-    let actual =
-        individuals.iter().flat_map(|individual| individual.solution.locked.iter().cloned()).collect::<HashSet<_>>();
+    let actual = individuals
+        .iter()
+        .flat_map(|individual| individual.solution.locked.iter().cloned())
+        .collect::<rustc_hash::FxHashSet<_>>();
 
     assert_eq!(actual, expected);
     assert_eq!(individuals.len(), 2);
@@ -215,8 +217,8 @@ fn can_partition_assigned_and_unassigned_locked_jobs() {
         .find(|individual| individual.solution.routes.iter().any(|route| route.route().tour.contains(&assigned)))
         .unwrap();
 
-    assert_eq!(empty.solution.locked, HashSet::from([unassigned]));
-    assert_eq!(assigned_part.solution.locked, HashSet::from([assigned]));
+    assert_eq!(empty.solution.locked, rustc_hash::FxHashSet::from_iter([unassigned]));
+    assert_eq!(assigned_part.solution.locked, rustc_hash::FxHashSet::from_iter([assigned]));
 }
 
 #[test]

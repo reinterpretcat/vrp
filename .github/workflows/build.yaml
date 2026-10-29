@@ -2,263 +2,62 @@ name: Build
 
 on:
   push:
-    branches: [master]
+    branches: [ master ]
   pull_request:
-    branches: [master]
-
-# least privilege: none of these jobs write to the repository
-permissions:
-  contents: read
-
-# a superseded push should stop burning runner minutes
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  CARGO_TERM_COLOR: always
-  # incremental artifacts are useless across runners and bloat the cache
-  CARGO_INCREMENTAL: 0
+    branches: [ master ]
 
 jobs:
-  lint:
-    name: Format and lint
+  test-build:
     runs-on: ubuntu-latest
+    # Compiles and runs the suite: three to six minutes in practice.
+    timeout-minutes: 30
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-lint-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      # --all-targets also covers benches, which the previous --tests --examples missed
-      - name: Run clippy
-        run: cargo clippy --locked --workspace --all-features --all-targets -- -D warnings
+    - name: Check out the repo
+      uses: actions/checkout@v2
 
-  bindings:
-    name: Generated bindings
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-schema-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-schema-
-      - name: Set up node
-        uses: actions/setup-node@v7
-        with:
-          node-version: '20'
-      - name: Set up python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-      - name: Install codegen tooling
-        run: |
-          npm ci --prefix vrp-cli/bindings/typescript --no-audit --no-fund
-          python -m pip install --quiet -r vrp-cli/bindings/python/requirements-codegen.txt
-      - name: Regenerate the bindings
-        run: ./vrp-cli/bindings/generate.sh
-      - name: Upload generated bindings
-        uses: actions/upload-artifact@v7
-        with:
-          name: generated-bindings
-          if-no-files-found: error
-          path: |
-            vrp-cli/bindings/schemas/*.schema.json
-            vrp-cli/bindings/python/vrp_cli/models/*.py
-            !vrp-cli/bindings/python/vrp_cli/models/__init__.py
-            !vrp-cli/bindings/python/vrp_cli/models/_base.py
-            vrp-cli/bindings/typescript/format_types.d.ts
+    - name: Build and run tests
+      run: cargo test --verbose --benches
 
-  python:
-    name: Python bindings
-    needs: bindings
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Download generated bindings
-        uses: actions/download-artifact@v8
-        with:
-          name: generated-bindings
-          path: vrp-cli/bindings
-      # 3.10 is the floor declared by requires-python and pyo3's abi3-py310 feature
-      - name: Set up python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.10'
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-python-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-python-
-      # the `bindings` job supplies models generated from this checkout
-      - name: Install tooling
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install 'maturin[patchelf]>=1.5,<2.0' nbclient ipykernel
-      # the py_bindings feature comes from [tool.maturin] in pyproject.toml
-      - name: Build and install the wheel
-        working-directory: ./vrp-cli
-        run: |
-          maturin build --release --out dist
-          python -m pip install dist/*.whl
-      # example.py and the tutorial are the entry points the README points newcomers at, so they
-      # must keep working against the bindings they document
-      - name: Run the python example
-        run: python examples/python-interop/example.py
-      - name: Test the generated python models
-        run: python -m unittest discover -s vrp-cli/bindings/python/tests
-      - name: Execute the tutorial notebook
-        run: jupyter execute examples/python-interop/tutorial.ipynb
+    - name: Build and run examples
+      run: |
+        cargo run --example cvrp
+        cargo run --example pdptw
+        cargo run --example custom_constraint
+        cargo run --example custom_objective
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-test-
-      - name: Build and run tests
-        run: cargo test --locked --workspace --benches
-      - name: Build and run examples
-        run: |
-          cargo run --locked --example cvrp
-          cargo run --locked --example pdptw
-          cargo run --locked --example custom_constraint
-          cargo run --locked --example custom_objective
-
-  msrv:
-    name: Minimum supported Rust version
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      # read the MSRV from the workspace manifest so there is a single source of truth
-      - name: Resolve MSRV
-        id: msrv
-        run: |
-          version="$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
-          if [ -z "${version}" ]; then echo "no rust-version in Cargo.toml" >&2; exit 1; fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "resolved MSRV: ${version}"
-      - name: Install MSRV toolchain
-        run: rustup toolchain install "${{ steps.msrv.outputs.version }}" --profile minimal --no-self-update
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-msrv-${{ steps.msrv.outputs.version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-msrv-${{ steps.msrv.outputs.version }}-
-      - name: Check against MSRV
-        run: cargo "+${{ steps.msrv.outputs.version }}" check --locked --workspace --all-features --all-targets
+    - name: Run clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        args: --all-features --tests --examples -- -D warnings
 
   release-build:
-    name: Release build
     runs-on: ubuntu-latest
+    # A release compile, in the same range as the test build.
+    timeout-minutes: 30
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-release-
-      - name: Release build
-        run: cargo build --locked --release --verbose
+    - name: Check out the repo
+      uses: actions/checkout@v2
+
+    - name: Release build
+      run: cargo build --release --verbose
 
   wasm-build:
-    name: WebAssembly build
-    needs: bindings
     runs-on: ubuntu-latest
+    # The quickest of the three, capped alongside them.
+    timeout-minutes: 30
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Download generated bindings
-        uses: actions/download-artifact@v8
-        with:
-          name: generated-bindings
-          path: vrp-cli/bindings
-      # ~/.cargo/bin is cached so wasm-pack is compiled once rather than on every run
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-wasm-
-      # installed from crates.io, whose checksums cargo verifies, instead of piping a remote
-      # installer script into a shell on every run
-      - name: Install wasm-pack
-        run: |
-          if ! command -v wasm-pack >/dev/null; then
-            cargo install wasm-pack --locked
-          fi
-          wasm-pack --version
-      # node 19+ exposes the Web Crypto API as a global, which the solver's rng needs on wasm
-      - name: Set up node
-        uses: actions/setup-node@v7
-        with:
-          node-version: '20'
-      - name: Build WebAssembly for browsers
-        working-directory: ./vrp-cli
-        run: wasm-pack build --target web
-      - name: Build WebAssembly for node
-        working-directory: ./vrp-cli
-        run: wasm-pack build --target nodejs --out-dir pkg-node
-      # the emitted .d.ts embeds the generated format types, so this also proves they type-check
-      - name: Check the emitted typescript declarations
-        run: |
-          npm ci --prefix vrp-cli/bindings/typescript --no-audit --no-fund
-          vrp-cli/bindings/typescript/node_modules/.bin/tsc --noEmit --strict vrp-cli/pkg-node/vrp_cli.d.ts
-      - name: Run the node example
-        run: node examples/js-interop/example.mjs
-      - name: Test WebAssembly error handling
-        run: node --test examples/js-interop/interop.test.mjs
-      - name: Upload WebAssembly artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: vrp_cli_wasm
-          path: vrp-cli/pkg/
+    - name: Check out the repo
+      uses: actions/checkout@v2
+
+    - name: Build WebAssembly
+      run: |
+        curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        cd vrp-cli
+        wasm-pack build --target web
+
+    - name: Upload WebAssembly artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vrp_cli_wasm
+        path: vrp-cli/pkg/

@@ -18,9 +18,22 @@ consists of the following properties:
   jobs with lower order in the beginning of the tour. In contrast, value related logic tries to maximize total solution value
   by prioritizing assignment value scored jobs in any position of a tour.
   See [job priorities](../../../examples/pragmatic/basics/job-priorities.md) example.
+- **productionValue** (optional): a float value representing the job's production value (e.g. expected revenue).
+  It is consumed by the `balance-production-value` objective and by the `balance-period` objective when its
+  `metric` is set to `production-value`, to balance total job production value across tours or per employee.
 - **group** (optional): a group name. Jobs with the same groups are scheduled in the same tour or left unassigned.
 - **compatibility** (optional): compatibility class. Jobs with different compatibility classes cannot be assigned in
   the same tour. This is useful to avoid mixing cargo, such as hazardous goods and food.
+- **vehicleGroup** (optional): a vehicle group name. Jobs sharing the same vehicle group are served by the same
+  vehicle across all of its shifts (unlike **group**, which requires the same tour). Useful to keep the same
+  vehicle serving a recurring customer over a multi-day plan.
+- **spacing** (optional): keeps a job its interval from the other visits of its rhythm. A job is refused on a day
+  too close to, or too far from, the nearest visit of its `group` placed before or after it: `n` steps apart in
+  `order` they lie `n * intervalDays` days apart, give or take `n * toleranceDays`, counted between the starts of
+  their shifts. A job with `anchor: true` is never refused, the others keep their distance to it. Useful to keep a
+  weekly customer a week apart however the plan moves each visit inside its own time windows. Two jobs that both
+  carry `minOffsetDays` lie at least the difference of their offsets apart instead, with no upper bound: useful
+  for a plan whose visits are not evenly spaced.
 
 A job should have at least one task property specified.
 
@@ -34,6 +47,9 @@ defined. Each task has the following properties:
 - **order** (optional): a job task assignment order which makes preferable to serve some jobs before others in the tour.
   The order property is represented as integer greater than 1, where the lower value means higher priority. By default
   its value is set to maximum.
+- **dueDate** (optional): a due date for the job task, used with `minimize-overdue` objective. If the job is scheduled
+  after this date, an overdue penalty is applied.
+
 
 ## Places
 

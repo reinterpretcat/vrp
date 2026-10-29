@@ -30,6 +30,9 @@ pub use self::exchange_sequence_best::*;
 mod exchange_swap_star;
 pub use self::exchange_swap_star::*;
 
+mod territory_relocate;
+pub use self::territory_relocate::TerritoryRelocate;
+
 mod exchange_two_opt_star;
 pub use self::exchange_two_opt_star::*;
 

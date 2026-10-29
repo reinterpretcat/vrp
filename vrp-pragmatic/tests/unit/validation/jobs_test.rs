@@ -80,6 +80,7 @@ fn can_iterate_all_task_kinds_in_validation_order() {
         places: vec![JobPlace { duration, ..create_job_place((duration, 0.), None) }],
         demand: None,
         order: None,
+        due_date: None,
     };
     let problem = Problem {
         plan: Plan {

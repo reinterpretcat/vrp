@@ -146,6 +146,8 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .any(|order| order > 0);
 
     let has_group = api_problem.plan.jobs.iter().any(|job| job.group.is_some());
+    let has_vehicle_group = api_problem.plan.jobs.iter().any(|job| job.vehicle_group.is_some());
+    let has_visit_spacing = api_problem.plan.jobs.iter().any(|job| job.spacing.is_some());
     let has_value = api_problem.plan.jobs.iter().filter_map(|job| job.value).any(|value| value != 0.);
     let has_compatibility = api_problem.plan.jobs.iter().any(|job| job.compatibility.is_some());
     let has_tour_size_limits =
@@ -157,6 +159,14 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         .iter()
         .any(|v| v.limits.as_ref().is_some_and(|l| l.max_duration.or(l.max_distance).is_some()));
 
+    let has_min_vehicle_shifts = api_problem.fleet.vehicles.iter().any(|vehicle| vehicle.min_shifts.is_some());
+
+    let has_job_time_constraints =
+        api_problem.fleet.vehicles.iter().any(|v| v.shifts.iter().any(|s| s.job_times.is_some()));
+
+    let has_visit_windows =
+        api_problem.fleet.vehicles.iter().any(|v| v.shifts.iter().any(|s| s.visit_windows.is_some()));
+
     ProblemProperties {
         has_multi_dimen_capacity,
         has_breaks,
@@ -166,10 +176,15 @@ fn get_problem_properties(api_problem: &ApiProblem, matrices: &[Matrix]) -> Prob
         has_recharges,
         has_order,
         has_group,
+        has_vehicle_group,
+        has_visit_spacing,
         has_value,
         has_compatibility,
         has_tour_size_limits,
         has_tour_travel_limits,
+        has_job_time_constraints,
+        has_visit_windows,
+        has_min_vehicle_shifts,
     }
 }
 
@@ -222,6 +237,24 @@ fn get_problem_blocks(
             .map::<(Arc<dyn TransportCost>, Arc<dyn ActivityCost>), _>(|(transport, activity)| {
                 (Arc::new(transport), Arc::new(activity))
             })?
+    };
+
+    // the appointment bounds wrap the outside of the reserved times: the upper bound has to be
+    // tested against the departure a required break has already inflated. `is_stop` keeps them off
+    // the break, reload and recharge activities themselves — core sees those as jobs, but the
+    // bounds say when appointments may happen, not when a break may.
+    let activity: Arc<dyn ActivityCost> = if problem_props.has_job_time_constraints {
+        Arc::new(JobTimeBoundsActivityCost::new(activity, Arc::new(is_stop)))
+    } else {
+        activity
+    };
+
+    // the visit windows wrap the job times: a tagged visit keeps to both, and neither applies to a
+    // break, a reload or a recharge.
+    let activity: Arc<dyn ActivityCost> = if problem_props.has_visit_windows {
+        Arc::new(VisitWindowsActivityCost::new(activity, Arc::new(is_stop)))
+    } else {
+        activity
     };
 
     let (jobs, locks) = read_jobs_with_extra_locks(

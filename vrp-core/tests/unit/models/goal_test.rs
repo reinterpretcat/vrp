@@ -219,7 +219,8 @@ fn can_detect_same_name_usage() {
 fn can_keep_goal_when_no_alternative_exists() {
     let feature = create_objective_feature_with_dynamic_cost("0", Arc::new(|_, _| 0.));
     let goal = Goal::simple(std::slice::from_ref(&feature)).unwrap();
-    let goal_ctx = GoalContext { goal, alternative_goals: vec![], constraints: vec![], states: vec![] };
+    let goal_ctx =
+        GoalContext { goal, alternative_goals: vec![], constraints: vec![], states: vec![], objective_names: vec![] };
     let random = FakeRandom::new(vec![], vec![]);
     let solution = TestInsertionContextBuilder::default().build();
 

@@ -19,6 +19,12 @@ pub use self::only_vehicle_activity_cost::*;
 mod route_intervals;
 pub use self::route_intervals::*;
 
+mod job_time_bounds;
+pub use self::job_time_bounds::*;
+
+mod visit_windows;
+pub use self::visit_windows::*;
+
 mod reserved_time;
 pub use self::reserved_time::*;
 

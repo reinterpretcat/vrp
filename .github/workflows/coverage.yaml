@@ -2,61 +2,47 @@ name: Measure code coverage
 
 on:
   push:
-    branches: [master]
+    branches: [ master ]
   pull_request:
-    branches: [master]
+    branches: [ master ]
 
-permissions:
-  contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+# we set `opt-level = 1` in profile.test globally, but this affects code coverage, so we reset it here
 env:
-  CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: 0
-  # profile.test sets opt-level = 1 globally, which distorts coverage line mapping, so reset it here
   CARGO_PROFILE_TEST_OPT_LEVEL: 0
 
 jobs:
   measure-test-coverage:
-    name: Tarpaulin
     runs-on: ubuntu-latest
+    # The slowest workflow here, and the widest spread: eight to fifteen minutes across recent
+    # runs. The cap is deliberately far above that — it is there to bound a hang, not to police
+    # a slow day.
+    timeout-minutes: 45
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v7
-      # ~/.cargo/bin is cached so cargo-tarpaulin is compiled once rather than on every run
-      - name: Cache cargo artifacts
-        uses: actions/cache@v6
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-coverage-
-      - name: Install cargo-tarpaulin
-        run: |
-          if ! command -v cargo-tarpaulin >/dev/null; then
-            cargo install cargo-tarpaulin --locked
-          fi
-          cargo tarpaulin --version
+          toolchain: stable
+
       - name: Generate code coverage
-        run: >-
-          cargo tarpaulin --locked
-          --exclude-files '*_test.rs' '*tests*' '*benches*' '*heuristic-research*'
-          --out xml
+        run: |
+          cargo install --features vendored-openssl cargo-tarpaulin
+          cargo tarpaulin --timeout 600 --exclude-files *_test.rs *tests* *benches* *heuristic-research* --out xml
+
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./cobertura.xml
+          files: cobertura.xml
+          # Coverage upload is informational. A Codecov outage or transient
+          # rate limit should not turn the whole CI red; the cobertura.xml
+          # is still archived as an artifact in the next step.
           fail_ci_if_error: false
+
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: cobertura.xml

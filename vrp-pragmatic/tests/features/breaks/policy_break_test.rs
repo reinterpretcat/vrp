@@ -53,43 +53,21 @@ fn can_skip_break_when_vehicle_not_used_impl(policy: Option<VehicleOptionalBreak
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    assert_eq!(
-        solution,
-        SolutionBuilder::default()
-            .tour(
-                TourBuilder::default()
-                    .type_id("vehicle_without_break")
-                    .vehicle_id("vehicle_without_break_1")
-                    .stops(vec![
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(0., 0.)
-                            .load(vec![2])
-                            .build_departure(),
-                        StopBuilder::default()
-                            .coordinate((10., 0.))
-                            .schedule_stamp(10., 11.)
-                            .load(vec![1])
-                            .distance(10)
-                            .build_single("job2", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((5., 0.))
-                            .schedule_stamp(16., 17.)
-                            .load(vec![0])
-                            .distance(15)
-                            .build_single("job1", "delivery"),
-                        StopBuilder::default()
-                            .coordinate((0., 0.))
-                            .schedule_stamp(22., 22.)
-                            .load(vec![0])
-                            .distance(20)
-                            .build_arrival(),
-                    ])
-                    .statistic(StatisticBuilder::default().driving(20).serving(2).build())
-                    .build()
-            )
-            .build()
-    );
+    assert!(solution.unassigned.is_none(), "every job must be served");
+
+    // The point of the case: the break vehicle starts 100 away and is not worth opening, so the
+    // break never comes due. Which of the two jobs the other vehicle visits first costs the same
+    // either way, so that order is not part of the claim.
+    assert_eq!(solution.tours.len(), 1, "only the vehicle without a break may be used");
+    assert_eq!(solution.tours[0].vehicle_id, "vehicle_without_break_1");
+
+    assert_eq!(solution.statistic.distance, 20);
+    assert_eq!(solution.statistic.duration, 22);
+    assert_eq!(solution.statistic.times.break_time, 0, "no break may be taken");
+
+    let mut served = served_job_ids(&solution.tours[0]);
+    served.sort();
+    assert_eq!(served, vec!["job1".to_string(), "job2".to_string()]);
 }
 
 parameterized_test! {can_skip_break_when_jobs_completed, policy, {

@@ -67,3 +67,47 @@ fn can_merge_value() {
 
     assert_eq!(merged.dimens().get_value::<ValueDimenKey, Float>().cloned(), Some(12.))
 }
+
+/// The objective reads the per-route sum its state keeps, and falls back to summing the jobs where a
+/// route's state was never accepted. Either way it must report the value the route serves.
+#[test]
+fn can_read_fitness_from_route_state_and_without_it() {
+    let feature = create_maximize_total_job_value_feature(
+        "value",
+        JobReadValueFn::Left(Arc::new(|job| match get_job_id(job).as_str() {
+            "job1" => 3.,
+            "job2" => 4.,
+            _ => 0.,
+        })),
+        Arc::new(|job, _| job),
+        VIOLATION_CODE,
+    )
+    .unwrap();
+    let (objective, state) = (feature.objective.unwrap(), feature.state.unwrap());
+    let create_route = || {
+        RouteContextBuilder::default()
+            .with_route(
+                RouteBuilder::default()
+                    .add_activity(
+                        ActivityBuilder::default()
+                            .job(Some(TestSingleBuilder::default().id("job1").build_shared()))
+                            .build(),
+                    )
+                    .add_activity(
+                        ActivityBuilder::default()
+                            .job(Some(TestSingleBuilder::default().id("job2").build_shared()))
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build()
+    };
+    let mut accepted = create_route();
+    state.accept_route_state(&mut accepted);
+
+    let without_state = TestInsertionContextBuilder::default().with_routes(vec![create_route()]).build();
+    let with_state = TestInsertionContextBuilder::default().with_routes(vec![accepted]).build();
+
+    assert_eq!(objective.fitness(&without_state), -7.);
+    assert_eq!(objective.fitness(&with_state), -7.);
+}

@@ -2,6 +2,7 @@ use crate::format::problem::*;
 use crate::format::solution::*;
 use crate::format_time;
 use crate::helpers::*;
+use crate::parse_time;
 
 fn create_test_plan_with_three_jobs() -> Plan {
     Plan {
@@ -15,7 +16,7 @@ fn create_test_plan_with_three_jobs() -> Plan {
 }
 
 fn create_test_limit() -> Option<VehicleLimits> {
-    Some(VehicleLimits { max_distance: Some(15.), max_duration: None, tour_size: None })
+    Some(VehicleLimits { max_distance: Some(15.), max_duration: None, tour_size: None, min_tour_size: None })
 }
 
 fn create_order_objective(is_constrained: bool) -> Vec<Objective> {
@@ -146,6 +147,7 @@ fn can_handle_order_between_special_activities() {
             places: vec![JobPlace { times: None, location: location.to_loc(), duration: 100., tag: None }],
             demand: Some(vec![1]),
             order: Some(order),
+            due_date: None,
         }]),
         ..create_job(id)
     };
@@ -179,12 +181,28 @@ fn can_handle_order_between_special_activities() {
 
     let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
 
-    // a break can be right after departure
-    let activities = get_ids_from_tour(&solution.tours[0]).into_iter().flatten().collect::<Vec<_>>();
-    let position = |id: &str| activities.iter().position(|activity| activity == id);
+    // The claim is the order the `order` fields impose, and that the break lands inside its window.
+    // Where the break goes is not part of it: taking it at the depot before setting off saves the
+    // detour back and is the cheaper solution (12 distance against 14), so pinning one placement
+    // would fail the better plan.
+    assert!(solution.unassigned.is_none(), "both jobs must be served");
+    assert_eq!(solution.tours.len(), 1);
 
-    assert!(position("break").is_some(), "break was not assigned: {activities:?}");
-    let (first, second) = (position("job2"), position("job1"));
-    assert!(first.is_some() && second.is_some(), "a job was left unassigned: {activities:?}");
-    assert!(first < second, "job2 has a lower order and must be served first: {activities:?}");
+    let served = served_job_ids(&solution.tours[0]);
+    assert_eq!(served, ["job2", "job1"].map(String::from), "the order fields put job2 first");
+
+    let activities = tour_activities(&solution.tours[0]);
+    assert!(activities.iter().any(|(_, kind)| kind == "break"), "the break must be taken: {activities:?}");
+
+    let break_start = solution.tours[0]
+        .stops
+        .iter()
+        .flat_map(|stop| stop.activities().iter().map(move |activity| (stop, activity)))
+        .find(|(_, activity)| activity.activity_type == "break")
+        .map(|(stop, activity)| {
+            activity.time.as_ref().map_or_else(|| parse_time(&stop.schedule().arrival), |time| parse_time(&time.start))
+        })
+        .expect("the break must appear as an activity");
+
+    assert!((100. ..=200.).contains(&break_start), "the break must fall inside its window, got {break_start}");
 }

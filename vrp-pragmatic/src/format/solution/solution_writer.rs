@@ -6,11 +6,11 @@ use crate::format::CoordIndex;
 use crate::format::solution::activity_matcher::get_job_tag;
 use crate::format::solution::model::Timing;
 use crate::format::solution::*;
-use vrp_core::construction::enablers::{ReservedTimesIndex, get_route_intervals};
-use vrp_core::construction::features::JobDemandDimension;
+use vrp_core::construction::enablers::{ReservedTimesIndex, get_paid_span, get_route_duration, get_route_intervals};
+use vrp_core::construction::features::{JobDemandDimension, get_off_hours_premium, get_overtime_premium};
 use vrp_core::construction::heuristics::UnassignmentInfo;
 use vrp_core::models::common::*;
-use vrp_core::models::problem::{JobIdDimension, Multi, TravelTime, VehicleIdDimension};
+use vrp_core::models::problem::{JobIdDimension, Multi, RegularHoursDimension, TravelTime, VehicleIdDimension};
 use vrp_core::models::solution::{Activity, Route};
 use vrp_core::prelude::Float;
 use vrp_core::rosomaxa::evolution::TelemetryMetrics;
@@ -182,7 +182,11 @@ fn create_tour(
                     };
 
                 let activity_arrival = parking + act.schedule.arrival + commute.forward.duration;
-                let service_start = activity_arrival.max(act.place.time.start);
+                // asked of the activity cost that built the schedule, so whatever held service back
+                // there — the job's own window, the shift's appointment bounds, its visit windows —
+                // holds it back here too. Without that the tour would report the vehicle serving on
+                // arrival, and the waiting would go unaccounted for.
+                let service_start = problem.activity.estimate_service_start(route, act, activity_arrival);
                 let waiting = service_start - activity_arrival;
                 let serving = act.place.duration - parking;
                 let service_end = service_start + serving;
@@ -235,10 +239,7 @@ fn create_tour(
                     job_id,
                     activity_type: activity_type.clone(),
                     location: Some(coord_index.get_by_idx(act.place.location).unwrap()),
-                    time: Some(Interval {
-                        start: format_time(activity_arrival.max(act.place.time.start)),
-                        end: format_time(activity_departure),
-                    }),
+                    time: Some(Interval { start: format_time(service_start), end: format_time(activity_departure) }),
                     job_tag,
                     commute: act
                         .commute
@@ -270,6 +271,7 @@ fn create_tour(
                             break_time: leg.statistic.times.break_time + (if is_break { serving as i64 } else { 0 }),
                             commuting: leg.statistic.times.commuting + commuting as i64,
                             parking: leg.statistic.times.parking + parking as i64,
+                            off_hours: leg.statistic.times.off_hours,
                         },
                     },
                     load: Some(load),
@@ -282,7 +284,18 @@ fn create_tour(
         leg
     });
 
-    leg.statistic.cost += vehicle.costs.fixed;
+    // the premium the search priced on this tour's own duration: without it the reported cost would
+    // not be the cost the solution was chosen by. The duration is asked of the route over the span
+    // its shift is paid on - the same figure the objective reads off the tour state - and not of
+    // `leg.statistic`, which is always the round trip.
+    leg.statistic.cost += vehicle.costs.fixed + get_overtime_premium(actor, get_route_duration(route));
+
+    // the off-hours premium the search priced on where the paid span lies, for the same reason; the
+    // seconds it was charged on are reported beside the other times.
+    if let (Some(span), Some(hours)) = (get_paid_span(route), vehicle.dimens.get_regular_hours().copied()) {
+        leg.statistic.cost += get_off_hours_premium(actor, span);
+        leg.statistic.times.off_hours = ((hours.earliest - span.0).max(0.) + (span.1 - hours.latest).max(0.)) as i64;
+    }
     tour.statistic = leg.statistic;
 
     insert_reserved_times_as_breaks(route, &mut tour, reserved_times_index);

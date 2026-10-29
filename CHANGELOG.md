@@ -29,6 +29,27 @@ are already published. So, I stick to it for now.
 
 ### Added
 
+* add the `route-targets` objective: every route is scored against caller-stated `targets`, each a `metric`
+  (`distance`, `driving-time`, `duration`, `service-time`, `value` or `activities`) read over a `span`, optionally
+  with `breaks` included and `per` activity or hour, on a piecewise linear curve of `[value, points]` pairs; a route's
+  points combine by `aggregate` (`sum`, `sum-of-squares` or `max`) and the plan minimizes their sum, an empty route
+  scoring nothing
+* add the territory option `dayPatch` (default `false`): a route is measured against ONE of its driver's anchors, the
+  one with the smallest summed proximity to its jobs, instead of each job against the nearest of them, so a day stays
+  in one patch of a driver holding several anchors far apart
+* add per-shift named visit windows (`shift.visitWindows`, a map of `{ earliest, latest, fallback?, bridge? }`; `job.visitWindow` names one), validated by `E1310` and held by the checker: a visit uses its window's `fallback` chain only when it does not fit, and a `bridge` window reaches out to the route's untagged visits, returning the visits a ruin strands for reinsertion; and the `minimize-visit-window-overflow` objective, measuring `visits` or `minutes` outside the own window, placed right after `minimize-unassigned` when a shift window has a fallback
+* add per-shift regular hours (`shift.regularHours`) and an off-hours rate (`costs.offHours`): the time of the paid
+  span (`costs.span`) outside the regular hours is charged at the off-hours rate on top of the time cost, inside
+  `minimize-cost` like the overtime premium; validated by `E1311`, reported per tour as `statistic.times.offHours`
+* add the `minimize-split-co-located` objective: it counts the given pairs of jobs (`pairs`) which are both assigned
+  but served by different tours, a pair with an unassigned job counting nothing and a repeated pair once; placed below
+  `minimize-unassigned` it keeps nearby visits in one tour unless separating them places a job; validated by `E1611`
+  (unknown job) and `E1612` (same job twice)
+* add job `spacing` (`{ group, order, intervalDays, toleranceDays, anchor?, minOffsetDays? }`): a visit is refused on a
+  day too close to, or too far from, the nearest visit of its group placed before or after it, `n` steps apart in
+  `order` meaning `n * intervalDays` days give or take `n * toleranceDays`; two visits that both carry `minOffsetDays`
+  lie at least the difference of their offsets apart instead, with no upper bound; held by the checker, reported as
+  `VISIT_SPACING_CONSTRAINT`
 * add an experimental objective
 * add naive implementation of LKH local search
 * add json schemas for the problem, matrix, config, solution and error documents
@@ -37,7 +58,7 @@ are already published. So, I stick to it for now.
 * emit typescript declarations for the WebAssembly binding, so problems and solutions are typed
 * add `validate_pragmatic` to the python binding
 * add a javascript/node example
-* add `E0005`, `E1305` and `E1309` errors
+* add `E0005`, `E1305` and `E1312` errors
 
 ### Fixed
 
@@ -46,6 +67,33 @@ are already published. So, I stick to it for now.
   accepted now
 * swapped descriptions of `travelTimes` and `distances` in the routing matrix
 * objectives documentation listed several parameters which do not exist
+
+### Fixed
+
+* keep a tour's departure from staying at the shift's earliest start when moving it forward runs into a fixed break: the
+  departure is advanced as far as the waiting down the tour allows, and when a break given as exact time made that
+  infeasible it went back to where it was, which after a job was inserted in front of the first one is the shift's
+  earliest start; on a `first-job-to-last-job` span the night idled in front of the first job was then paid for, and
+  the tour broke `maxDuration` past the duration constraint, which had accepted the insertion against a departure just
+  in time for the job (`shift time limit violation ... got: 59261` against 39600); the departure now falls back to
+  arriving just in time for the first job, and failing that to the latest departure whose schedule holds, and a
+  departure that reaches a job after its window closes is never kept
+* let a job go in front of a tour's first job when its window closes before the departure that job left behind: once
+  a tour holds a job its departure moves forward to arrive just in time, and an insertion at the front was weighed
+  against that later departure, so an early visit could only open its own tour; it is now weighed against the shift's
+  earliest start, and the departure recedes after such an insertion and advances again, within the tour duration limit
+* do not charge the tour duration limit for the idle time in front of the first job of an empty route: the departure
+  can always be advanced there, but `advance_departure_time` cannot run before the route holds a job, so a job with a
+  late time window could never open a new tour on a wide shift
+* make the minimum tour size objective react to redistribution: its penalty is squared per route instead of a plain
+  sum of deficits, and its route estimate reports the marginal penalty change instead of a constant, so under-sized
+  tours are actually consolidated
+* report a visit held back by its shift's visit window as served from the window's start: the solution writer read the
+  service start off the job's own window and the appointment bounds only, so the tour claimed service on arrival, the
+  checker could not match the activity to its job and read a second visit at the same stop as served before its window
+* do not lengthen a visit by a required break that only touches it: a break taken at the stop right as the visit ends
+  was added to the visit's own time, and the checker, which reads a zero-length overlap as none, could not match the
+  visit to its job
 
 
 ## [1.25.0] 2024-11-10

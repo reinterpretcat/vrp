@@ -135,7 +135,8 @@ pub fn get_static_heuristic(
     environment: Arc<Environment>,
 ) -> StaticSelective<RefinementContext, GoalContext, InsertionContext> {
     let default_operator = statik::create_default_heuristic_operator(problem.clone(), environment.clone());
-    let local_search = statik::create_default_local_search(environment.random.clone());
+    let local_search =
+        statik::create_default_local_search(environment.random.clone(), problem.goal.has_objective("territory"));
 
     let heuristic_group: TargetHeuristicGroup = vec![
         (
@@ -345,6 +346,7 @@ fn create_diversify_operators(
     guided_ejection: Arc<GuidedEjectionSearch>,
 ) -> HeuristicDiversifyOperators<RefinementContext, GoalContext, InsertionContext> {
     let random = environment.random.clone();
+    let has_territory = problem.goal.has_objective("territory");
 
     let recreates: Vec<(Arc<dyn Recreate>, usize)> = vec![
         (Arc::new(RecreateWithSkipBest::new(1, 2, random.clone())), 1),
@@ -360,7 +362,7 @@ fn create_diversify_operators(
         Arc::new(WeightedHeuristicOperator::new(
             vec![
                 dynamic::create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
-                dynamic::create_default_local_search(random.clone()),
+                dynamic::create_default_local_search(random.clone(), has_territory),
             ],
             vec![10, 1],
         )),
@@ -471,26 +473,34 @@ mod statik {
         Arc::new(WeightedHeuristicOperator::new(
             vec![
                 Arc::new(RuinAndRecreate::new(ruin, recreate)),
-                create_default_local_search(environment.random.clone()),
+                create_default_local_search(environment.random.clone(), problem.goal.has_objective("territory")),
             ],
             vec![100, 10],
         ))
     }
 
     /// Creates default local search operator.
-    pub fn create_default_local_search(random: Arc<dyn Random>) -> TargetSearchOperator {
-        Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
-            vec![
-                (Arc::new(ExchangeSwapStar::new(random)), 200),
-                (Arc::new(ExchangeInterRouteBest::default()), 100),
-                (Arc::new(ExchangeSequence::default()), 100),
-                (Arc::new(ExchangeInterRouteRandom::default()), 30),
-                (Arc::new(ExchangeIntraRouteRandom::default()), 30),
-                (Arc::new(RescheduleDeparture::default()), 20),
-            ],
-            1,
-            2,
-        ))))
+    pub fn create_default_local_search(random: Arc<dyn Random>, has_territory: bool) -> TargetSearchOperator {
+        let mut operators: Vec<(Arc<dyn LocalOperator>, usize)> = vec![
+            (Arc::new(ExchangeSwapStar::new(random)), 200),
+            (Arc::new(ExchangeInterRouteBest::default()), 100),
+            (Arc::new(ExchangeSequence::default()), 100),
+            (Arc::new(ExchangeInterRouteRandom::default()), 30),
+            (Arc::new(ExchangeIntraRouteRandom::default()), 30),
+            (Arc::new(RescheduleDeparture::default()), 20),
+        ];
+        add_territory_relocate(&mut operators, 400, has_territory);
+        Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(operators, 1, 2))))
+    }
+}
+
+/// Appends the [`TerritoryRelocate`] local-search operator when (and only when) the goal contains
+/// the `territory` objective. For any problem without that objective the operator pool is
+/// byte-identical to the stock solver, so this is a pure, self-activating extension of the
+/// territory feature rather than an unconditional change to the default search.
+fn add_territory_relocate(operators: &mut Vec<(Arc<dyn LocalOperator>, usize)>, weight: usize, enabled: bool) {
+    if enabled {
+        operators.push((Arc::new(TerritoryRelocate), weight));
     }
 }
 
@@ -859,18 +869,16 @@ mod dynamic {
         ))
     }
 
-    pub fn create_default_local_search(random: Arc<dyn Random>) -> Arc<LocalSearch> {
-        Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(
-            vec![
-                (Arc::new(ExchangeSwapStar::new(random)), 2),
-                (Arc::new(ExchangeInterRouteBest::default()), 1),
-                (Arc::new(ExchangeInterRouteRandom::default()), 1),
-                (Arc::new(ExchangeIntraRouteRandom::default()), 1),
-                (Arc::new(ExchangeSequence::default()), 1),
-            ],
-            1,
-            1,
-        ))))
+    pub fn create_default_local_search(random: Arc<dyn Random>, has_territory: bool) -> Arc<LocalSearch> {
+        let mut operators: Vec<(Arc<dyn LocalOperator>, usize)> = vec![
+            (Arc::new(ExchangeSwapStar::new(random)), 2),
+            (Arc::new(ExchangeInterRouteBest::default()), 1),
+            (Arc::new(ExchangeInterRouteRandom::default()), 1),
+            (Arc::new(ExchangeIntraRouteRandom::default()), 1),
+            (Arc::new(ExchangeSequence::default()), 1),
+        ];
+        super::add_territory_relocate(&mut operators, 8, has_territory);
+        Arc::new(LocalSearch::new(Arc::new(CompositeLocalOperator::new(operators, 1, 1))))
     }
 
     /// Runs a refinement only after the primary search has improved its input and preserves the
@@ -911,11 +919,12 @@ mod dynamic {
         problem: Arc<Problem>,
         environment: Arc<Environment>,
     ) -> TargetSearchOperator {
+        let has_territory = problem.goal.has_objective("territory");
         let inner = Arc::new(WeightedHeuristicOperator::new(
             vec![
                 create_default_inner_ruin_recreate(problem.clone(), environment.clone()),
                 create_default_good_operator(problem, environment.clone()),
-                create_default_local_search(environment.random.clone()),
+                create_default_local_search(environment.random.clone(), has_territory),
             ],
             vec![9, 3, 1],
         ));

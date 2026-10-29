@@ -1,5 +1,6 @@
 use crate::format::problem::*;
 use crate::format::solution::*;
+use crate::format_time;
 use crate::helpers::*;
 
 #[test]
@@ -16,7 +17,12 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
         fleet: Fleet {
             vehicles: vec![VehicleType {
                 shifts: vec![create_default_open_vehicle_shift()],
-                limits: Some(VehicleLimits { max_distance: None, max_duration: None, tour_size: Some(2) }),
+                limits: Some(VehicleLimits {
+                    max_distance: None,
+                    max_duration: None,
+                    tour_size: Some(2),
+                    min_tour_size: None,
+                }),
                 ..create_default_vehicle_type()
             }],
             ..create_default_fleet()
@@ -64,4 +70,47 @@ fn can_skip_job_from_multiple_because_of_tour_size() {
             }]))
             .build()
     );
+}
+
+#[test]
+fn can_fill_the_tour_size_with_stops_while_a_break_is_taken() {
+    // Two jobs under a tour size of two, and an optional break the vehicle takes between them.
+    // The break is an activity on the tour, but it is not a stop: both jobs must still be served.
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![create_delivery_job("job1", (1., 0.)), create_delivery_job("job2", (2., 0.))],
+            ..create_empty_plan()
+        },
+        fleet: Fleet {
+            vehicles: vec![VehicleType {
+                shifts: vec![VehicleShift {
+                    breaks: Some(vec![VehicleBreak::Optional {
+                        time: VehicleOptionalBreakTime::TimeWindow(vec![format_time(1.), format_time(4.)]),
+                        places: vec![VehicleOptionalBreakPlace { duration: 2., location: None, tag: None }],
+                        policy: None,
+                    }]),
+                    ..create_default_open_vehicle_shift()
+                }],
+                limits: Some(VehicleLimits {
+                    max_distance: None,
+                    max_duration: None,
+                    tour_size: Some(2),
+                    min_tour_size: None,
+                }),
+                ..create_default_vehicle_type()
+            }],
+            ..create_default_fleet()
+        },
+        ..create_empty_problem()
+    };
+    let matrix = create_matrix_from_problem(&problem);
+
+    let solution = solve_with_metaheuristic(problem, Some(vec![matrix]));
+
+    assert!(solution.unassigned.is_none(), "both jobs must be served: {:?}", solution.unassigned);
+    assert_eq!(solution.statistic.times.break_time, 2, "the break must be taken");
+
+    let mut served = served_job_ids(&solution.tours[0]);
+    served.sort();
+    assert_eq!(served, ["job1", "job2"].map(String::from));
 }

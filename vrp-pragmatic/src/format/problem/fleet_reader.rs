@@ -10,7 +10,8 @@ use std::collections::HashSet;
 use vrp_core::construction::enablers::create_typed_actor_groups;
 use vrp_core::construction::features::{VehicleCapacityDimension, VehicleSkillsDimension};
 use vrp_core::models::common::*;
-use vrp_core::models::problem::*;
+use vrp_core::models::problem::RouteCostSpanDimension;
+use vrp_core::models::problem::{DriverIdDimension, *};
 
 pub(super) fn get_profile_index_map(api_problem: &ApiProblem) -> HashMap<String, usize> {
     api_problem.fleet.profiles.iter().fold(Default::default(), |mut acc, profile| {
@@ -115,6 +116,7 @@ pub(super) fn read_fleet(
         let profile = Profile::new(index, vehicle.profile.scale);
 
         let tour_size = vehicle.limits.as_ref().and_then(|l| l.tour_size);
+        let min_tour_size = vehicle.limits.as_ref().and_then(|l| l.min_tour_size);
 
         for (shift_index, shift) in vehicle.shifts.iter().enumerate() {
             let start = {
@@ -149,8 +151,35 @@ pub(super) fn read_fleet(
                     .set_shift_index(shift_index)
                     .set_vehicle_id(vehicle_id.to_string());
 
+                if let Some(overtime) = vehicle.costs.overtime {
+                    dimens.set_overtime_rate(overtime);
+                }
+
+                if let Some(regular_duration) = shift.regular_duration {
+                    dimens.set_regular_duration(regular_duration);
+                }
+
+                if let Some(rate) = vehicle.costs.off_hours {
+                    dimens.set_off_hours_rate(rate);
+                }
+
+                if let Some(hours) = shift.regular_hours.as_ref() {
+                    dimens.set_regular_hours(vrp_core::models::problem::RegularHours {
+                        earliest: parse_time(&hours.earliest),
+                        latest: parse_time(&hours.latest),
+                    });
+                }
+
+                if let Some(driver_id) = vehicle.driver_id.as_ref() {
+                    dimens.set_driver_id(driver_id.clone());
+                }
+
                 if let Some(tour_size) = tour_size {
                     dimens.set_tour_size(tour_size);
+                }
+
+                if let Some(min_tour_size) = min_tour_size {
+                    dimens.set_min_tour_size(min_tour_size);
                 }
 
                 if props.has_multi_dimen_capacity {
@@ -160,7 +189,52 @@ pub(super) fn read_fleet(
                 }
 
                 if let Some(skills) = vehicle.skills.as_ref() {
-                    dimens.set_vehicle_skills(skills.iter().cloned().collect::<HashSet<_>>());
+                    dimens.set_vehicle_skills(skills.iter().cloned().collect());
+                }
+
+                if let Some(span) = vehicle.costs.span.as_ref() {
+                    let core_span = match span {
+                        crate::format::problem::model::RouteCostSpan::DepotToDepot => {
+                            vrp_core::models::problem::RouteCostSpan::DepotToDepot
+                        }
+                        crate::format::problem::model::RouteCostSpan::DepotToLastJob => {
+                            vrp_core::models::problem::RouteCostSpan::DepotToLastJob
+                        }
+                        crate::format::problem::model::RouteCostSpan::FirstJobToDepot => {
+                            vrp_core::models::problem::RouteCostSpan::FirstJobToDepot
+                        }
+                        crate::format::problem::model::RouteCostSpan::FirstJobToLastJob => {
+                            vrp_core::models::problem::RouteCostSpan::FirstJobToLastJob
+                        }
+                    };
+                    dimens.set_route_cost_span(core_span);
+                }
+
+                if let Some(job_times) = shift.job_times.as_ref() {
+                    let core_job_times = vrp_core::models::problem::JobTimeConstraints {
+                        earliest_first: job_times.earliest_first.as_ref().map(|t| parse_time(t)),
+                        latest_last: job_times.latest_last.as_ref().map(|t| parse_time(t)),
+                    };
+                    dimens.set_job_time_constraints(core_job_times);
+                }
+
+                if let Some(windows) = shift.visit_windows.as_ref() {
+                    dimens.set_visit_windows(VisitWindows {
+                        windows: windows
+                            .iter()
+                            .map(|(name, window)| {
+                                (
+                                    name.clone(),
+                                    VisitWindow {
+                                        earliest: parse_time(&window.earliest),
+                                        latest: parse_time(&window.latest),
+                                        fallback: window.fallback.clone(),
+                                        bridge: window.bridge,
+                                    },
+                                )
+                            })
+                            .collect(),
+                    });
                 }
 
                 vehicles.push(Arc::new(Vehicle {
@@ -191,7 +265,7 @@ pub(super) fn read_fleet(
     // says which vehicle type is at fault; this is the backstop for anything it does not cover.
     if vehicles.is_empty() {
         return Err(vec![FormatError::new(
-            "E1309".to_string(),
+            "E1312".to_string(),
             "fleet has no vehicles".to_string(),
             "add a vehicle type with at least one vehicle id and one shift".to_string(),
         )]
