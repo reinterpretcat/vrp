@@ -1,5 +1,6 @@
 use super::*;
 use crate::helpers::construction::heuristics::TestInsertionContextBuilder;
+use crate::helpers::models::domain::TestGoalContextBuilder;
 use crate::helpers::models::problem::TestSingleBuilder;
 use crate::helpers::models::solution::{ActivityBuilder, RouteBuilder, RouteContextBuilder};
 use crate::models::common::Location;
@@ -109,4 +110,23 @@ fn can_skip_merge_breaks_impl(source: Job, candidate: Job, expected: Result<(), 
     let result = feature.constraint.unwrap().merge(source, candidate).map(|_| ());
 
     assert_eq!(result, expected);
+}
+
+#[test]
+fn can_drop_route_left_empty_by_orphan_break_removal() {
+    let mut insertion_ctx = TestInsertionContextBuilder::default()
+        .with_goal(TestGoalContextBuilder::default().add_feature(create_break_feature()).build())
+        .build();
+    let actor = insertion_ctx.solution.registry.next_route().next().unwrap().route().actor.clone();
+    let mut route_ctx = insertion_ctx.solution.registry.get_route(&actor).unwrap();
+    route_ctx
+        .route_mut()
+        .tour
+        .insert_last(ActivityBuilder::with_location(2).job(Some(create_break("v1", None))).build());
+    insertion_ctx.solution.routes.push(route_ctx);
+
+    crate::construction::heuristics::finalize_insertion_ctx(&mut insertion_ctx);
+
+    assert!(insertion_ctx.solution.routes.is_empty());
+    assert_eq!(insertion_ctx.solution.ignored.len() + insertion_ctx.solution.unassigned.len(), 1);
 }

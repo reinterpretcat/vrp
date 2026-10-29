@@ -392,7 +392,11 @@ pub(crate) fn prepare_insertion_ctx(insertion_ctx: &mut InsertionContext) {
 pub(crate) fn finalize_insertion_ctx(insertion_ctx: &mut InsertionContext) {
     finalize_unassigned(insertion_ctx, UnassignmentInfo::Unknown);
 
+    // Accepting the state can take the last job off a route: a break whose route lost every other
+    // job is removed as an orphan. The route is then empty, and an empty route reaches the solution
+    // with its schedule frozen at the moment before, departure included.
     insertion_ctx.problem.goal.accept_solution_state(&mut insertion_ctx.solution);
+    insertion_ctx.solution.remove_empty_routes();
 }
 
 pub(crate) fn apply_insertion_success(insertion_ctx: &mut InsertionContext, success: InsertionSuccess) {
