@@ -277,3 +277,25 @@ fn can_handle_negative_distances_durations_impl(transport_costs: Arc<dyn Transpo
         );
     }
 }
+
+#[test]
+fn keeps_cheapest_neighbours_in_order_when_there_are_more_jobs_than_neighbours() {
+    let profile = Profile::default();
+    let size = MAX_NEIGHBOURS + 50;
+    // NOTE reversed, so that the cheapest neighbours are at the end of the job list
+    let species: Vec<Job> = (0..size)
+        .rev()
+        .map(|location| {
+            TestSingleBuilder::default().id(&format!("s{location}")).location(Some(location)).build_as_job_ref()
+        })
+        .collect();
+    let jobs =
+        Jobs::new(&test_fleet(), species.clone(), create_only_distance_transport_cost().as_ref(), &test_logger())
+            .unwrap();
+    let first = species.last().unwrap();
+
+    let result: Vec<String> = jobs.neighbors(&profile, first, 0.0).map(|(j, _)| get_job_id(j).clone()).collect();
+
+    let expected: Vec<String> = (1..=MAX_NEIGHBOURS).map(|location| format!("s{location}")).collect();
+    assert_eq!(result, expected);
+}

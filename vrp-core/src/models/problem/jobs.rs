@@ -359,15 +359,22 @@ fn create_index(
 
                 // create job index
                 let item = parallel_collect(&jobs, ParallelismPolicy::Default, |job| {
-                    let mut sorted_job_costs: Vec<(Job, LowPrecisionCost)> = jobs
+                    let mut job_costs: Vec<(usize, LowPrecisionCost)> = jobs
                         .iter()
-                        .filter(|j| **j != *job)
-                        .map(|j| (j.clone(), get_cost_between_jobs(profile, avg_costs, transport, job, j)))
+                        .enumerate()
+                        .filter(|(_, j)| **j != *job)
+                        .map(|(idx, j)| (idx, get_cost_between_jobs(profile, avg_costs, transport, job, j)))
                         .collect();
-                    sorted_job_costs.sort_unstable_by(|(_, a), (_, b)| a.total_cmp(b));
 
-                    sorted_job_costs.truncate(MAX_NEIGHBOURS);
-                    sorted_job_costs.shrink_to_fit();
+                    // NOTE only the cheapest MAX_NEIGHBOURS are kept, so select them first and sort only those
+                    if job_costs.len() > MAX_NEIGHBOURS {
+                        job_costs.select_nth_unstable_by(MAX_NEIGHBOURS - 1, |(_, a), (_, b)| a.total_cmp(b));
+                        job_costs.truncate(MAX_NEIGHBOURS);
+                    }
+                    job_costs.sort_unstable_by(|(_, a), (_, b)| a.total_cmp(b));
+
+                    let sorted_job_costs: Vec<(Job, LowPrecisionCost)> =
+                        job_costs.into_iter().map(|(idx, cost)| (jobs[idx].clone(), cost)).collect();
 
                     let fleet_costs = starts
                         .iter()
