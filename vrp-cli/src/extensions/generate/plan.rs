@@ -69,6 +69,7 @@ pub(crate) fn generate_plan(
                 skills: job_proto.skills.clone(),
                 value: job_proto.value,
                 production_value: job_proto.production_value,
+                unassigned_weight: job_proto.unassigned_weight,
                 group: job_proto.group.clone(),
                 compatibility: job_proto.compatibility.clone(),
                 vehicle_group: job_proto.vehicle_group.clone(),

@@ -22,6 +22,8 @@ custom_dimension!(pub JobValue typeof Float);
 
 custom_dimension!(pub ProductionValue typeof Float);
 
+custom_dimension!(pub UnassignedWeight typeof Float);
+
 custom_dimension!(pub JobDueDate typeof Float);
 
 custom_dimension!(pub JobType typeof String);

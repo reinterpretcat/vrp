@@ -449,6 +449,10 @@ fn fill_dimens(job: &ApiJob, dimens: &mut Dimensions) {
         dimens.set_production_value(production_value);
     }
 
+    if let Some(unassigned_weight) = job.unassigned_weight {
+        dimens.set_unassigned_weight(unassigned_weight);
+    }
+
     if let Some(group) = job.group.clone() {
         dimens.set_job_group(group);
     }

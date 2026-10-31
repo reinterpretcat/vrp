@@ -74,6 +74,13 @@ fn can_deserialize_job_production_value() {
 }
 
 #[test]
+fn can_deserialize_job_unassigned_weight() {
+    let job: Job = serde_json::from_str(r#"{ "id": "job1", "unassignedWeight": 2.5 }"#).unwrap();
+
+    assert_eq!(job.unassigned_weight, Some(2.5));
+}
+
+#[test]
 fn can_deserialize_job_vehicle_group() {
     let job: Job = serde_json::from_str(r#"{ "id": "job1", "vehicleGroup": "sub-1" }"#).unwrap();
 

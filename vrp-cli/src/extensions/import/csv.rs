@@ -98,6 +98,7 @@ mod actual {
                 skills: None,
                 value: None,
                 production_value: None,
+                unassigned_weight: None,
                 group: None,
                 compatibility: None,
                 vehicle_group: None,

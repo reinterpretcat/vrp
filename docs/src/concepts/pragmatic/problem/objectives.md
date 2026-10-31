@@ -35,7 +35,7 @@ Besides cost objectives, there are other objectives which are targeting for some
   previously accepted. The reason of that can be conflicting objective (e.g. minimize tours) and restrictive
   constraints such as time windows. The objective has the following optional parameter: \* `breaks`: a multiplicative coefficient to make breaks more preferable for assignment. Default value is 1. Setting
   this parameter to a value bigger than 1 is useful when it is highly desirable to have break assigned but its
-  assignment leads to more jobs unassigned.
+  assignment leads to more jobs unassigned. Each job counts with its `unassignedWeight`, 1 when it has none.
 - `minimize-tours`: minimizes total amount of tours present in solution
 - `maximize-tours`: maximizes total amount of tours present in solution
 - `minimize-arrival-time`: prefers solutions where work is finished earlier

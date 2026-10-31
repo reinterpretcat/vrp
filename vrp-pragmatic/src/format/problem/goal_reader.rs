@@ -206,14 +206,19 @@ fn get_objective_feature_layer(
             .set_job_estimator({
                 let break_value = *breaks;
                 let default_value = 1.;
+                let weight_of =
+                    move |job: &CoreJob| job.dimens().get_unassigned_weight().copied().unwrap_or(default_value);
                 move |_, job| {
                     if let Some(clusters) = job.dimens().get_cluster_info() {
-                        clusters.len() as Float * default_value
+                        clusters.iter().map(|cluster| weight_of(&cluster.job)).sum()
                     } else {
-                        job.dimens().get_job_type().map_or(default_value, |job_type| match job_type.as_str() {
-                            "break" => break_value.unwrap_or(default_value),
-                            _ => default_value,
-                        })
+                        job.dimens().get_job_type().map_or_else(
+                            || weight_of(job),
+                            |job_type| match job_type.as_str() {
+                                "break" => break_value.unwrap_or(default_value),
+                                _ => weight_of(job),
+                            },
+                        )
                     }
                 }
             })

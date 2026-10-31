@@ -128,6 +128,10 @@ pub struct Job {
     #[serde(rename = "productionValue", skip_serializing_if = "Option::is_none")]
     pub production_value: Option<Float>,
 
+    /// What leaving the job unassigned costs the minimize-unassigned objective. Default 1.
+    #[serde(rename = "unassignedWeight", skip_serializing_if = "Option::is_none")]
+    pub unassigned_weight: Option<Float>,
+
     /// Job group: jobs of the same group are assigned to the same tour or unassigned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,

@@ -11,6 +11,7 @@ pub fn create_empty_job() -> Job {
         skills: None,
         value: None,
         production_value: None,
+        unassigned_weight: None,
         group: None,
         compatibility: None,
         vehicle_group: None,

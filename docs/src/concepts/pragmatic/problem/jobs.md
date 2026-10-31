@@ -21,6 +21,9 @@ consists of the following properties:
 - **productionValue** (optional): a float value representing the job's production value (e.g. expected revenue).
   It is consumed by the `balance-production-value` objective and by the `balance-period` objective when its
   `metric` is set to `production-value`, to balance total job production value across tours or per employee.
+- **unassignedWeight** (optional): what leaving the job unassigned costs the `minimize-unassigned` objective, for
+  example its service duration or its revenue scaled so that an average job weighs 1. Default 1. A break keeps the
+  objective's `breaks` value, so weights on the jobs should sit on the same scale as it.
 - **group** (optional): a group name. Jobs with the same groups are scheduled in the same tour or left unassigned.
 - **compatibility** (optional): compatibility class. Jobs with different compatibility classes cannot be assigned in
   the same tour. This is useful to avoid mixing cargo, such as hazardous goods and food.
