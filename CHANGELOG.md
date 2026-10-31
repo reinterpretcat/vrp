@@ -26,6 +26,7 @@ are already published. So, I stick to it for now.
 * **breaking**: rename `violations` fields in solution to `vehicleId` and `shiftIndex`, matching the
   documented format and the rest of the solution
 * commit `Cargo.lock` to make builds reproducible
+* build the job index faster by selecting the cheapest neighbours before sorting them
 
 ### Added
 
