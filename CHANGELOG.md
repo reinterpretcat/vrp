@@ -46,6 +46,9 @@ are already published. So, I stick to it for now.
   accepted now
 * swapped descriptions of `travelTimes` and `distances` in the routing matrix
 * objectives documentation listed several parameters which do not exist
+* pickup-delivery capacity is checked per run (a stretch of the tour with load on board) instead of adding the
+  job's load to the max load of the rest of the tour, which rejected a pickup before a later run that fills the
+  vehicle. Tours with reload intervals keep the previous check
 
 
 ## [1.25.0] 2024-11-10

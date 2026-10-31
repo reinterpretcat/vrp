@@ -6,6 +6,7 @@ mod capacity_test;
 
 use super::*;
 use crate::construction::enablers::*;
+use crate::models::problem::Multi;
 use crate::models::solution::Activity;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -295,11 +296,15 @@ where
         let demand = self.get_demand(activity_ctx.target);
 
         let violation = if activity_ctx.target.has_parent_job() {
-            // NOTE multi job has dynamic demand which can go in another interval
-            if self.can_handle_demand_on_intervals(route_ctx, demand, Some(activity_ctx.index)) {
-                None
+            if self.has_markers(route_ctx) {
+                // NOTE multi job has dynamic demand which can go in another interval
+                if self.can_handle_demand_on_intervals(route_ctx, demand, Some(activity_ctx.index)) {
+                    None
+                } else {
+                    Some(false)
+                }
             } else {
-                Some(false)
+                has_run_demand_violation(route_ctx, activity_ctx, demand)
             }
         } else {
             has_demand_violation(route_ctx, activity_ctx.index, demand, !self.has_markers(route_ctx))
@@ -357,6 +362,78 @@ fn has_demand_violation<T: LoadOps>(
     demand: Option<&Demand<T>>,
     stopped: bool,
 ) -> Option<bool> {
+    has_demand_violation_at(route_ctx, pivot_idx, demand, stopped, true)
+}
+
+/// Checks an activity of a multi job, e.g. a pickup-delivery. Its load is on board only from the job's first to its
+/// last activity, so adding it to the max load of the rest of the tour overstates it. Instead, an earlier activity is
+/// checked at its own position only, and the job's last activity checks the peak of the run (a stretch of the tour
+/// with load on board) the job ends up in.
+fn has_run_demand_violation<T: LoadOps>(
+    route_ctx: &RouteContext,
+    activity_ctx: &ActivityContext,
+    demand: Option<&Demand<T>>,
+) -> Option<bool> {
+    let index = activity_ctx.index;
+    if let Some(violation) = has_demand_violation_at(route_ctx, index, demand, false, false) {
+        return Some(violation);
+    }
+
+    let demand = demand?;
+    let multi = activity_ctx.target.job.as_ref().and_then(|single| Multi::roots(single))?;
+    let tour = &route_ctx.route().tour;
+    let (placed, first) = tour
+        .all_activities()
+        .enumerate()
+        .filter(|(_, activity)| {
+            activity.job.as_ref().is_some_and(|single| multi.jobs.iter().any(|job| Arc::ptr_eq(job, single)))
+        })
+        .fold((0, usize::MAX), |(placed, first), (idx, _)| (placed + 1, first.min(idx)));
+
+    // NOTE the evaluator inserts the activities of a multi job one by one, so only the last one knows the run
+    if placed + 1 != multi.jobs.len() {
+        return None;
+    }
+    if first > index {
+        return has_demand_violation(route_ctx, index, Some(demand), false);
+    }
+
+    let capacity_state = route_ctx.state().get_capacity_states::<T>();
+    let capacity = match capacity_state {
+        Some(state) => state.capacity.as_ref(),
+        None => route_ctx.route().actor.vehicle.dimens.get_vehicle_capacity(),
+    };
+    let Some(capacity) = capacity else {
+        return Some(false);
+    };
+    let current = |idx: usize| {
+        capacity_state.and_then(|state| state.activities.get(idx)).map(|state| state.current).unwrap_or_default()
+    };
+
+    // the job is on board from its first activity to the target: the run starts where the vehicle was last empty
+    let mut start = first;
+    while start > 0 && current(start - 1).is_not_empty() {
+        start -= 1;
+    }
+    let peak = (start..=index).fold(T::default(), |peak, idx| peak.max_load(current(idx)));
+
+    // from the target on, the job's load is gone: the run lasts while the vehicle stays loaded
+    let change = demand.change();
+    let peak = (index..tour.total())
+        .map(|idx| current(idx) + change)
+        .take_while(|load| load.is_not_empty())
+        .fold(peak, |peak, load| peak.max_load(load));
+
+    if capacity.can_fit(&peak) { None } else { Some(false) }
+}
+
+fn has_demand_violation_at<T: LoadOps>(
+    route_ctx: &RouteContext,
+    pivot_idx: usize,
+    demand: Option<&Demand<T>>,
+    stopped: bool,
+    check_dynamic_future: bool,
+) -> Option<bool> {
     let demand = demand?;
     let capacity_state = route_ctx.state().get_capacity_states::<T>();
     let capacity = match capacity_state {
@@ -393,7 +470,7 @@ fn has_demand_violation<T: LoadOps>(
     if demand.has_dynamic() {
         let change = demand.change();
         let future = state.map(|state| state.max_future).unwrap_or_default();
-        if !capacity.can_fit(&(future + change)) {
+        if check_dynamic_future && !capacity.can_fit(&(future + change)) {
             return Some(false);
         }
 
