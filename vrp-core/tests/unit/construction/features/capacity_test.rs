@@ -238,3 +238,122 @@ fn can_merge_jobs_with_demand_impl(
         (Err(ViolationCode(result)), Err(expected)) => assert_eq!(result, expected),
     }
 }
+
+mod runs {
+    //! A pickup-delivery job's load is on board only between its pickup and delivery, so capacity is checked
+    //! per run (a stretch of the tour with load on board), not over the rest of the tour.
+    use super::*;
+    use crate::models::common::MultiDimLoad;
+    use crate::models::problem::Multi;
+    use std::sync::Arc;
+
+    /// A pickup-delivery job: the job is returned too, as activities reach it through a weak link.
+    fn pudo<T: LoadOps>(pickup: Demand<T>, delivery: Demand<T>) -> (Arc<Multi>, Activity, Activity) {
+        let multi = Multi::new_shared(
+            vec![
+                TestSingleBuilder::default().demand(pickup).build_shared(),
+                TestSingleBuilder::default().demand(delivery).build_shared(),
+            ],
+            Dimensions::default(),
+        );
+        let pickup = ActivityBuilder::default().job(Some(multi.jobs[0].clone())).build();
+        let delivery = ActivityBuilder::default().job(Some(multi.jobs[1].clone())).build();
+
+        (multi, pickup, delivery)
+    }
+
+    fn single_pudo() -> (Arc<Multi>, Activity, Activity) {
+        pudo(Demand::<SingleDimLoad>::pudo_pickup(1), Demand::pudo_delivery(1))
+    }
+
+    fn multi_dim_pudo(load: Vec<i32>) -> (Arc<Multi>, Activity, Activity) {
+        pudo(
+            Demand { pickup: (MultiDimLoad::default(), MultiDimLoad::new(load.clone())), delivery: Default::default() },
+            Demand { pickup: Default::default(), delivery: (MultiDimLoad::default(), MultiDimLoad::new(load)) },
+        )
+    }
+
+    fn evaluate<T: LoadOps>(
+        vehicle: Vehicle,
+        tour: Vec<Activity>,
+        target: &Activity,
+        index: usize,
+    ) -> Option<ConstraintViolation> {
+        let fleet = FleetBuilder::default().add_driver(test_driver()).add_vehicle(vehicle).build();
+        let mut route_ctx = RouteContextBuilder::default()
+            .with_route(RouteBuilder::default().with_vehicle(&fleet, "v1").add_activities(tour).build())
+            .build();
+        let feature = CapacityFeatureBuilder::<T>::new("capacity").set_violation_code(VIOLATION_CODE).build().unwrap();
+        feature.state.unwrap().accept_route_state(&mut route_ctx);
+        let activity_ctx = ActivityContext {
+            index,
+            prev: route_ctx.route().tour.get(index).unwrap(),
+            target,
+            next: route_ctx.route().tour.get(index + 1),
+        };
+        let solution_ctx = TestInsertionContextBuilder::default().build().solution;
+
+        feature.constraint.unwrap().evaluate(&MoveContext::activity(&solution_ctx, &route_ctx, &activity_ctx))
+    }
+
+    fn multi_dim_vehicle(capacity: Vec<i32>) -> Vehicle {
+        let mut builder = TestVehicleBuilder::default();
+        builder.id("v1").dimens_mut().set_vehicle_capacity(MultiDimLoad::new(capacity));
+        builder.build()
+    }
+
+    #[test]
+    fn can_pick_up_before_a_later_full_run() {
+        let (_a, ap, ad) = single_pudo();
+        let (_b, bp, _) = single_pudo();
+
+        // [start, ap, ad]: b is picked up before a's run, which fills the vehicle
+        assert_eq!(evaluate::<SingleDimLoad>(create_test_vehicle(1), vec![ap, ad], &bp, 0), None);
+    }
+
+    #[test]
+    fn can_deliver_before_a_later_full_run() {
+        let (_a, ap, ad) = single_pudo();
+        let (_b, bp, bd) = single_pudo();
+
+        // [start, bp, ap, ad]: b is delivered before a is picked up
+        assert_eq!(evaluate::<SingleDimLoad>(create_test_vehicle(1), vec![bp, ap, ad], &bd, 1), None);
+    }
+
+    #[test]
+    fn cannot_keep_load_on_board_through_a_full_run() {
+        let (_a, ap, ad) = single_pudo();
+        let (_b, bp, bd) = single_pudo();
+
+        // [start, bp, ap, ad]: delivering b after a's pickup has two loads on board
+        assert_eq!(
+            evaluate::<SingleDimLoad>(create_test_vehicle(1), vec![bp, ap, ad], &bd, 2),
+            create_constraint_violation(false)
+        );
+    }
+
+    #[test]
+    fn can_pick_up_before_a_later_full_run_with_multi_dim_load() {
+        let (_a, ap, ad) = multi_dim_pudo(vec![2, 1]);
+        let (_b, bp, _) = multi_dim_pudo(vec![1, 1]);
+
+        // [start, ap, ad]: a fills the vehicle later on
+        assert_eq!(evaluate::<MultiDimLoad>(multi_dim_vehicle(vec![2, 1]), vec![ap, ad], &bp, 0), None);
+    }
+
+    #[test]
+    fn cannot_overload_one_dimension_within_a_run() {
+        let (_a, ap, ad) = multi_dim_pudo(vec![0, 1]);
+        let (_b, bp, bd) = multi_dim_pudo(vec![1, 1]);
+
+        // [start, bp, ap, ad]: b stays on board while a takes the only place in the second dimension
+        assert_eq!(
+            evaluate::<MultiDimLoad>(multi_dim_vehicle(vec![2, 1]), vec![bp, ap, ad], &bd, 2),
+            create_constraint_violation(false)
+        );
+        // b is delivered before a is picked up
+        let (_a, ap, ad) = multi_dim_pudo(vec![0, 1]);
+        let (_b, bp, bd) = multi_dim_pudo(vec![1, 1]);
+        assert_eq!(evaluate::<MultiDimLoad>(multi_dim_vehicle(vec![2, 1]), vec![bp, ap, ad], &bd, 1), None);
+    }
+}
