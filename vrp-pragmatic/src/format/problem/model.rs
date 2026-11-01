@@ -128,6 +128,12 @@ pub struct Job {
     /// A compatibility group: jobs with different compatibility cannot be assigned to the same tour.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compatibility: Option<String>,
+
+    /// When true, the tasks of a job are served exactly in the order they are listed: pickups, then deliveries,
+    /// replacements and services, each in the order of its list. By default, the solver may reorder pickups among
+    /// themselves and the other tasks among themselves.
+    #[serde(rename = "fixedOrder", skip_serializing_if = "Option::is_none")]
+    pub fixed_order: Option<bool>,
 }
 
 // region Clustering

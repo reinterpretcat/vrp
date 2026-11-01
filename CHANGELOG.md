@@ -38,6 +38,8 @@ are already published. So, I stick to it for now.
 * add `validate_pragmatic` to the python binding
 * add a javascript/node example
 * add `E0005`, `E1305` and `E1309` errors
+* add optional `fixedOrder` to a job: when `true`, the tasks of a multi job are served exactly in the order they are
+  listed, and the solution checker verifies it
 
 ### Fixed
 

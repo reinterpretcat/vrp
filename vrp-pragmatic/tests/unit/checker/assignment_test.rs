@@ -309,3 +309,93 @@ fn can_detect_group_violations() {
 
     assert_eq!(result, Err("job groups are not respected: 'group1'".into()));
 }
+
+parameterized_test! {can_check_fixed_order, (fixed_order, pickups, deliveries, served, expected_result), {
+    can_check_fixed_order_impl(fixed_order, pickups, deliveries, served, expected_result);
+}}
+
+can_check_fixed_order! {
+    case01_kept: (Some(true), 2, 2, "p1 p2 d1 d2", Ok(())),
+    case02_pickups_swapped: (Some(true), 2, 2, "p2 p1 d1 d2", Err(())),
+    case03_deliveries_swapped: (Some(true), 2, 2, "p1 p2 d2 d1", Err(())),
+    case04_not_fixed: (None, 2, 2, "p2 p1 d2 d1", Ok(())),
+    case05_not_fixed_false: (Some(false), 2, 2, "p2 p1 d1 d2", Ok(())),
+    case06_unassigned: (Some(true), 2, 2, "", Ok(())),
+    case07_single_pickup: (Some(true), 1, 2, "p1 d1 d2", Ok(())),
+    case08_single_pickup_swapped: (Some(true), 1, 2, "p1 d2 d1", Err(())),
+}
+
+fn can_check_fixed_order_impl(
+    fixed_order: Option<bool>,
+    pickups: usize,
+    deliveries: usize,
+    served: &str,
+    expected_result: Result<(), ()>,
+) {
+    let create_tasks = |size: usize, prefix: &str| {
+        Some((1..=size).map(|idx| create_task((1., 0.), Some(format!("{prefix}{idx}")))).collect::<Vec<_>>())
+    };
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![Job {
+                pickups: create_tasks(pickups, "p"),
+                deliveries: create_tasks(deliveries, "d"),
+                fixed_order,
+                ..create_job("job1")
+            }],
+            ..create_empty_plan()
+        },
+        ..create_empty_problem()
+    };
+    let solution = if served.is_empty() {
+        SolutionBuilder::default().build()
+    } else {
+        // NOTE a tag starting with 'p' is a pickup, otherwise a delivery
+        let stops = served
+            .split_whitespace()
+            .map(|tag| {
+                let activity_type = if tag.starts_with('p') { "pickup" } else { "delivery" };
+                StopBuilder::default().coordinate((1., 0.)).build_single_tag("job1", activity_type, tag)
+            })
+            .collect();
+        SolutionBuilder::default().tour(TourBuilder::default().stops(stops).build()).build()
+    };
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
+
+    let result = check_fixed_order(&ctx).map_err(|_| ());
+
+    assert_eq!(result, expected_result);
+}
+
+#[test]
+fn can_report_fixed_order_violation() {
+    let problem = Problem {
+        plan: Plan {
+            jobs: vec![Job {
+                fixed_order: Some(true),
+                ..create_multi_job(
+                    "job1",
+                    vec![((1., 0.), 1., vec![1]), ((2., 0.), 1., vec![1])],
+                    vec![((3., 0.), 1., vec![2])],
+                )
+            }],
+            ..create_empty_plan()
+        },
+        ..create_empty_problem()
+    };
+    let stops = [("pickup", "p2"), ("pickup", "p1"), ("delivery", "d1")]
+        .into_iter()
+        .map(|(activity_type, tag)| {
+            StopBuilder::default().coordinate((1., 0.)).build_single_tag("job1", activity_type, tag)
+        })
+        .collect();
+    let solution = SolutionBuilder::default().tour(TourBuilder::default().stops(stops).build()).build();
+    let ctx = CheckerContext::new(create_example_problem(), problem, None, solution).unwrap();
+
+    let result = check_fixed_order(&ctx);
+
+    assert_eq!(
+        result,
+        Err("fixed order of job 'job1' is not respected, served as: 'pickup:p2,pickup:p1,delivery:d1'".into())
+    );
+}

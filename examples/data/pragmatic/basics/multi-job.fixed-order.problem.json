@@ -1,0 +1,103 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "school_trip",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5005,
+                  "lng": 13.3402
+                },
+                "duration": 120.0,
+                "tag": "companion_pickup"
+              }
+            ],
+            "demand": [
+              1
+            ]
+          },
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4801,
+                  "lng": 13.301
+                },
+                "duration": 120.0,
+                "tag": "student_pickup"
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5212,
+                  "lng": 13.4011
+                },
+                "duration": 120.0,
+                "tag": "school_delivery"
+              }
+            ],
+            "demand": [
+              2
+            ]
+          }
+        ],
+        "fixedOrder": true
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1"
+        ],
+        "profile": {
+          "matrix": "normal_car"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            },
+            "end": {
+              "latest": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car"
+      }
+    ]
+  }
+}

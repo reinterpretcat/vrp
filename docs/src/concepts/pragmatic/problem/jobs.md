@@ -21,6 +21,10 @@ consists of the following properties:
 - **group** (optional): a group name. Jobs with the same groups are scheduled in the same tour or left unassigned.
 - **compatibility** (optional): compatibility class. Jobs with different compatibility classes cannot be assigned in
   the same tour. This is useful to avoid mixing cargo, such as hazardous goods and food.
+- **fixedOrder** (optional): when set to `true`, the tasks of a job with multiple tasks are served exactly in the order
+  they are listed: pickups first, then deliveries, replacements and services, each in the order of its list. By default,
+  the solver chooses the order, see `Pickup and delivery job` below. See
+  [fixed order](../../../examples/pragmatic/basics/job-types.md#fixed-order-of-tasks) example.
 
 A job should have at least one task property specified.
 
@@ -85,7 +89,8 @@ The vehicle picks some `goods` at one or multiple `job.pickups.location`, which 
 them to one or many `job.deliveries.location`. The job has the following rules:
 
 - all pickup/delivery tasks should be done or none of them.
-- assignment order is not defined except all pickups should be assigned before any of deliveries.
+- assignment order is not defined except all pickups should be assigned before any of deliveries. Use `fixedOrder`
+  to serve the tasks exactly in the order they are listed.
 - sum of pickup demand should be equal to sum of delivery demand
 
 A good example of such job is a job with more than two places with variable demand:
@@ -136,7 +141,7 @@ You can specify multiple tasks properties to get some mixed job:
 ```
 
 Similar pickup and delivery job, all these tasks has to be executed or none of them. The order is not specified except
-pickups must be scheduled before any delivery, replacement or service.
+pickups must be scheduled before any delivery, replacement or service, unless `fixedOrder` is set.
 
 
 Hint

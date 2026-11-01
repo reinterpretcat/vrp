@@ -1,0 +1,140 @@
+{
+  "statistic": {
+    "cost": 42.34337,
+    "distance": 27344,
+    "duration": 3095,
+    "times": {
+      "driving": 2735,
+      "serving": 360,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5005,
+            "lng": 13.3402
+          },
+          "time": {
+            "arrival": "2019-07-04T09:09:11Z",
+            "departure": "2019-07-04T09:11:11Z"
+          },
+          "distance": 5510,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "school_trip",
+              "type": "pickup",
+              "jobTag": "companion_pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4801,
+            "lng": 13.301
+          },
+          "time": {
+            "arrival": "2019-07-04T09:17:01Z",
+            "departure": "2019-07-04T09:19:01Z"
+          },
+          "distance": 9005,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "school_trip",
+              "type": "pickup",
+              "jobTag": "student_pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5212,
+            "lng": 13.4011
+          },
+          "time": {
+            "arrival": "2019-07-04T09:32:39Z",
+            "departure": "2019-07-04T09:34:39Z"
+          },
+          "distance": 17187,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "school_trip",
+              "type": "delivery",
+              "jobTag": "school_delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "2019-07-04T09:51:35Z",
+            "departure": "2019-07-04T09:51:35Z"
+          },
+          "distance": 27344,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 42.34337,
+        "distance": 27344,
+        "duration": 3095,
+        "times": {
+          "driving": 2735,
+          "serving": 360,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ]
+}
