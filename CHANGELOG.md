@@ -38,6 +38,8 @@ are already published. So, I stick to it for now.
 * add `validate_pragmatic` to the python binding
 * add a javascript/node example
 * add `E0005`, `E1305` and `E1309` errors
+* implement `Default` for the pragmatic `Job`, so it can be built with `..Default::default()` and new optional
+  fields do not break such code
 
 ### Fixed
 

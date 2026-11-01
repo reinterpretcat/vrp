@@ -94,10 +94,7 @@ mod actual {
                 deliveries: get_tasks(&tasks, Box::new(|j| j.demand < 0)),
                 replacements: None,
                 services: get_tasks(&tasks, Box::new(|j| j.demand == 0)),
-                skills: None,
-                value: None,
-                group: None,
-                compatibility: None,
+                ..Default::default()
             })
             .collect();
 

@@ -86,12 +86,11 @@ prop_compose! {
                     }
                 ], demand, order: None }
             ]),
-            replacements: None,
-            services: None,
             skills,
             value,
             group,
-            compatibility
+            compatibility,
+            ..Default::default()
         }
     }
 }

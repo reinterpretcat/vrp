@@ -91,7 +91,7 @@ pub struct JobTask {
 /// which follows these rules:
 /// * all of them should be completed or none of them.
 /// * all pickups must be completed before any of deliveries.
-#[derive(Clone, Deserialize, Debug, Serialize)]
+#[derive(Clone, Default, Deserialize, Debug, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Job {
     /// A job id.
