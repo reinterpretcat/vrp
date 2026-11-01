@@ -2,17 +2,7 @@ use vrp_pragmatic::format::Location;
 use vrp_pragmatic::format::problem::*;
 
 pub fn create_empty_job() -> Job {
-    Job {
-        id: "".to_string(),
-        pickups: None,
-        deliveries: None,
-        replacements: None,
-        services: None,
-        skills: None,
-        value: None,
-        group: None,
-        compatibility: None,
-    }
+    Job::default()
 }
 
 pub fn create_empty_job_task() -> JobTask {

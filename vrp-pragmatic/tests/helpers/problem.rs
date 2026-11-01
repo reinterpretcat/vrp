@@ -15,17 +15,7 @@ pub fn create_task(location: (f64, f64), tag: Option<String>) -> JobTask {
 }
 
 pub fn create_job(id: &str) -> Job {
-    Job {
-        id: id.to_string(),
-        pickups: None,
-        deliveries: None,
-        replacements: None,
-        services: None,
-        skills: None,
-        value: None,
-        group: None,
-        compatibility: None,
-    }
+    Job { id: id.to_string(), ..Default::default() }
 }
 
 pub fn create_delivery_job(id: &str, location: (f64, f64)) -> Job {
