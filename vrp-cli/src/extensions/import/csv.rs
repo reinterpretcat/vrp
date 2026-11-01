@@ -98,6 +98,7 @@ mod actual {
                 value: None,
                 group: None,
                 compatibility: None,
+                fixed_order: None,
             })
             .collect();
 

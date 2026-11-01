@@ -25,6 +25,7 @@ pub fn create_job(id: &str) -> Job {
         value: None,
         group: None,
         compatibility: None,
+        fixed_order: None,
     }
 }
 

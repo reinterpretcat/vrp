@@ -1,0 +1,118 @@
+{
+  "plan": {
+    "jobs": [
+      {
+        "id": "companion_trip",
+        "pickups": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5330881,
+                  "lng": 13.3973059
+                },
+                "duration": 120.0,
+                "tag": "companion_pickup"
+              }
+            ],
+            "demand": [
+              1
+            ]
+          },
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.4928,
+                  "lng": 13.3415
+                },
+                "duration": 120.0,
+                "tag": "rider_pickup"
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "deliveries": [
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5252832,
+                  "lng": 13.4188422
+                },
+                "duration": 120.0,
+                "tag": "rider_delivery"
+              }
+            ],
+            "demand": [
+              1
+            ]
+          },
+          {
+            "places": [
+              {
+                "location": {
+                  "lat": 52.5622847,
+                  "lng": 13.4023099
+                },
+                "duration": 120.0,
+                "tag": "companion_delivery"
+              }
+            ],
+            "demand": [
+              1
+            ]
+          }
+        ],
+        "fixedOrder": true
+      }
+    ]
+  },
+  "fleet": {
+    "vehicles": [
+      {
+        "typeId": "vehicle",
+        "vehicleIds": [
+          "vehicle_1"
+        ],
+        "profile": {
+          "matrix": "normal_car"
+        },
+        "costs": {
+          "fixed": 22.0,
+          "distance": 0.0002,
+          "time": 0.004806
+        },
+        "shifts": [
+          {
+            "start": {
+              "earliest": "2019-07-04T09:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            },
+            "end": {
+              "latest": "2019-07-04T18:00:00Z",
+              "location": {
+                "lat": 52.4664257,
+                "lng": 13.2812488
+              }
+            }
+          }
+        ],
+        "capacity": [
+          10
+        ]
+      }
+    ],
+    "profiles": [
+      {
+        "name": "normal_car"
+      }
+    ]
+  }
+}

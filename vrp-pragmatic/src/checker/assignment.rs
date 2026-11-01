@@ -14,7 +14,13 @@ use vrp_core::utils::GenericError;
 
 /// Checks assignment of jobs and vehicles.
 pub fn check_assignment(ctx: &CheckerContext) -> Result<(), Vec<GenericError>> {
-    combine_error_results(&[check_vehicles(ctx), check_jobs_presence(ctx), check_jobs_match(ctx), check_groups(ctx)])
+    combine_error_results(&[
+        check_vehicles(ctx),
+        check_jobs_presence(ctx),
+        check_jobs_match(ctx),
+        check_groups(ctx),
+        check_fixed_order(ctx),
+    ])
 }
 
 /// Checks that vehicles in each tour are used once per shift and they are known in problem.
@@ -286,4 +292,66 @@ fn check_groups(ctx: &CheckerContext) -> GenericResult<()> {
         let err_info = violations.into_iter().map(|(group, _)| group).collect::<Vec<_>>().join(",");
         Err(format!("job groups are not respected: '{err_info}'").into())
     }
+}
+
+/// Checks that tasks of jobs with a fixed order are served in the order they are listed: pickups, deliveries,
+/// replacements, then services.
+fn check_fixed_order(ctx: &CheckerContext) -> GenericResult<()> {
+    let jobs = ctx.problem.plan.jobs.iter().filter(|job| job.fixed_order == Some(true)).collect::<Vec<_>>();
+    if jobs.is_empty() {
+        return Ok(());
+    }
+
+    let job_activities =
+        ctx.solution.tours.iter().flat_map(|tour| tour.stops.iter()).flat_map(|stop| stop.activities().iter()).fold(
+            HashMap::<&str, Vec<&Activity>>::new(),
+            |mut acc, activity| {
+                acc.entry(activity.job_id.as_str()).or_default().push(activity);
+                acc
+            },
+        );
+
+    jobs.into_iter().try_for_each(|job| {
+        // NOTE an unassigned job has nothing to check
+        let Some(activities) = job_activities.get(job.id.as_str()) else {
+            return Ok(());
+        };
+
+        let tasks = get_ordered_tasks(job);
+        let is_same_task = |activity: &Activity, (activity_type, task): &(&str, &JobTask)| {
+            let has_single_task_of_type =
+                tasks.iter().filter(|(other_type, _)| other_type == activity_type).count() == 1;
+
+            activity.activity_type == *activity_type
+                && (has_single_task_of_type || task.places.iter().any(|place| place.tag == activity.job_tag))
+        };
+
+        let actual = activities
+            .iter()
+            .map(|activity| tasks.iter().position(|task| is_same_task(activity, task)))
+            .collect::<Vec<_>>();
+        let expected = (0..tasks.len()).map(Some).collect::<Vec<_>>();
+
+        if actual == expected {
+            Ok(())
+        } else {
+            let served = activities
+                .iter()
+                .map(|activity| format!("{}:{}", activity.activity_type, activity.job_tag.as_deref().unwrap_or("")))
+                .collect::<Vec<_>>()
+                .join(",");
+            Err(format!("fixed order of job '{}' is not respected, served as: '{served}'", job.id).into())
+        }
+    })
+}
+
+fn get_ordered_tasks(job: &Job) -> Vec<(&'static str, &JobTask)> {
+    job.pickups
+        .iter()
+        .flatten()
+        .map(|task| ("pickup", task))
+        .chain(job.deliveries.iter().flatten().map(|task| ("delivery", task)))
+        .chain(job.replacements.iter().flatten().map(|task| ("replacement", task)))
+        .chain(job.services.iter().flatten().map(|task| ("service", task)))
+        .collect()
 }

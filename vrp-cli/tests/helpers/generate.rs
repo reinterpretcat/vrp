@@ -12,6 +12,7 @@ pub fn create_empty_job() -> Job {
         value: None,
         group: None,
         compatibility: None,
+        fixed_order: None,
     }
 }
 

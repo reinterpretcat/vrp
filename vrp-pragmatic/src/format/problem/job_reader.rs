@@ -443,7 +443,10 @@ fn get_multi_job(job: &ApiJob, singles: Vec<Single>, deliveries_start_index: usi
 
     let singles = singles.into_iter().map(Arc::new).collect::<Vec<_>>();
 
-    let multi = if singles.len() == 2 && deliveries_start_index == 1 {
+    // NOTE a single pickup with a single delivery has only one valid order anyway
+    let is_fixed_order = job.fixed_order.unwrap_or(false) || (singles.len() == 2 && deliveries_start_index == 1);
+
+    let multi = if is_fixed_order {
         Multi::new_shared(singles, dimens)
     } else {
         let jobs_len = singles.len();

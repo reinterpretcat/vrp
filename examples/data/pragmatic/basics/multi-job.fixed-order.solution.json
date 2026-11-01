@@ -1,0 +1,161 @@
+{
+  "statistic": {
+    "cost": 52.060148000000005,
+    "distance": 40772,
+    "duration": 4558,
+    "times": {
+      "driving": 4078,
+      "serving": 480,
+      "waiting": 0,
+      "break": 0,
+      "commuting": 0,
+      "parking": 0
+    }
+  },
+  "tours": [
+    {
+      "vehicleId": "vehicle_1",
+      "typeId": "vehicle",
+      "shiftIndex": 0,
+      "stops": [
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "2019-07-04T09:00:00Z",
+            "departure": "2019-07-04T09:00:00Z"
+          },
+          "distance": 0,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "departure",
+              "type": "departure"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5330881,
+            "lng": 13.3973059
+          },
+          "time": {
+            "arrival": "2019-07-04T09:18:01Z",
+            "departure": "2019-07-04T09:20:01Z"
+          },
+          "distance": 10813,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "companion_trip",
+              "type": "pickup",
+              "jobTag": "companion_pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4928,
+            "lng": 13.3415
+          },
+          "time": {
+            "arrival": "2019-07-04T09:29:48Z",
+            "departure": "2019-07-04T09:31:48Z"
+          },
+          "distance": 16679,
+          "load": [
+            2
+          ],
+          "activities": [
+            {
+              "jobId": "companion_trip",
+              "type": "pickup",
+              "jobTag": "rider_pickup"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5252832,
+            "lng": 13.4188422
+          },
+          "time": {
+            "arrival": "2019-07-04T09:42:25Z",
+            "departure": "2019-07-04T09:44:25Z"
+          },
+          "distance": 23046,
+          "load": [
+            1
+          ],
+          "activities": [
+            {
+              "jobId": "companion_trip",
+              "type": "delivery",
+              "jobTag": "rider_delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.5622847,
+            "lng": 13.4023099
+          },
+          "time": {
+            "arrival": "2019-07-04T09:51:32Z",
+            "departure": "2019-07-04T09:53:32Z"
+          },
+          "distance": 27314,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "companion_trip",
+              "type": "delivery",
+              "jobTag": "companion_delivery"
+            }
+          ]
+        },
+        {
+          "location": {
+            "lat": 52.4664257,
+            "lng": 13.2812488
+          },
+          "time": {
+            "arrival": "2019-07-04T10:15:58Z",
+            "departure": "2019-07-04T10:15:58Z"
+          },
+          "distance": 40772,
+          "load": [
+            0
+          ],
+          "activities": [
+            {
+              "jobId": "arrival",
+              "type": "arrival"
+            }
+          ]
+        }
+      ],
+      "statistic": {
+        "cost": 52.060148000000005,
+        "distance": 40772,
+        "duration": 4558,
+        "times": {
+          "driving": 4078,
+          "serving": 480,
+          "waiting": 0,
+          "break": 0,
+          "commuting": 0,
+          "parking": 0
+        }
+      }
+    }
+  ]
+}

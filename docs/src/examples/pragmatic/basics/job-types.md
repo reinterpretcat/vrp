@@ -61,6 +61,32 @@ This example contains two multi jobs with slightly different parameters.
  </p></details>
   
  
+ ## Fixed order of tasks
+
+By default, the solver chooses the order of a job's pickups among themselves and of its deliveries among themselves.
+In this example, a rider travels with a companion: the companion is picked up first and dropped off last, so
+`fixedOrder` is set to serve the tasks exactly in the order they are listed. Without it, the solver would pick up the
+rider first and drop off the companion first, as that route is shorter.
+
+ <details>
+     <summary>Problem</summary><p>
+
+ ```json
+ {{#include ../../../../../examples/data/pragmatic/basics/multi-job.fixed-order.problem.json}}
+ ```
+
+ </p></details>
+
+ <details>
+     <summary>Solution</summary><p>
+
+ ```json
+ {{#include ../../../../../examples/data/pragmatic/basics/multi-job.fixed-order.solution.json}}
+ ```
+
+ </p></details>
+
+
  ## Mixing job task types
  
 You can mix job task types in one job:
