@@ -1,11 +1,11 @@
 {
   "statistic": {
-    "cost": 52.060148000000005,
-    "distance": 40772,
-    "duration": 4558,
+    "cost": 42.34337,
+    "distance": 27344,
+    "duration": 3095,
     "times": {
-      "driving": 4078,
-      "serving": 480,
+      "driving": 2735,
+      "serving": 360,
       "waiting": 0,
       "break": 0,
       "commuting": 0,
@@ -40,20 +40,20 @@
         },
         {
           "location": {
-            "lat": 52.5330881,
-            "lng": 13.3973059
+            "lat": 52.5005,
+            "lng": 13.3402
           },
           "time": {
-            "arrival": "2019-07-04T09:18:01Z",
-            "departure": "2019-07-04T09:20:01Z"
+            "arrival": "2019-07-04T09:09:11Z",
+            "departure": "2019-07-04T09:11:11Z"
           },
-          "distance": 10813,
+          "distance": 5510,
           "load": [
             1
           ],
           "activities": [
             {
-              "jobId": "companion_trip",
+              "jobId": "school_trip",
               "type": "pickup",
               "jobTag": "companion_pickup"
             }
@@ -61,64 +61,43 @@
         },
         {
           "location": {
-            "lat": 52.4928,
-            "lng": 13.3415
+            "lat": 52.4801,
+            "lng": 13.301
           },
           "time": {
-            "arrival": "2019-07-04T09:29:48Z",
-            "departure": "2019-07-04T09:31:48Z"
+            "arrival": "2019-07-04T09:17:01Z",
+            "departure": "2019-07-04T09:19:01Z"
           },
-          "distance": 16679,
+          "distance": 9005,
           "load": [
             2
           ],
           "activities": [
             {
-              "jobId": "companion_trip",
+              "jobId": "school_trip",
               "type": "pickup",
-              "jobTag": "rider_pickup"
+              "jobTag": "student_pickup"
             }
           ]
         },
         {
           "location": {
-            "lat": 52.5252832,
-            "lng": 13.4188422
+            "lat": 52.5212,
+            "lng": 13.4011
           },
           "time": {
-            "arrival": "2019-07-04T09:42:25Z",
-            "departure": "2019-07-04T09:44:25Z"
+            "arrival": "2019-07-04T09:32:39Z",
+            "departure": "2019-07-04T09:34:39Z"
           },
-          "distance": 23046,
-          "load": [
-            1
-          ],
-          "activities": [
-            {
-              "jobId": "companion_trip",
-              "type": "delivery",
-              "jobTag": "rider_delivery"
-            }
-          ]
-        },
-        {
-          "location": {
-            "lat": 52.5622847,
-            "lng": 13.4023099
-          },
-          "time": {
-            "arrival": "2019-07-04T09:51:32Z",
-            "departure": "2019-07-04T09:53:32Z"
-          },
-          "distance": 27314,
+          "distance": 17187,
           "load": [
             0
           ],
           "activities": [
             {
-              "jobId": "companion_trip",
+              "jobId": "school_trip",
               "type": "delivery",
-              "jobTag": "companion_delivery"
+              "jobTag": "school_delivery"
             }
           ]
         },
@@ -128,10 +107,10 @@
             "lng": 13.2812488
           },
           "time": {
-            "arrival": "2019-07-04T10:15:58Z",
-            "departure": "2019-07-04T10:15:58Z"
+            "arrival": "2019-07-04T09:51:35Z",
+            "departure": "2019-07-04T09:51:35Z"
           },
-          "distance": 40772,
+          "distance": 27344,
           "load": [
             0
           ],
@@ -144,12 +123,12 @@
         }
       ],
       "statistic": {
-        "cost": 52.060148000000005,
-        "distance": 40772,
-        "duration": 4558,
+        "cost": 42.34337,
+        "distance": 27344,
+        "duration": 3095,
         "times": {
-          "driving": 4078,
-          "serving": 480,
+          "driving": 2735,
+          "serving": 360,
           "waiting": 0,
           "break": 0,
           "commuting": 0,

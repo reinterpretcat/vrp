@@ -64,9 +64,9 @@ This example contains two multi jobs with slightly different parameters.
  ## Fixed order of tasks
 
 By default, the solver chooses the order of a job's pickups among themselves and of its deliveries among themselves.
-In this example, a rider travels with a companion: the companion is picked up first and dropped off last, so
-`fixedOrder` is set to serve the tasks exactly in the order they are listed. Without it, the solver would pick up the
-rider first and drop off the companion first, as that route is shorter.
+In this example, a student travels to school with a companion, who has to be picked up before the student. The
+companion's pickup is listed first and `fixedOrder` is set, so the tasks are served exactly in the order they are
+listed. Without it, the solver would pick up the student first, as that route is shorter.
 
  <details>
      <summary>Problem</summary><p>

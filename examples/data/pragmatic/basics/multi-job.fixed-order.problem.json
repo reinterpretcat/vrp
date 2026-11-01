@@ -2,14 +2,14 @@
   "plan": {
     "jobs": [
       {
-        "id": "companion_trip",
+        "id": "school_trip",
         "pickups": [
           {
             "places": [
               {
                 "location": {
-                  "lat": 52.5330881,
-                  "lng": 13.3973059
+                  "lat": 52.5005,
+                  "lng": 13.3402
                 },
                 "duration": 120.0,
                 "tag": "companion_pickup"
@@ -23,11 +23,11 @@
             "places": [
               {
                 "location": {
-                  "lat": 52.4928,
-                  "lng": 13.3415
+                  "lat": 52.4801,
+                  "lng": 13.301
                 },
                 "duration": 120.0,
-                "tag": "rider_pickup"
+                "tag": "student_pickup"
               }
             ],
             "demand": [
@@ -40,30 +40,15 @@
             "places": [
               {
                 "location": {
-                  "lat": 52.5252832,
-                  "lng": 13.4188422
+                  "lat": 52.5212,
+                  "lng": 13.4011
                 },
                 "duration": 120.0,
-                "tag": "rider_delivery"
+                "tag": "school_delivery"
               }
             ],
             "demand": [
-              1
-            ]
-          },
-          {
-            "places": [
-              {
-                "location": {
-                  "lat": 52.5622847,
-                  "lng": 13.4023099
-                },
-                "duration": 120.0,
-                "tag": "companion_delivery"
-              }
-            ],
-            "demand": [
-              1
+              2
             ]
           }
         ],
