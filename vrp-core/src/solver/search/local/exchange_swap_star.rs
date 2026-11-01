@@ -3,7 +3,7 @@
 mod exchange_swap_star_test;
 
 use super::*;
-use crate::models::problem::{Job, Single};
+use crate::models::problem::{Actor, Job, Single};
 use crate::models::solution::Leg;
 use crate::solver::search::create_environment_with_custom_quota;
 use rosomaxa::utils::*;
@@ -39,7 +39,15 @@ impl LocalOperator for ExchangeSwapStar {
         // NOTE higher value affects performance
         const ROUTE_PAIRS_THRESHOLD: usize = 8;
 
-        let route_pairs = create_route_pairs(insertion_ctx, ROUTE_PAIRS_THRESHOLD);
+        // A finalized candidate can drop a route left without jobs, which shifts route indices.
+        // Pairs keep their actors and are resolved against the current source each time.
+        let actor_pairs = create_route_pairs(insertion_ctx, ROUTE_PAIRS_THRESHOLD)
+            .into_iter()
+            .map(|(outer_idx, inner_idx)| {
+                let get_actor = |route_idx| get_route_by_idx(insertion_ctx, route_idx).route().actor.clone();
+                (get_actor(outer_idx), get_actor(inner_idx))
+            })
+            .collect::<Vec<_>>();
 
         // modify environment to include median as an extra quota to prevent long runs
         let limit =
@@ -48,8 +56,11 @@ impl LocalOperator for ExchangeSwapStar {
         let quota = search_environment.quota.clone();
         let mut candidate = None;
 
-        let _ = route_pairs.into_iter().try_for_each(|route_pair| {
+        let _ = actor_pairs.iter().try_for_each(|actor_pair| {
             let source = candidate.as_ref().unwrap_or(insertion_ctx);
+            let Some(route_pair) = find_route_pair(source, actor_pair) else {
+                return Ok(());
+            };
             let (insertion_pair, is_quota_reached) = find_exchange_jobs_in_routes(
                 source,
                 route_pair,
@@ -78,6 +89,15 @@ type SearchContext<'a> = (&'a InsertionContext, &'a LegSelection, &'a dyn Result
 
 fn get_route_by_idx(insertion_ctx: &InsertionContext, route_idx: usize) -> &RouteContext {
     insertion_ctx.solution.routes.get(route_idx).expect("invalid route index")
+}
+
+/// Finds the current indices of both routes of an actor pair, or `None` when either route is gone.
+fn find_route_pair(insertion_ctx: &InsertionContext, actor_pair: &(Arc<Actor>, Arc<Actor>)) -> Option<(usize, usize)> {
+    let find_route_idx = |actor: &Arc<Actor>| {
+        insertion_ctx.solution.routes.iter().position(|route_ctx| Arc::ptr_eq(&route_ctx.route().actor, actor))
+    };
+
+    Some((find_route_idx(&actor_pair.0)?, find_route_idx(&actor_pair.1)?))
 }
 
 fn get_movable_jobs(insertion_ctx: &InsertionContext, route_ctx: &RouteContext) -> Vec<Job> {

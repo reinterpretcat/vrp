@@ -688,3 +688,27 @@ fn can_create_route_pairs_impl(route_pairs_threshold: usize, is_proximity: bool,
 
     assert_eq!(pairs.len(), expected_length);
 }
+
+#[test]
+fn can_find_route_pair_after_candidate_dropped_a_route() {
+    let (problem, solution) = generate_matrix_routes_with_defaults(3, 3, true);
+    let mut insertion_ctx =
+        InsertionContext::new_from_solution(Arc::new(problem), (solution, None), Arc::new(Environment::default()));
+    let get_actor = |insertion_ctx: &InsertionContext, route_idx: usize| {
+        insertion_ctx.solution.routes[route_idx].route().actor.clone()
+    };
+    let (first, middle, last) =
+        (get_actor(&insertion_ctx, 0), get_actor(&insertion_ctx, 1), get_actor(&insertion_ctx, 2));
+
+    // A finalized candidate drops a route left without jobs, which shifts every later route index.
+    let middle_jobs = insertion_ctx.solution.routes[1].route().tour.jobs().cloned().collect::<Vec<_>>();
+    middle_jobs.iter().for_each(|job| {
+        insertion_ctx.solution.routes[1].route_mut().tour.remove(job);
+    });
+    insertion_ctx.solution.remove_empty_routes();
+    assert_eq!(insertion_ctx.solution.routes.len(), 2);
+
+    assert_eq!(find_route_pair(&insertion_ctx, &(last.clone(), first.clone())), Some((1, 0)));
+    assert_eq!(find_route_pair(&insertion_ctx, &(last, middle.clone())), None);
+    assert_eq!(find_route_pair(&insertion_ctx, &(middle, first)), None);
+}
