@@ -3,6 +3,7 @@
 mod co_located_test;
 
 use super::*;
+use rustc_hash::FxHashMap;
 use std::collections::HashMap;
 
 custom_solution_state!(SplitCoLocatedPairs typeof Cost);
@@ -27,12 +28,21 @@ pub fn create_co_located_feature(name: &str, pairs: Vec<(Job, Job)>) -> Result<F
 
     // Reference scale for a scalarizing multi-objective: the fitness when every pair is split.
     let fitness_scale = (partners.values().map(Vec::len).sum::<usize>() as Cost / 2.).max(1.);
+    // Counted after every search step: each job of a pair gets a slot, so a count fills one slot per
+    // assigned job and compares the pairs, instead of hashing every job of the solution into a map.
+    let slots = partners.keys().enumerate().map(|(slot, job)| (job.clone(), slot)).collect::<FxHashMap<_, _>>();
+    let pairs = partners
+        .iter()
+        .flat_map(|(job, partners)| partners.iter().map(move |partner| (job, partner)))
+        .map(|(job, partner)| (slots[job], slots[partner]))
+        .filter(|(slot, partner)| slot < partner)
+        .collect();
     let partners = Arc::new(partners);
 
     FeatureBuilder::default()
         .with_name(name)
-        .with_objective(CoLocatedObjective { partners: partners.clone(), fitness_scale })
-        .with_state(CoLocatedState { partners })
+        .with_objective(CoLocatedObjective { partners, fitness_scale })
+        .with_state(CoLocatedState { slots, pairs })
         .build()
 }
 
@@ -68,7 +78,10 @@ impl FeatureObjective for CoLocatedObjective {
 }
 
 struct CoLocatedState {
-    partners: Arc<HashMap<Job, Vec<Job>>>,
+    /// The slot of every job that has a partner.
+    slots: FxHashMap<Job, usize>,
+    /// Every pair once, by slot. A job paired with itself is left out: it can never be split.
+    pairs: Vec<(usize, usize)>,
 }
 
 impl FeatureState for CoLocatedState {
@@ -77,21 +90,16 @@ impl FeatureState for CoLocatedState {
     fn accept_route_state(&self, _: &mut RouteContext) {}
 
     fn accept_solution_state(&self, solution_ctx: &mut SolutionContext) {
-        let route_idx_of = solution_ctx
-            .routes
-            .iter()
-            .enumerate()
-            .flat_map(|(idx, route_ctx)| route_ctx.route().tour.jobs().map(move |job| (job, idx)))
-            .collect::<HashMap<_, _>>();
+        let mut route_of = vec![usize::MAX; self.slots.len()];
+        solution_ctx.routes.iter().enumerate().for_each(|(idx, route_ctx)| {
+            route_ctx.route().tour.jobs().filter_map(|job| self.slots.get(job)).for_each(|&slot| route_of[slot] = idx);
+        });
 
-        // Every pair sits under both of its jobs, so each split pair is seen twice.
         let split = self
-            .partners
+            .pairs
             .iter()
-            .flat_map(|(job, partners)| partners.iter().map(move |partner| (job, partner)))
-            .filter(|(a, b)| matches!((route_idx_of.get(a), route_idx_of.get(b)), (Some(a), Some(b)) if a != b))
-            .count()
-            / 2;
+            .filter(|&&(a, b)| route_of[a] != usize::MAX && route_of[b] != usize::MAX && route_of[a] != route_of[b])
+            .count();
 
         solution_ctx.state.set_split_co_located_pairs(split as Cost);
     }

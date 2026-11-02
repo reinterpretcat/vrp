@@ -236,7 +236,10 @@ pub(crate) fn create_reserved_times_fn(
     //       reserved_time.time.start is ignored and should be handled by post processing
     Ok(Arc::new(move |route: &Route, time_window: &TimeWindow| {
         reserved_times.get(&route.actor).and_then(|partitioned| {
-            let offset = get_offset_anchor(route);
+            // the anchor walks the tour and is read on every leg the schedule estimates, yet only an
+            // offset span uses it: a window span maps to itself whatever the offset
+            let offset =
+                if partitioned.offset_group.is_some() { get_offset_anchor(route) } else { Timestamp::default() };
 
             // Search window group with absolute time
             let window_result = partitioned

@@ -42,7 +42,11 @@ impl VisitWindowsActivityCost {
     /// The windows a visit may lie in on this route: the window its tag names, then that window's
     /// fallback chain. The vehicle lookup comes first: it is cheap and constant per route, and a shift
     /// without windows leaves through it before the job is looked at.
-    fn windows(&self, route: &Route, activity: &Activity) -> Option<Vec<Window>> {
+    fn windows<'a>(
+        &'a self,
+        route: &'a Route,
+        activity: &'a Activity,
+    ) -> Option<impl Iterator<Item = Window> + Clone + 'a> {
         let windows: &VisitWindows = route.actor.vehicle.dimens.get_visit_windows()?;
         let single = activity.job.as_ref()?;
         let tag: &String = single.dimens.get_visit_window_tag()?;
@@ -51,21 +55,12 @@ impl VisitWindowsActivityCost {
             return None;
         }
 
-        let chain =
-            windows
-                .chain(tag)
-                .into_iter()
-                .enumerate()
-                .map(|(idx, (_, window))| {
-                    if idx == 0 {
-                        own_window_on(route, window, &self.is_visit)
-                    } else {
-                        (window.earliest, window.latest)
-                    }
-                })
-                .collect::<Vec<_>>();
+        // walked, not collected: this runs for every visit the schedule estimates.
+        let chain = windows.chain_iter(tag).enumerate().map(move |(idx, (_, window))| {
+            if idx == 0 { own_window_on(route, window, &self.is_visit) } else { (window.earliest, window.latest) }
+        });
 
-        (!chain.is_empty()).then_some(chain)
+        chain.clone().next().is_some().then_some(chain)
     }
 
     /// Serves the visit inside `window` from `arrival`: held back to its start, refused when it
@@ -93,10 +88,9 @@ impl VisitWindowsActivityCost {
         let chain = self.windows(route, activity)?;
 
         chain
-            .iter()
-            .copied()
+            .clone()
             .find(|&window| matches!(self.serve_in(route, activity, arrival, window), ControlFlow::Continue(_)))
-            .or_else(|| chain.last().copied())
+            .or_else(|| chain.last())
     }
 }
 
@@ -117,18 +111,20 @@ pub fn own_window_on(route: &Route, window: &VisitWindow, is_visit: &IsAppointme
 /// have a time window, or `None` when there is none: what every bridged window on the route reaches
 /// out to. It depends on the route alone, so a caller weighing many visits of one route takes it once.
 pub fn untagged_visit_span(route: &Route, is_visit: &IsAppointmentFn) -> Option<Window> {
-    route
-        .tour
-        .all_activities()
-        .filter_map(|activity| activity.job.as_ref().map(|single| (activity, single)))
-        // a visit without a time window of its own says nothing about when the route is out.
-        .filter(|(activity, single)| {
-            is_visit(single)
-                && single.dimens.get_visit_window_tag().is_none()
-                && activity.place.time.end < Timestamp::MAX
-        })
-        .map(|(activity, _)| (activity.place.time.start, activity.place.time.end))
-        .reduce(|(earliest, latest), (start, end)| (earliest.min(start), latest.max(end)))
+    // kept on the tour: it is read for every visit the schedule estimates, the tour changes far less.
+    route.tour.untagged_visit_span(|tour| {
+        tour.all_activities()
+            .filter_map(|activity| activity.job.as_ref().map(|single| (activity, single)))
+            // a visit without a time window of its own says nothing about when the route is out. Cheapest
+            // test first: most visits are tagged, so `is_visit` (a job type lookup) is rarely reached.
+            .filter(|(activity, single)| {
+                activity.place.time.end < Timestamp::MAX
+                    && single.dimens.get_visit_window_tag().is_none()
+                    && is_visit(single)
+            })
+            .map(|(activity, _)| (activity.place.time.start, activity.place.time.end))
+            .reduce(|(earliest, latest), (start, end)| (earliest.min(start), latest.max(end)))
+    })
 }
 
 /// The own window `own_window_on` gives for `span`, the route's `untagged_visit_span`.
@@ -165,7 +161,7 @@ impl ActivityCost for VisitWindowsActivityCost {
     ) -> ControlFlow<Timestamp, Timestamp> {
         // the latest the visit may be departed from at all: the latest end along its chain.
         let departure = self.windows(route, activity).map_or(departure, |chain| {
-            departure.min(chain.iter().map(|&(_, latest)| latest).fold(Timestamp::MIN, Timestamp::max))
+            departure.min(chain.map(|(_, latest)| latest).fold(Timestamp::MIN, Timestamp::max))
         });
 
         self.inner.estimate_arrival(route, activity, departure)

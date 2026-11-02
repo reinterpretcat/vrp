@@ -3,7 +3,7 @@
 mod tour_test;
 
 use crate::models::OP_START_MSG;
-use crate::models::common::Schedule;
+use crate::models::common::{Schedule, Timestamp};
 use crate::models::problem::{Actor, Job, JobIdDimension};
 use crate::models::solution::{Activity, Place};
 use crate::utils::{Either, short_type_name};
@@ -14,7 +14,7 @@ use std::hash::BuildHasherDefault;
 use std::iter::once;
 use std::ops::Index;
 use std::slice::{Iter, IterMut};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 /// A tour leg.
 pub type Leg<'a> = (&'a [Activity], usize);
@@ -27,6 +27,10 @@ struct TourData {
 
     /// Stores jobs in the order of their activities added.
     jobs: HashSet<Job, BuildHasherDefault<FxHasher>>,
+
+    /// The span of the untagged visits, derived on first read and dropped by every change to the tour
+    /// (`data_mut`). See `Tour::untagged_visit_span`.
+    untagged_visit_span: OnceLock<Option<(Timestamp, Timestamp)>>,
 }
 
 /// Represents a tour, a smart container for jobs with their associated activities.
@@ -48,11 +52,31 @@ impl Tour {
         tour
     }
 
+    /// The tour's data to change. Every change goes through here, so whatever was derived from the
+    /// activities is dropped with it.
+    fn data_mut(&mut self) -> &mut TourData {
+        let data = Arc::make_mut(&mut self.data);
+        data.untagged_visit_span = OnceLock::new();
+
+        data
+    }
+
+    /// The span of the untagged visits on the tour, `derive`d once and kept until the tour changes.
+    /// Bridged visit windows read it for every visit the schedule estimates, while a route only changes
+    /// between those estimates. ⚠️ Every reader must pass the same derivation: whichever reads first
+    /// fills it for all (`visit_windows::untagged_visit_span` is the one).
+    pub fn untagged_visit_span(
+        &self,
+        derive: impl FnOnce(&Tour) -> Option<(Timestamp, Timestamp)>,
+    ) -> Option<(Timestamp, Timestamp)> {
+        *self.data.untagged_visit_span.get_or_init(|| derive(self))
+    }
+
     /// Sets tour start.
     pub fn set_start(&mut self, activity: Activity) -> &mut Tour {
         assert!(activity.job.is_none());
         assert!(self.data.activities.is_empty());
-        Arc::make_mut(&mut self.data).activities.push(activity);
+        self.data_mut().activities.push(activity);
 
         self
     }
@@ -61,7 +85,7 @@ impl Tour {
     pub fn set_end(&mut self, activity: Activity) -> &mut Tour {
         assert!(activity.job.is_none());
         assert!(!self.data.activities.is_empty());
-        Arc::make_mut(&mut self.data).activities.push(activity);
+        self.data_mut().activities.push(activity);
         self.is_closed = true;
 
         self
@@ -79,7 +103,7 @@ impl Tour {
         assert!(!self.data.activities.is_empty());
 
         let job = activity.retrieve_job().unwrap();
-        let data = Arc::make_mut(&mut self.data);
+        let data = self.data_mut();
         data.jobs.insert(job);
         data.activities.insert(index, activity);
 
@@ -88,7 +112,7 @@ impl Tour {
 
     /// Removes job within its activities from the tour.
     pub fn remove(&mut self, job: &Job) -> bool {
-        let data = Arc::make_mut(&mut self.data);
+        let data = self.data_mut();
         data.activities.retain(|a| !a.has_same_job(job));
         data.jobs.remove(job)
     }
@@ -118,7 +142,7 @@ impl Tour {
 
     /// Returns all activities in tour as mutable.
     pub fn all_activities_mut(&mut self) -> IterMut<'_, Activity> {
-        Arc::make_mut(&mut self.data).activities.iter_mut()
+        self.data_mut().activities.iter_mut()
     }
 
     /// Returns all activities in tour for a specific job.
@@ -168,7 +192,7 @@ impl Tour {
 
     /// Returns mutable activity by its index in tour.
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Activity> {
-        Arc::make_mut(&mut self.data).activities.get_mut(index)
+        self.data_mut().activities.get_mut(index)
     }
 
     /// Returns start activity in tour.
