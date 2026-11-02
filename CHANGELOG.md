@@ -10,6 +10,9 @@ are already published. So, I stick to it for now.
 
 ### Changed
 
+* select three parents per cpu (at most 24) instead of one (at most 8), so cores that finish their search early take
+  the next parent instead of waiting for the generation's slowest search
+* visit windows, breaks and co-located pairs no longer rederive per estimate what holds for the whole route or problem
 * migrate to rust 2024 edition
 * improved remedian algorithm
 * separate calculations for distance/duration from cost minimization
