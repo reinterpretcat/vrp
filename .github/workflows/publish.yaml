@@ -1,9 +1,14 @@
 name: Publish release assets
 
 # A release is published by this workflow and by nothing else: pushing a tag builds every target
-# into a DRAFT, attests each archive's build provenance, and only then publishes. The repo has
-# immutable releases on, so a published release's assets can never change again — which is why
-# the assets have to be complete before publishing, not uploaded after it.
+# into a DRAFT, attests each archive's build provenance while the repo is public, and only then
+# publishes. The repo has immutable releases on, so a published release's assets can never change
+# again — which is why the assets have to be complete before publishing, not uploaded after it.
+#
+# Once the repo is private there is no attestation: GitHub attests private repos only on
+# Enterprise Cloud, and the step would fail and leave every release a draft. The consumer
+# (fieldrouting's `solver:vrp-cli:pin`) then pins with `--without-attestation`, trusting this
+# release's SHA256SUMS as read with the developer's own credentials.
 on:
   push:
     tags: ["v*"]
@@ -187,7 +192,7 @@ jobs:
           if-no-files-found: error
 
   publish-release:
-    name: Attest, upload and publish the release
+    name: Upload and publish the release
     runs-on: ubuntu-latest
     needs: [build-binaries, create-checksums]
     permissions:
@@ -214,6 +219,7 @@ jobs:
           ls -la release-artifacts
 
       - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: release-artifacts/vrp-cli-*
